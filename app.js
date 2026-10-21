@@ -15,6 +15,9 @@ const CONFIG = {
   interstitialSeconds: 5,           // skip countdown
   interstitialOnDaily: false,       // never interrupt today's daily
   rankMaxTries: 5,                  // Rank it: lock-ins allowed before the answer is revealed
+  // v11 PRE-LAUNCH SWITCH: true = show the "All puzzles" tab/list (every puzzle, past AND future, for testing).
+  // Set to false at launch: the tab, the menu entry and #p= links disappear (random Practice stays).
+  SHOW_ALL_PUZZLES: true,
 };
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2" };
 
@@ -58,11 +61,11 @@ const norm = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toL
 
 // ================================================================ data parsing (mirrors build.py)
 const SHEET_COLS = {
-  puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","higher_is","values_visible","item_name","item_emoji","value","data_year","source_name","source_url","fun_fact","global_rank","global_total","global_scope","art","support_url","dataset"],
+  puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","higher_is","values_visible","item_name","item_emoji","value","data_year","source_name","source_url","fun_fact","global_rank","global_total","global_scope","art","support_url","dataset","series_title","headline"],
   country_lists: ["puzzle_id","country","iso3","emoji","value","year","tiebreak"],
   country_info: ["iso3","country","region","continent","capital","landlocked","part_of","population","population_year","gdp_per_capita_usd","gdp_year","source"],
   hint_bank: ["puzzle_id","rank","country","iso3","hint_no","auto_hint","override_hint","source"],
-  top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url"],
+  top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url","headline"],
 };
 const str = v => { v = String(v ?? "").trim(); return v.endsWith(".0") ? v.slice(0, -2) : v; };
 const num = v => { const n = parseFloat(String(v ?? "").replace(/,/g, "")); return isFinite(n) ? n : null; };
@@ -79,19 +82,20 @@ function sheetTypeOf(headers) {
   return null;
 }
 
+const FAMOUS = ["United States", "China", "India", "Japan", "Brazil", "Russia", "United Kingdom", "Germany", "France", "Mexico", "Italy", "Canada", "Australia", "South Korea", "Spain", "Turkey", "Saudi Arabia", "Egypt", "Nigeria", "South Africa", "Argentina", "Indonesia", "Sweden", "Israel", "Iran", "Netherlands", "Switzerland", "Norway", "Poland", "Ukraine", "Pakistan", "Thailand", "Vietnam", "Kenya", "Ireland", "Greece", "Cuba", "Jamaica", "New Zealand", "Portugal", "Denmark", "Finland", "England"];   // v11: preferred (recognizable) countries for title flags, same list as build.py
 const MIN_TOP5_COUNTRIES = 38;   // v9: Guess the top 5 needs >= 38 countries to guess from (else auto Rank it)
 function parseTables(t) {
   const out = [], by = {}, orderOf = (v, i) => num(v) ?? 10000 + i;
   for (const raw of t.puzzles || []) {
     const r = lowerKeys(raw), id = str(r.puzzle_id); if (!id) continue;
     let p = by[id];
-    if (!p) { p = by[id] = { type: "rank", id, order: null, emoji: "", question: "", stat: "", unit: "", higherIs: "top", valuesVisible: false, source: "", sourceUrl: "", fact: "", art: "", support: "", items: [] }; out.push(p); }
+    if (!p) { p = by[id] = { type: "rank", id, order: null, emoji: "", question: "", stat: "", unit: "", higherIs: "top", valuesVisible: false, source: "", sourceUrl: "", fact: "", art: "", support: "", headline: "", items: [] }; out.push(p); }
     if (!p.items.length) {
       p.order = orderOf(r.daily_order, out.length);
       const hi = str(r.higher_is).toLowerCase(); p.higherIs = hi === "bottom" ? "bottom" : "top";
       p.valuesVisible = ["yes", "y", "true", "1"].includes(str(r.values_visible).toLowerCase());
     }
-    for (const [k, c] of [["emoji","puzzle_emoji"],["question","question"],["stat","stat_label"],["unit","unit"],["source","source_name"],["sourceUrl","source_url"],["fact","fun_fact"],["art","art"],["support","support_url"],["dataset","dataset"]])
+    for (const [k, c] of [["emoji","puzzle_emoji"],["question","question"],["stat","stat_label"],["unit","unit"],["source","source_name"],["sourceUrl","source_url"],["fact","fun_fact"],["art","art"],["support","support_url"],["dataset","dataset"],["series","series_title"],["headline","headline"]])
       if (!p[k] && str(r[c])) p[k] = str(r[c]);
     const value = num(r.value); if (value == null) continue;
     const it = { name: str(r.item_name) || "?", emoji: str(r.item_emoji), value, year: str(r.data_year) };
@@ -111,7 +115,7 @@ function parseTables(t) {
       const n = countries.length, idx = [...new Set([0, .25, .5, .75, 1].map(f => Math.round((n - 1) * f)))];
       out.push({ type: "rank", id, order: orderOf(r.daily_order, out.length + i), emoji: str(r.puzzle_emoji), question: str(r.question) || id,
         stat: str(r.stat_label), unit: str(r.unit), higherIs: "top", valuesVisible: false, source: str(r.source_name), sourceUrl: str(r.source_url),
-        fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), convertedFrom: "top5",
+        fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), headline: str(r.headline), convertedFrom: "top5",
         items: idx.map(k => countries[k]).map(c => ({ name: c.name, emoji: c.emoji, value: c.value, year: c.year,
           gRank: 1 + countries.filter(x => x.value > c.value).length, gTotal: n, gScope: "" })) });
       return;
@@ -120,12 +124,21 @@ function parseTables(t) {
     countries = countries.map(c => { const b = bank[id + "|" + (c.iso3 || c.name)]; return cut(c) && b ? { ...c, hints: b.filter(Boolean) } : c; });
     out.push({ type: "top5", id, order: orderOf(r.daily_order, out.length + i), emoji: str(r.puzzle_emoji), question: str(r.question) || id,
       stat: str(r.stat_label), unit: str(r.unit), maxMisses: Math.round(num(r.max_misses) || 10), year: str(r.data_year),
-      source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), countries });
+      source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), headline: str(r.headline), countries });
   });
   const res = out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
-  // v10 (same as build.py): rankers sharing a "dataset" key get "(Group A)", "(Group B)", ... in daily order
-  const byDs = {}; res.forEach(p => { if (p.type === "rank" && p.dataset) (byDs[p.dataset] ||= []).push(p); });
-  Object.values(byDs).forEach(ps => ps.forEach((p, i) => { const base = p.question.replace(/\s*\(Group [A-Z]\)\s*$/, ""); p.question = ps.length > 1 ? `${base} (Group ${String.fromCharCode(65 + i)})` : base; }));
+  // v11 (same as build.py apply_titles): no "(Group X)" labels. Rankers sharing a "dataset" key are titled with the plain
+  // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
+  const byDs = {}; res.forEach(p => { p.question = p.question.replace(/\s*\(Group [A-Z]\)\s*$/, ""); if (p.type === "rank" && p.dataset) (byDs[p.dataset] ||= []).push(p); });
+  Object.values(byDs).forEach(ps => { if (ps.length < 2) return; ps.forEach(p => {
+    const others = ps.filter(q => q !== p).map(q => new Set(q.items.map(it => it.name))), seen = new Set(others.flatMap(o => [...o]));
+    const fam = n => { const k = FAMOUS.indexOf(n); return k < 0 ? FAMOUS.length : k; };
+    const c = p.items.map((it, i) => i).sort((a, b) => (seen.has(p.items[a].name) - seen.has(p.items[b].name)) || (fam(p.items[a].name) - fam(p.items[b].name)) || a - b);
+    let pair = null;
+    for (let x = 0; x < c.length && !pair; x++) for (let y = x + 1; y < c.length && !pair; y++) { const A = p.items[c[x]], B = p.items[c[y]];
+      if (!others.some(o => o.has(A.name) && o.has(B.name))) pair = [A, B].sort((u, v) => u.name < v.name ? -1 : u.name > v.name ? 1 : 0); }
+    if (pair) { p.question = `${p.series || p.question} ${pair[0].emoji}${pair[1].emoji}`; p.titleFlags = pair.map(it => it.name); } }); });
+  res.forEach(p => { delete p.series; if (!p.headline) p.headline = p.question; });   // v11: fun headline, plain question = subtitle
   return res;
 }
 
@@ -140,8 +153,7 @@ const mq = matchMedia("(prefers-color-scheme: dark)");
 const effectiveTheme = () => settings.theme === "system" ? (mq.matches ? "dark" : "light") : settings.theme;
 function applyTheme() {
   const t = effectiveTheme(); document.documentElement.dataset.theme = t;
-  $("#themeBtn").textContent = t === "dark" ? "☀️" : "🌙";
-  $("#themeBtn").title = t === "dark" ? "Switch to light mode" : "Switch to dark mode";
+  const tb = $("#mTheme"); if (tb) tb.innerHTML = themeLabel();
 }
 mq.addEventListener?.("change", () => settings.theme === "system" && applyTheme());
 
@@ -153,17 +165,80 @@ mq.addEventListener?.("change", () => settings.theme === "system" && applyTheme(
   if (q === "1" || q === "0") { settings.stream = q === "1" ? "on" : "off"; saveSettings(); } })();
 const streamerOn = () => settings.stream === "on";
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); }
-const Ads = { allowed: () => !streamerOn() };   // ad code must check this before requesting/rendering any creative
+const Ads = { allowed: () => !streamerOn(),   // ad code must check this before requesting/rendering any creative
+  decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
+  last: () => Ads.decisions[Ads.decisions.length - 1] || null,
+  skipsAfterWin: tier => !!tier };            // v11: interstitials are skipped after any win tier
 window.RankdAds = Ads;
+
+// ================================================================ random Practice (v11)
+// Generates a puzzle on the fly from the full ranked lists in practice-data.js (sensitive datasets included, each with its caveat; no rape data).
+// Rules: random dataset; 38+ countries -> Top 5 or Rank it at random, else Rank it. Rank it = 5 (sometimes 6) well-spread,
+// countries with >= 1 POPULAR_COUNTRIES entry: no ties, adjacent picks >= PR_MIN_RANK_GAP ranks apart (scaled by list size) and >= 3% of the
+// full value range apart. Top 5 uses the auto hint bank and the shared-#5 tie rule. Deterministic for a given seed (#r=<seed>).
+const PR = window.RANKD_PRACTICE || null;
+// v11 POPULAR_COUNTRIES: the ONE recognizability list for random Practice (edit here). Every generated Rank it puzzle on a
+// country dataset includes at least 1 of these (tier 1 preferred, then tier 2); a dataset with none of them is allowed
+// without. Pick weights: tier 1 x8, tier 2 x4, everyone else x1 (all scaled by log population).
+const POPULAR_COUNTRIES = {
+  tier1: ["Iran", "United States", "United Kingdom", "Germany", "France", "Italy", "Mexico", "China", "South Korea", "Japan", "Brazil", "India"],
+  tier2: ["Canada", "Australia", "Spain", "Russia", "Turkey", "Egypt", "Nigeria", "South Africa", "Indonesia", "Vietnam", "Thailand", "Philippines",
+          "Argentina", "Saudi Arabia", "Israel", "Sweden", "Netherlands", "Poland", "Ukraine", "Pakistan", "Taiwan"],
+  weight: { 1: 8, 2: 4, 0: 1 },
+};
+const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+const Practice = {
+  ok: () => !!(PR && PR.datasets && PR.datasets.length),
+  rules: { minGapShare: 0.03, rankGap: (n, k) => Math.max(2, Math.floor(n / (k * 4))), sixShare: 0.3, minPopM: 1 },
+  generate(seed, tries = 0) {
+    const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
+    const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
+    const ds = PR.datasets[Math.floor(R() * PR.datasets.length)];
+    const rows = ds.rows.map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], pop: C[r[0]][2], value: r[1], year: r.length > 2 ? String(r[2]) : String(ds.year || "") }));
+    rows.forEach(r => { r.rank = 1 + rows.filter(x => x.value > r.value).length; });
+    const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
+      source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null };
+    if (rows.length >= PR.minTop5 && ds.hints && R() < 0.5)
+      return { ...base, type: "top5", maxMisses: 10, countries: rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) })) };
+    const k = R() < ru.sixShare ? 6 : 5, N = rows.length, gapR = ru.rankGap(N, k), gapV = (rows[0].value - rows[N - 1].value) * ru.minGapShare;
+    const cand = rows.filter(r => r.pop >= ru.minPopM || tier(r.name));
+    const has1 = cand.some(r => tier(r.name) === 1), has2 = cand.some(r => tier(r.name) === 2);
+    for (let a = 0; a < 450; a++) {
+      const need = a < 200 && has1 ? 1 : a < 400 && (has1 || has2) ? 2 : 0;   // 1 = must include a tier-1 country, 2 = tier 1 or 2, 0 = none (dataset has no popular country)
+      if (!need && (has1 || has2)) break;
+      const pool = cand.slice(), pick = [];
+      while (pick.length < k && pool.length) {
+        const w = pool.map(r => POPULAR_COUNTRIES.weight[tier(r.name)] * Math.log10(10 + r.pop)); let x = R() * w.reduce((s, v) => s + v, 0), i = 0;
+        while ((x -= w[i]) > 0 && i < pool.length - 1) i++;
+        pick.push(pool.splice(i, 1)[0]);
+      }
+      pick.sort((x, y) => y.value - x.value);
+      if (need && !pick.some(r => tier(r.name) && tier(r.name) <= need)) continue;
+      if (pick.length === k && pick.every((r, i) => !i || (pick[i - 1].value > r.value && pick[i - 1].value - r.value >= gapV && r.rank - pick[i - 1].rank >= gapR)))
+        return { ...base, type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false,
+          items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: ds.rows[0].length > 2 ? r.year : "", gRank: r.rank, gTotal: N, gScope: "" })) };
+    }
+    return tries < 20 ? this.generate(seed, tries + 1) : null;
+  },
+};
+window.RankdPractice = { generate: s => Practice.generate(s), rules: Practice.rules, data: PR, ok: Practice.ok, popular: POPULAR_COUNTRIES };
+function goPractice(seed) {
+  if (!Practice.ok()) return goToday();
+  if (seed == null) seed = 1 + Math.floor(Math.random() * 2e9);
+  const p = Practice.generate(seed); if (!p) return goToday();
+  state.mode = "practice"; openPuzzle(p);
+}
 
 // ================================================================ state
 const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null };
 const puzzleForDay = n => PUZZLES[((n % PUZZLES.length) + PUZZLES.length) % PUZZLES.length];
-const resultKey = () => state.mode === "practice" ? `p:${state.puzzle.id}` : `d:${state.dateKey}`;
+const resultKey = () => state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
-const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, at: Date.now() }; save(LS.results, all); };
+const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, at: Date.now() };
+  const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
+  save(LS.results, all); };
 const isToday = () => state.mode === "daily";
-function linkHash() { return state.mode === "practice" ? `#p=${encodeURIComponent(state.puzzle.id)}` : `#d=${state.dateKey}`; }
+function linkHash() { return state.mode === "all" ? `#p=${encodeURIComponent(state.puzzle.id)}` : state.mode === "practice" ? `#r=${state.puzzle.seed}` : `#d=${state.dateKey}`; }
 function setHash(h) { try { history.replaceState(null, "", h || location.pathname + location.search); } catch { location.hash = h; } }
 
 // ================================================================ card art (v5)
@@ -228,13 +303,18 @@ function renderArt(p) {
 // ================================================================ rendering: shared header
 function renderHero() {
   const p = state.puzzle, n = dayNumber(state.dateKey) + 1;
-  $("#heroNo").textContent = state.mode === "practice" ? `Practice ${state.practiceIdx + 1}/${PUZZLES.length}` : `No. ${pad3(n)}`;
+  $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
+  document.querySelector(".hero-top").classList.toggle("practice", state.mode === "practice");
+  $("#heroNo").textContent = state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
   $("#heroKind").textContent = p.type === "top5" ? `🖐️ Guess the top 5` : `${p.emoji || "📊"} Rank it`;
-  $("#question").textContent = p.question;
+  $("#headline").textContent = p.headline || p.question;
+  $("#question").textContent = p.question; $("#question").classList.toggle("hidden", !p.question || p.question === p.headline);
   $("#statLabel").textContent = p.stat + (p.unit ? ` (${p.unit})` : "");
-  $("#heroDate").textContent = state.mode === "practice" ? "Practice mode · doesn't count toward stats"
+  $("#caveatLine").textContent = p.caveat ? "⚠️ " + p.caveat : ""; $("#caveatLine").classList.toggle("hidden", !p.caveat);   // v11: random Practice shows its dataset caveat up front
+  $("#heroDate").textContent = state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count toward stats` : state.mode === "all" ? `All puzzles (pre-launch) · ${p.order != null && p.order < 10000 ? `daily #${pad3(Math.round(p.order))} · ${longDate(keyFromDay(Math.round(p.order) - 1))} · ` : ""}doesn't count toward stats`
     : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
+  $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
   renderArt(p); $("#hero").dataset.kind = p.type; $("#shareChallengeTop").textContent = label + " ↗"; $("#shareChallengeBtn").textContent = label;
 }
 
@@ -247,7 +327,7 @@ function openPuzzle(p) {
   setHash(linkHash());
   const saved = getResult();
   p.type === "rank" ? renderRank(saved) : renderTop5(saved);
-  window.scrollTo({ top: 0 });
+  window.scrollTo({ top: 0 }); syncPlaying();
 }
 
 // ================================================================ RANK IT
@@ -283,7 +363,7 @@ function renderRank(saved, keepOrder) {
   const p = state.puzzle; saved = normRank(saved);
   const g = state.rank = saved || { type: "rank", attempts: [], cur: null, pinned: [], done: false, solved: false, tries: 0 };
   const locked = g.done;
-  if (!keepOrder) state.order = g.done ? g.attempts[g.attempts.length - 1].order : (g.cur || shuffledOrder(p, (state.mode === "practice" ? "p" + Date.now() : state.dateKey) + p.id));
+  if (!keepOrder) state.order = g.done ? g.attempts[g.attempts.length - 1].order : (g.cur || shuffledOrder(p, (state.mode === "all" || state.mode === "practice" ? "p" + Date.now() : state.dateKey) + p.id));
   if (!g.done) state.order = enforcePinned(p, state.order, g.pinned);
   const vis = valuesOn(p), board = $("#board");
   board.classList.toggle("values", vis); board.classList.toggle("locked", locked); board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
@@ -306,6 +386,7 @@ function renderRank(saved, keepOrder) {
     dragClass: "sortable-drag", forceFallback: true, fallbackTolerance: 3, disabled: locked, filter: ".pinned", preventOnFilter: false,
     onEnd: () => { orderChanged([...ol.children].map(li => +li.dataset.i)); } }) : null;
   if (locked) revealRank(g, false);
+  fitLayout();
 }
 function markPinned() {
   const pin = new Set(state.rank.pinned);
@@ -372,7 +453,8 @@ function submitRank() {
     $("#board").classList.add("locked"); state.sortable?.option("disabled", true); $("#valuesChip").disabled = true;
     $("#submitBtn").parentElement.classList.add("hidden"); $("#hint").classList.add("hidden"); renderTryDots();
     feedback(marks, true);
-    setTimeout(() => afterSubmit(() => revealRank(g, true)), solved ? 500 : 650);
+    const tier = winTier(g); if (tier) Fx.celebrate(tier, "rank");
+    setTimeout(() => afterSubmit(() => revealRank(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
   setResult(g); renderTryDots(); feedback(marks, false); updateRankHint();
@@ -447,15 +529,17 @@ function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 
   // v9: ONE dashed values box on the LEFT (all top-5 values, sorted high to low, with units, one per row) and the
   // #1-#5 slots on the right; country names fill in as they're found (all of them at the end).
   const sl = slotsOf(p), u = p.unit ? ` <small>${esc(p.unit)}</small>` : "";
-  $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
+  $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found${g.guesses.length && !g.done ? `<button type="button" class="t5more" id="extraBtn" aria-label="Hints and guesses so far">💡 Hints</button>` : ""}<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
     + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${fmt1(s.value)}</b>${u}</li>`).join("")}</ol></div>`
     + `<div class="t5slots">` + sl.map((s, i) => {
     const f = slotFound(p, s, found), c = f || s.group[0], open = !!f || show;
     const name = f ? esc(f.name) : s.tied ? s.group.map(x => esc(x.name)).join(" = ") : esc(c.name);
     return `<div class="t5 ${f ? "hit" : open ? "missed" : ""}${s.tied ? " tied" : ""}" data-slot="${i + 1}"><span class="t5r">#${i + 1}</span>${open ? `<span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="t5n">${name}</span>` : `<span class="t5n q">?</span>`}</div>`; }).join("") + `</div></div>`;
+  const xb = $("#extraBtn"); if (xb) xb.onclick = extraSheet;
   const lastKey = [...g.guesses].reverse().find(k => !inTop(p, findCountry(p, k))), lm = $("#lastMiss");
   const c = lastKey && findCountry(p, lastKey);
   lm.classList.toggle("hidden", !c);
+  requestAnimationFrame(fitLayout);
   lm.innerHTML = c ? `<span class="lm-k">Last miss</span><span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="lm-n">${esc(c.name)}</span><span class="lm-v">${fmt1(c.value)} ${esc(p.unit)}</span><span class="lm-r">#${tieRank(p, c)} of ${p.countries.length}</span>` : "";
 }
 function renderTries() {
@@ -496,7 +580,7 @@ function renderHints() {
     : h.target ? `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>` : "").join("");
   const cur = [...plan].reverse().find(h => h.unlocked && h.target && !found.has(cKey(h.target))), lh = $("#lastHint");   // newest still-useful hint, in the blue card
   lh.classList.toggle("hidden", !cur || state.guess.done);
-  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : "";
+  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : ""; requestAnimationFrame(fitLayout);
 }
 function submitGuess(c) {
   const p = state.puzzle, g = state.guess; if (!c || g.done || state.busy) return;
@@ -512,7 +596,8 @@ function submitGuess(c) {
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
     $("#guessForm").classList.add("hidden");
-    afterSubmit(() => showResult(g));
+    const tier = winTier(g); if (tier) Fx.celebrate(tier, "top5");
+    afterSubmit(() => showResult(g), tier);
   } else $("#guessInput").focus();
 }
 // --- country search box. Typing / clicking a suggestion only FILLS the input; a guess is submitted only by the Guess
@@ -548,9 +633,66 @@ function onGuessSubmit() {
   if ($("#guessInput").value.trim()) toast("Pick a country from the list");
 }
 
+// ================================================================ v11: win celebrations (tiers by attempt number)
+// Rank it:  solved on try 1 = "explosive", try 2 = "big", 3+ (or not solved) = none (plain result, ads as normal).
+// Top 5:    all 5 found with 0 misses = "explosive", 1-2 misses = "big", otherwise none.
+// prefers-reduced-motion: no confetti / shake / flash, just a short fade-in banner.
+function winTier(r) {
+  if (r.type === "rank") return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
+  const p = state.puzzle; if (hitsOf(p, r) < 5) return null;
+  const m = missesOf(p, r); return m === 0 ? "explosive" : m <= 2 ? "big" : null;
+}
+const Fx = (() => {
+  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!" } };
+  const CFG = { explosive: { n: 220, speed: 15, dur: 2600, spread: Math.PI * 2 }, big: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, normal: { n: 40, speed: 7.5, dur: 1500, spread: Math.PI * 1.1 } };
+  const COLORS = ["#FFE48A", "#16B364", "#EF4A4F", "#FFFFFF", "#8EA2FF", "#F5B82E", "#FF7AC6"];
+  const api = { history: [], last: null };
+  const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  api.celebrate = (tier, kind) => {
+    const red = reduced(), ev = { tier, kind, reduced: red, at: Date.now() }; api.last = ev; api.history.push(ev);
+    document.querySelectorAll(".fx-layer").forEach(n => n.remove());
+    const layer = document.createElement("div"); layer.className = `fx-layer fx-${tier}${red ? " fx-reduced" : ""}`; layer.setAttribute("aria-hidden", "true");
+    const banner = document.createElement("div"); banner.className = "fx-banner"; banner.textContent = TXT[kind][tier]; layer.appendChild(banner);
+    document.body.appendChild(layer);
+    const total = red ? 1400 : CFG[tier].dur;
+    if (!red) {
+      if (tier === "explosive") { const fl = document.createElement("div"); fl.className = "fx-flash"; layer.appendChild(fl); document.body.classList.remove("fx-shake"); void document.body.offsetWidth; document.body.classList.add("fx-shake"); ev.shake = true; setTimeout(() => document.body.classList.remove("fx-shake"), 700); }
+      if (tier === "big") { const h = $("#hero"); h.classList.remove("fx-bump"); void h.offsetWidth; h.classList.add("fx-bump"); setTimeout(() => h.classList.remove("fx-bump"), 700); }
+      confetti(layer, tier);
+    }
+    setTimeout(() => layer.remove(), total + 200);
+    return ev;
+  };
+  function confetti(layer, tier) {
+    const c = CFG[tier], cv = document.createElement("canvas"), dpr = Math.min(2, devicePixelRatio || 1), W = innerWidth, H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; cv.className = "fx-canvas"; layer.appendChild(cv);
+    const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
+    const hb = $("#hero").getBoundingClientRect(), ox = W / 2, oy = Math.max(60, Math.min(H * .55, hb.top + hb.height * .45));
+    const origins = tier === "big" ? [[0, H * .7, -Math.PI / 3.2], [W, H * .7, -Math.PI + Math.PI / 3.2]] : tier === "normal" ? [[ox, Math.min(H * .8, hb.bottom - 40), -Math.PI / 2]] : [[ox, oy, 0]];
+    const P = [];
+    for (let k = 0; k < c.n; k++) { const [x, y, dir] = origins[k % origins.length];
+      const a = tier === "explosive" ? Math.random() * c.spread : dir + (Math.random() - .5) * (tier === "big" ? .9 : c.spread), v = c.speed * (.45 + Math.random() * .75);
+      P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (tier === "explosive" ? 3 : 0), r: 3 + Math.random() * (tier === "explosive" ? 6 : 4), rot: Math.random() * 6, vr: (Math.random() - .5) * .4, col: COLORS[k % COLORS.length], sh: k % 3 }); }
+    const t0 = performance.now();
+    (function frame(t) {
+      const e = t - t0; ctx.clearRect(0, 0, W, H);
+      for (const q of P) { q.vy += .28; q.vx *= .985; q.vy *= .985; q.x += q.vx; q.y += q.vy; q.rot += q.vr;
+        ctx.save(); ctx.globalAlpha = Math.max(0, 1 - e / c.dur); ctx.translate(q.x, q.y); ctx.rotate(q.rot); ctx.fillStyle = q.col;
+        if (q.sh === 0) ctx.fillRect(-q.r, -q.r / 2, q.r * 2, q.r); else if (q.sh === 1) { ctx.beginPath(); ctx.arc(0, 0, q.r * .6, 0, 7); ctx.fill(); } else { ctx.beginPath(); ctx.moveTo(0, -q.r); ctx.lineTo(q.r, q.r); ctx.lineTo(-q.r, q.r); ctx.fill(); }
+        ctx.restore(); }
+      if (e < c.dur && cv.isConnected) requestAnimationFrame(frame);
+    })(t0);
+  }
+  return api;
+})();
+window.RankdFx = Fx; window.RankdWinTier = r => winTier(r);
+
 // ================================================================ after submit: interstitial (non-daily only)
-function afterSubmit(reveal) {
-  if (!Ads.allowed() || (isToday() && !CONFIG.interstitialOnDaily)) { reveal(); return; }
+// v11: no interstitial after a celebrated win (Rank it solved in 1-2 tries, Top 5 all found with <= 2 misses).
+function afterSubmit(reveal, tier) {
+  const why = !Ads.allowed() ? "streamer" : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : null;
+  Ads.decisions.push({ puzzle: state.puzzle.id, mode: state.mode, tier: tier || null, show: !why, reason: why || "shown", at: Date.now() });
+  if (why) { reveal(); return; }
   showInterstitial(reveal);
 }
 function showInterstitial(done) {
@@ -583,13 +725,13 @@ function showResult(res) {
     $("#answerBox").classList.remove("hidden");
   }
   $("#emojiRow").textContent = res.type === "rank" ? rankGrid(res) : (res.marks || []).map(m => EMO[m]).join("");
-  $("#fact").innerHTML = p.fact ? `<b>The twist:</b> ${esc(p.fact)}` : ""; $("#fact").classList.toggle("hidden", !p.fact);
+  $("#fact").innerHTML = p.fact ? `<b>The twist:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   $("#sourceName").textContent = p.source || "source";
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
-  $("#nextBtn").textContent = state.mode === "practice" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
+  $("#nextBtn").textContent = state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderCommunity(p);
-  $("#result").classList.remove("hidden"); showFab(true);
+  $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
 }
 async function renderCommunity(p) {
@@ -615,20 +757,21 @@ function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; con
 
 // ================================================================ sharing
 function shareUrl() { return CONFIG.siteUrl.replace(/#.*$/, "") + linkHash(); }
-function shareTitle() { return state.mode === "practice" ? `${CONFIG.brand} practice` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
+const fullTitle = p => p.headline && p.question && p.headline !== p.question ? `${p.headline}: ${p.question}` : (p.headline || p.question);   // v11 share/list text
+function shareTitle() { return state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
 function challengeText() {
   const p = state.puzzle;
-  return `${shareTitle()} ${p.emoji || ""}\n${p.question}\n${p.type === "top5" ? `Guess the top 5: how many of the top 5 can you name before ${p.maxMisses} misses?` : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
+  return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "top5" ? `Guess the top 5: how many of the top 5 can you name before ${p.maxMisses} misses?` : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
 }
 function resultText() {
   const p = state.puzzle; let r = getResult(); if (p.type === "rank") r = normRank(r); if (!r || !r.done) return "";
   if (p.type === "rank") {
     const line = r.solved ? `${p.emoji || ""} solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}` : `${p.emoji || ""} X/${CONFIG.rankMaxTries}`;
-    return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${p.question}\n${shareUrl()}`;
+    return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
   }
   const h = hitsOf(p, r), m = missesOf(p, r), avg = avgRank(p, r), rows = [];
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map(x => EMO[x]).join(""));
-  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""} · avg rank #${avg}\n${rows.join("\n")}\n${p.question}\n${shareUrl()}`;
+  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${shareUrl()}`;
 }
 async function doShare(text) {
   if (!text) return; window.__lastShare = text;
@@ -638,12 +781,46 @@ async function doShare(text) {
     try { document.execCommand("copy"); toast("Copied to clipboard!"); } catch { prompt("Copy this:", text); } ta.remove(); }
 }
 
+// ================================================================ v11: phone fit (no scrolling while playing)
+// On phones (<= 560px wide) while a puzzle is being played (body.playing), the blue card is capped to the visible
+// viewport (visualViewport height, so it also shrinks when the on-screen keyboard opens) and its rows flex to fit:
+// cards / slots shrink instead of overflowing. Footer, share link and the hints+guesses list below the card are hidden
+// until the reveal (hints stay in the card; "💡 Hints & guesses" opens them in a sheet). With the keyboard open
+// (input focused + viewport much shorter than before) body.kb also hides the top bar, ad banner and subtitle.
+const fitMQ = matchMedia("(max-width: 560px)");
+let vvMax = 0, vvW = 0;
+function syncPlaying() {
+  const on = !$("#playView").classList.contains("hidden") && $("#result").classList.contains("hidden");
+  document.body.classList.toggle("playing", on); fitLayout();
+}
+function fitLayout() {
+  const vv = window.visualViewport, h = vv ? vv.height : innerHeight, b = document.body, hero = $("#hero");
+  if (innerWidth !== vvW) { vvW = innerWidth; vvMax = 0; } vvMax = Math.max(vvMax, h);
+  const fit = fitMQ.matches && b.classList.contains("playing");
+  b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
+  b.classList.toggle("fit", fit);
+  if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; return; }
+  const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8));
+  // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
+  hero.style.height = ""; hero.style.maxHeight = "none"; const natural = hero.scrollHeight;
+  hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
+  if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
+}
+window.visualViewport?.addEventListener("resize", fitLayout); addEventListener("resize", fitLayout);
+fitMQ.addEventListener?.("change", fitLayout);
+function extraSheet() {
+  openModal(`<h2>Hints &amp; guesses</h2><div class="hints">${$("#hints").innerHTML}</div><ol class="guesses">${$("#guesses").innerHTML}</ol>`);
+  $("#modal").classList.add("sheet");
+}
+window.RankdFit = { sync: syncPlaying, layout: fitLayout };
+
 // ================================================================ views / navigation
 function showView(v) {
   if (v !== "play") showFab(false);
   $("#playView").classList.toggle("hidden", v !== "play"); $("#archiveView").classList.toggle("hidden", v !== "archive");
-  const tab = v === "archive" ? "archive" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
+  const tab = v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
   $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
+  syncPlaying();
 }
 function goToday() { state.mode = "daily"; state.dateKey = todayKey(); openPuzzle(puzzleForDay(dayNumber(state.dateKey))); }
 function goDate(key) {
@@ -653,8 +830,9 @@ function goDate(key) {
   if (key === today) return goToday();
   state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
 }
-function goPractice(idx) {
-  state.mode = "practice";
+function goAll(idx) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
+  if (!CONFIG.SHOW_ALL_PUZZLES) return goToday();
+  state.mode = "all";
   if (idx == null) idx = (dayNumber(todayKey()) + 1) % PUZZLES.length;
   state.practiceIdx = ((idx % PUZZLES.length) + PUZZLES.length) % PUZZLES.length; openPuzzle(PUZZLES[state.practiceIdx]);
 }
@@ -672,7 +850,7 @@ function goArchive() {
       : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
     else if (mine) badge = `<span class="ar">In progress</span>`;
     rows.push(`<li><button class="arch ${n === last ? "today" : ""}" data-key="${key}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
-      <span class="aq">${esc(p.emoji)} ${esc(p.question)}<small>${p.type === "top5" ? "Guess the top 5" : "Rank it"}</small></span>${badge}</button></li>`);
+      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Guess the top 5" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
   $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
@@ -691,17 +869,18 @@ function nextUnplayedDay() {   // most recent unplayed past daily (never today o
   return null;
 }
 function fabGo() {
-  if (state.mode === "practice") return goPractice(nextUnplayedPractice());
+  if (state.mode === "practice") return goPractice();
+  if (state.mode === "all") return goAll(nextUnplayedPractice());
   const k = nextUnplayedDay(); k ? goDate(k) : goArchive();
 }
 function showFab(on) {
-  const f = $("#fab"); f.textContent = state.mode === "daily" ? "Play the archive →" : "Next puzzle →";
+  const f = $("#fab"); f.textContent = state.mode === "daily" ? "Play the archive →" : state.mode === "practice" ? "🎲 New random puzzle →" : "Next puzzle →";
   f.classList.toggle("hidden", !on); document.body.classList.toggle("has-fab", on);
 }
-function next() { if (state.mode === "practice") goPractice(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
+function next() { if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
 
 // ================================================================ modals
-function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classList.remove("hidden"); }
+function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classList.remove("hidden", "sheet"); }
 function closeModal() { $("#modal").classList.add("hidden"); }
 function statsModal() {
   const s = load(LS.stats, { played: 0, wins: 0, best: 0, dist: {} });
@@ -709,14 +888,22 @@ function statsModal() {
   openModal(`<h2>Your stats</h2><div class="stat-grid"><div><b>${s.played}</b><span>Played</span></div><div><b>${s.wins}</b><span>Perfect / solved</span></div><div><b>${currentStreak()}</b><span>Streak</span></div><div><b>${s.best || 0}</b><span>Best</span></div></div>
     <h3>Daily results</h3>${dist}<p style="font-size:12px;color:var(--muted)">Only today's daily counts. Stats live in this browser (localStorage).</p>`);
 }
-function menuModal() {
+const themeLabel = () => effectiveTheme() === "dark" ? "☀️ Light mode<small>Switch the theme</small>" : "🌙 Dark mode<small>Switch the theme</small>";
+function menuModal() {   // v11: the single gear opens this sheet (stats + theme moved here from the old corner buttons)
   openModal(`<h2>Menu</h2><div class="menu-list">
+    <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
+    <button id="mTheme">${themeLabel()}</button>
+    ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${isToday() ? "Share today's puzzle" : "Share this puzzle"}<small>Spoiler-free link</small></button>` : ""}
     <button id="mArchive">🗓 Archive<small>Every past daily puzzle</small></button>
-    <button id="mList">🗂 All puzzles (practice)<small>Pick any puzzle to play</small></button>
+    ${Practice.ok() ? `<button id="mPractice">🎲 Practice<small>A new random puzzle from the full datasets</small></button>` : ""}
+    ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
     <button id="mSettings">⚙️ Settings<small>Theme, show values, load your spreadsheet</small></button>
     <button id="mHow">❓ How to play</button>
     <button id="mAbout">📚 About &amp; sources</button></div>`);
-  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; $("#mList").onclick = listModal; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal; $("#mAbout").onclick = aboutModal;
+  $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
+  $("#modal").classList.add("sheet");
+  if ($("#mShare")) $("#mShare").onclick = () => { closeModal(); doShare(challengeText()); };
+  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal; $("#mAbout").onclick = aboutModal;
 }
 function settingsModal() {
   const seg = (name, opts, cur) => `<div class="seg" data-set="${name}">${opts.map(([v, l]) => `<button data-v="${v}" class="${cur === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
@@ -737,30 +924,45 @@ function settingsModal() {
   $("#mLoad").onclick = () => $("#fileInput").click(); $("#mTemplate").onclick = downloadCsv;
   if ($("#mReset")) $("#mReset").onclick = () => { localStorage.removeItem(LS.custom); custom = null; PUZZLES = window.RANKD_PUZZLES; closeModal(); toast("Built-in puzzles restored"); goToday(); };
 }
-function listModal() {
-  const all = load(LS.results, {});
-  openModal(`<h2>All puzzles (${PUZZLES.length})</h2><div class="plist">${PUZZLES.map((p, i) => { const r = all["p:" + p.id];
-    const rr = r && r.type === "rank" ? normRank(r) : r;
+function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + future), filterable by mode; hidden when CONFIG.SHOW_ALL_PUZZLES = false
+  if (!CONFIG.SHOW_ALL_PUZZLES) return;
+  const all = load(LS.results, {}), today = dayNumber(todayKey()) + 1;
+  const kind = p => p.type === "top5" ? "top5" : p.items.length === 6 ? "rank6" : (p.items.length && p.items.every(it => /^\p{RI}\p{RI}$/u.test(it.emoji)) ? "rank" : "incountry");
+  const KINDS = [["any", "All"], ["rank", "Rank it"], ["rank6", "6-country"], ["top5", "Top 5"], ["incountry", "Groups"]];
+  const count = k => PUZZLES.filter(p => k === "any" || kind(p) === k).length;
+  openModal(`<h2>All puzzles (${PUZZLES.length})</h2><p class="plist-note">Pre-launch list: every puzzle, past and future. Plays here never count toward stats or streaks.</p>
+    <div class="seg plist-filter">${KINDS.map(([k, l]) => `<button data-k="${k}" class="${k === "any" ? "on" : ""}">${l} <small>${count(k)}</small></button>`).join("")}</div>
+    <input class="plist-search" id="plistSearch" type="search" placeholder="Search headline or stat…" autocomplete="off">
+    <div class="plist">${PUZZLES.map((p, i) => { const r = all["p:" + p.id];
+    const rr = r && r.type === "rank" ? normRank(r) : r, o = Math.round(p.order);
     const b = rr && rr.done ? (rr.type === "rank" ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
-    return `<button data-i="${i}"><span>${esc(p.emoji)} ${esc(p.question)}</span><span class="done">${b}</span></button>`; }).join("")}</div>`);
-  $$(".plist button").forEach(b => b.onclick = () => { closeModal(); goPractice(+b.dataset.i); });
+    const when = o < 10000 ? `#${pad3(o)} · ${prettyDate(keyFromDay(o - 1)).replace(/, \d{4}$/, "")}${o > today ? " · future" : o === today ? " · today" : ""}` : "";
+    const k = kind(p), kl = { rank: "Rank it", rank6: "Rank it · 6 countries", top5: "Guess the top 5", incountry: "Rank it · groups" }[k];
+    return `<button data-i="${i}" data-k="${k}" data-s="${esc((p.headline + " " + p.question + " " + p.stat).toLowerCase())}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
+  let kf = "any";
+  const apply = () => { const q = $("#plistSearch").value.trim().toLowerCase();
+    $$(".plist button").forEach(b => b.classList.toggle("hidden", !((kf === "any" || b.dataset.k === kf) && (!q || b.dataset.s.includes(q))))); };
+  $$(".plist-filter button").forEach(b => b.onclick = () => { kf = b.dataset.k; $$(".plist-filter button").forEach(x => x.classList.toggle("on", x === b)); apply(); });
+  $("#plistSearch").oninput = apply;
+  $$(".plist button").forEach(b => b.onclick = () => { closeModal(); goAll(+b.dataset.i); });
 }
 function howModal() {
   openModal(`<h2>How to play</h2>
    <p><b>Rank it:</b> drag the cards (or tap ▲▼) into order and lock it in. Cards in the right spot turn 🟩 green and lock; the rest turn 🟥 red. Rearrange and lock in again. You get ${CONFIG.rankMaxTries} tries. Turn on <i>Show values</i> to see the real numbers listed together above the cards; match each item to its value.</p>
    <p><b>🖐️ Guess the top 5:</b> name as many of the top 5 countries as you can. Correct guesses are free; you can miss 10 times. Type a country, pick it from the list, then press <i>Guess</i> (or Enter). Each guess shows its real world rank and value: ✅ a hit, ⬜ a miss.</p>
    <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). After misses ${HINT_AT.join(", ")} you get a hint: one fact about one top-5 country you haven't found yet (the highest-ranked one), getting more specific each time: continent, then population, then GDP per person, then its capital, then its first letter.</p>
+   <p>🎉 Solve a Rank it on the 1st or 2nd try (or find all 5 with at most 2 misses) for a celebration. First try = the big one.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {
   openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">Rankd is a prototype. Every value and hint comes from the source linked below.</p>
-    <ol class="src-list">${PUZZLES.map(p => `<li>${esc(p.emoji)} ${esc(p.question)}<br>${p.sourceUrl ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.source || p.sourceUrl)}</a>` : esc(p.source)}${
+    <ol class="src-list">${PUZZLES.map(p => `<li>${esc(p.emoji)} ${esc(fullTitle(p))}<br>${p.sourceUrl ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.source || p.sourceUrl)}</a>` : esc(p.source)}${
       p.type === "top5" ? `<br><small>Hints: World Bank (population SP.POP.TOTL; GDP per capita NY.GDP.PCAP.CD, current US$; capital cities), 6-continent grouping, standard landlocked list</small>` : ""}</li>`).join("")}</ol>`);
 }
 function downloadCsv() {
   const cols = SHEET_COLS.puzzles, q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v), lines = [cols.join(",")];
   PUZZLES.filter(p => p.type === "rank").forEach(p => p.items.forEach((it, n) => lines.push([p.id, n ? "" : p.order, n ? "" : p.emoji, n ? "" : p.question, n ? "" : p.stat, n ? "" : p.unit,
-    n ? "" : p.higherIs, n ? "" : (p.valuesVisible ? "yes" : "no"), it.name, it.emoji, it.value, it.year, n ? "" : p.source, n ? "" : p.sourceUrl, n ? "" : p.fact, it.gRank || "", it.gTotal || "", it.gScope || "", n ? "" : (p.art || ""), n ? "" : (p.support || ""), n ? "" : (p.dataset || "")].map(q).join(","))));
+    n ? "" : p.higherIs, n ? "" : (p.valuesVisible ? "yes" : "no"), it.name, it.emoji, it.value, it.year, n ? "" : p.source, n ? "" : p.sourceUrl, n ? "" : p.fact, it.gRank || "", it.gTotal || "", it.gScope || "", n ? "" : (p.art || ""), n ? "" : (p.support || ""), n ? "" : (p.dataset || ""), "", n ? "" : (p.headline || "")].map(q).join(","))));
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" })); a.download = "rankd-puzzles.csv"; a.click();
 }
 
@@ -783,7 +985,7 @@ async function handleFiles(files) {
     if (!puzzles.length) { toast("No valid puzzles found. Check the sheet names / column headers."); return; }
     custom = { name: name.join(", "), puzzles, loadedAt: Date.now() }; save(LS.custom, custom); PUZZLES = puzzles;
     const t5 = puzzles.filter(p => p.type === "top5").length, conv = puzzles.filter(p => p.convertedFrom === "top5").length;
-    closeModal(); toast(`Loaded ${puzzles.length} puzzles (${puzzles.length - t5} rank, ${t5} top 5)${conv ? ` · ${conv} Top 5 → Rank it (fewer than ${MIN_TOP5_COUNTRIES} countries)` : ""}`); goPractice(0);
+    closeModal(); toast(`Loaded ${puzzles.length} puzzles (${puzzles.length - t5} rank, ${t5} top 5)${conv ? ` · ${conv} Top 5 → Rank it (fewer than ${MIN_TOP5_COUNTRIES} countries)` : ""}`); CONFIG.SHOW_ALL_PUZZLES ? goAll(0) : goToday();
   } catch (e) { console.error(e); toast("Couldn't read that file: " + e.message); }
 }
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
@@ -793,13 +995,17 @@ $("#submitBtn").onclick = submitRank; $("#nextBtn").onclick = next; $("#fab").on
 $("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
 $("#valuesChip").onclick = () => { settings.showValues = valuesOn(state.puzzle) ? "off" : "on"; saveSettings(); renderRank(getResult(), true); };
-$("#statsBtn").onclick = statsModal; $("#menuBtn").onclick = menuModal; $("#modalClose").onclick = closeModal;
-$("#themeBtn").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
+$("#menuBtn").onclick = menuModal;
+$("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); setTimeout(fitLayout, 350); });
+$("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
-$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : goPractice());
+$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : b.dataset.view === "all" ? goAll() : goPractice());
+$("#newRandomTop").onclick = () => goPractice();
+if (!CONFIG.SHOW_ALL_PUZZLES) { $$('.tab[data-view="all"]').forEach(b => b.remove()); }
+if (!Practice.ok()) { $$('.tab[data-view="practice"]').forEach(b => b.remove()); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 // guess input
 const gi = $("#guessInput");
@@ -814,12 +1020,13 @@ $("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("
 $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
 applyTheme(); applyStreamer();
-if (!PUZZLES.length) { $("#question").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
+if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
-  const h = location.hash, d = h.match(/d=(\d{4}-\d{2}-\d{2})/), p = h.match(/p=([^&]+)/);
+  const h = location.hash, d = h.match(/d=(\d{4}-\d{2}-\d{2})/), p = h.match(/p=([^&]+)/), rs = h.match(/r=(\d+)/);
   if (h.startsWith("#archive")) return goArchive();
   if (d) return goDate(d[1]);
-  if (p) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goPractice(i); }
+  if (rs && Practice.ok()) return goPractice(+rs[1]);
+  if (p && CONFIG.SHOW_ALL_PUZZLES) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i); }
   goToday();
 }
 window.addEventListener("hashchange", () => { if (location.hash !== linkHash()) route(); });

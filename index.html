@@ -23,17 +23,17 @@
 </head>
 <body>
 
-<!-- Floating corner controls (no header bar) -->
-<header class="corners">
-  <button class="round-btn brand-btn" id="menuBtn" aria-label="Menu">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+<!-- v11: one compact top bar: the three tabs + a single gear that opens the menu sheet (stats, theme, settings, ...) -->
+<header class="topbar">
+  <nav class="tabs" role="tablist">
+    <button class="tab" data-view="today" role="tab">Today</button>
+    <button class="tab" data-view="archive" role="tab">Archive</button>
+    <button class="tab" data-view="practice" role="tab">Practice</button>
+    <button class="tab" data-view="all" role="tab" title="Pre-launch: every puzzle, past and future (CONFIG.SHOW_ALL_PUZZLES)">All</button>
+  </nav>
+  <button class="round-btn gear-btn" id="menuBtn" aria-label="Menu, stats and settings" title="Menu, stats and settings">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
-  <div class="top-actions">
-    <button class="round-btn" id="themeBtn" aria-label="Toggle light/dark mode" title="Light / dark"></button>
-    <button class="round-btn" id="statsBtn" aria-label="Your stats" title="Your stats">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>
-    </button>
-  </div>
 </header>
 
 <!-- ===== AD SLOT: single top banner (placeholder) =====
@@ -45,21 +45,19 @@
 <!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) hides them all. -->
 <div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
 
-<nav class="tabs" role="tablist">
-  <button class="tab" data-view="today" role="tab">Today</button>
-  <button class="tab" data-view="archive" role="tab">Archive</button>
-  <button class="tab" data-view="practice" role="tab">Practice</button>
-</nav>
+
 
 <main class="wrap">
   <!-- ======== PLAY VIEW ======== -->
   <section id="playView">
     <!-- The whole game lives inside one bold card -->
     <article class="hero" id="hero">
-      <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="Rankd home">Rankd</a><span class="hero-kind" id="heroKind">Rank it</span><span id="heroNo">No. 001</span></div>
+      <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="Rankd home">Rankd</a><span class="hero-kind" id="heroKind">Rank it</span><span class="hero-right"><span id="heroNo">No. 001</span><button class="hero-new hidden" id="newRandomTop" aria-label="New random puzzle" title="New random puzzle">🎲 New</button></span></div>
       <div class="art" id="art" aria-hidden="true"></div>
-      <h1 id="question">Loading…</h1>
+      <h1 id="headline">Loading…</h1>
+      <p class="q-sub" id="question"></p>
       <p class="stat-label" id="statLabel"></p>
+      <p class="caveat-line hidden" id="caveatLine"></p>
       <div class="hero-date" id="heroDate"></div>
 
       <!-- RANK IT -->
@@ -169,6 +167,7 @@
 <script src="vendor/sortable.min.js"></script>
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="puzzles-data.js"></script>
+<script src="practice-data.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
