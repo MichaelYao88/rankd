@@ -1,0 +1,181 @@
+﻿puzzle_id,rank,country,iso3,hint_no,auto_hint,override_hint,source
+top5-potatoes,1,Belarus,BLR,1,It's in Europe.,,continent (6-continent model)
+top5-potatoes,1,Belarus,BLR,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-potatoes,1,Belarus,BLR,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-potatoes,1,Belarus,BLR,4,Its capital city starts with “M”.,,World Bank country metadata (capitalCity)
+top5-potatoes,1,Belarus,BLR,5,Its name starts with “B”.,,the name
+top5-potatoes,2,Ukraine,UKR,1,It's in Europe.,,continent (6-continent model)
+top5-potatoes,2,Ukraine,UKR,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-potatoes,2,Ukraine,UKR,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-potatoes,2,Ukraine,UKR,4,Its capital city starts with “K”.,,World Bank country metadata (capitalCity)
+top5-potatoes,2,Ukraine,UKR,5,Its name starts with “U”.,,the name
+top5-potatoes,3,Bosnia and Herzegovina,BIH,1,It's in Europe.,,continent (6-continent model)
+top5-potatoes,3,Bosnia and Herzegovina,BIH,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-potatoes,3,Bosnia and Herzegovina,BIH,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-potatoes,3,Bosnia and Herzegovina,BIH,4,Its capital city starts with “S”.,,World Bank country metadata (capitalCity)
+top5-potatoes,3,Bosnia and Herzegovina,BIH,5,Its name starts with “B”.,,the name
+top5-potatoes,4,Nepal,NPL,1,It's in Asia.,,continent (6-continent model)
+top5-potatoes,4,Nepal,NPL,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-potatoes,4,Nepal,NPL,3,"Its GDP per person is under $2,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-potatoes,4,Nepal,NPL,4,Its capital city starts with “K”.,,World Bank country metadata (capitalCity)
+top5-potatoes,4,Nepal,NPL,5,Its name starts with “N”.,,the name
+top5-potatoes,5,Kyrgyzstan,KGZ,1,It's in Asia.,,continent (6-continent model)
+top5-potatoes,5,Kyrgyzstan,KGZ,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-potatoes,5,Kyrgyzstan,KGZ,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-potatoes,5,Kyrgyzstan,KGZ,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
+top5-potatoes,5,Kyrgyzstan,KGZ,5,Its name starts with “K”.,,the name
+top5-wine,1,Luxembourg,LUX,1,It's in Europe.,,continent (6-continent model)
+top5-wine,1,Luxembourg,LUX,2,It has fewer than 1 million people (2024).,,World Bank SP.POP.TOTL
+top5-wine,1,Luxembourg,LUX,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-wine,1,Luxembourg,LUX,4,It's landlocked (no coastline).,,standard list of landlocked countries
+top5-wine,1,Luxembourg,LUX,5,Its name starts with “L”.,,the name
+top5-wine,2,Portugal,PRT,1,It's in Europe.,,continent (6-continent model)
+top5-wine,2,Portugal,PRT,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-wine,2,Portugal,PRT,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-wine,2,Portugal,PRT,4,Its capital city starts with “L”.,,World Bank country metadata (capitalCity)
+top5-wine,2,Portugal,PRT,5,Its name starts with “P”.,,the name
+top5-wine,3,Belgium,BEL,1,It's in Europe.,,continent (6-continent model)
+top5-wine,3,Belgium,BEL,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-wine,3,Belgium,BEL,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-wine,3,Belgium,BEL,4,It has a coastline.,,standard list of landlocked countries
+top5-wine,3,Belgium,BEL,5,Its name starts with “B”.,,the name
+top5-wine,4,France,FRA,1,It's in Europe.,,continent (6-continent model)
+top5-wine,4,France,FRA,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-wine,4,France,FRA,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-wine,4,France,FRA,4,Its capital city starts with “P”.,,World Bank country metadata (capitalCity)
+top5-wine,4,France,FRA,5,Its name starts with “F”.,,the name
+top5-wine,5,Italy,ITA,1,It's in Europe.,,continent (6-continent model)
+top5-wine,5,Italy,ITA,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-wine,5,Italy,ITA,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-wine,5,Italy,ITA,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-wine,5,Italy,ITA,5,Its name starts with “I”.,,the name
+top5-tea,1,Turkey,TUR,1,It spans Europe and Asia.,,continent (6-continent model)
+top5-tea,1,Turkey,TUR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-tea,1,Turkey,TUR,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-tea,1,Turkey,TUR,4,Its capital city starts with “A”.,,World Bank country metadata (capitalCity)
+top5-tea,1,Turkey,TUR,5,Its name starts with “T”.,,the name
+top5-tea,2,Ireland,IRL,1,It's in Europe.,,continent (6-continent model)
+top5-tea,2,Ireland,IRL,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-tea,2,Ireland,IRL,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-tea,2,Ireland,IRL,4,Its capital city starts with “D”.,,World Bank country metadata (capitalCity)
+top5-tea,2,Ireland,IRL,5,Its name starts with “I”.,,the name
+top5-tea,3,United Kingdom,GBR,1,It's in Europe.,,continent (6-continent model)
+top5-tea,3,United Kingdom,GBR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-tea,3,United Kingdom,GBR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-tea,3,United Kingdom,GBR,4,Its capital city starts with “L”.,,World Bank country metadata (capitalCity)
+top5-tea,3,United Kingdom,GBR,5,Its name starts with “U”.,,the name
+top5-tea,4,Russia,RUS,1,It spans Europe and Asia.,,continent (6-continent model)
+top5-tea,4,Russia,RUS,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-tea,4,Russia,RUS,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-tea,4,Russia,RUS,4,Its capital city starts with “M”.,,World Bank country metadata (capitalCity)
+top5-tea,4,Russia,RUS,5,Its name starts with “R”.,,the name
+top5-tea,5,Morocco,MAR,1,It's in Africa.,,continent (6-continent model)
+top5-tea,5,Morocco,MAR,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-tea,5,Morocco,MAR,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-tea,5,Morocco,MAR,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-tea,5,Morocco,MAR,5,Its name starts with “M”.,,the name
+top5-co2-consumption,1,Singapore,SGP,1,It's in Asia.,,continent (6-continent model)
+top5-co2-consumption,1,Singapore,SGP,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-co2-consumption,1,Singapore,SGP,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-co2-consumption,1,Singapore,SGP,4,It has a coastline.,,standard list of landlocked countries
+top5-co2-consumption,1,Singapore,SGP,5,Its name starts with “S”.,,the name
+top5-co2-consumption,2,Qatar,QAT,1,It's in Asia.,,continent (6-continent model)
+top5-co2-consumption,2,Qatar,QAT,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-co2-consumption,2,Qatar,QAT,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-co2-consumption,2,Qatar,QAT,4,Its capital city starts with “D”.,,World Bank country metadata (capitalCity)
+top5-co2-consumption,2,Qatar,QAT,5,Its name starts with “Q”.,,the name
+top5-co2-consumption,3,Malta,MLT,1,It's in Europe.,,continent (6-continent model)
+top5-co2-consumption,3,Malta,MLT,2,It has fewer than 1 million people (2024).,,World Bank SP.POP.TOTL
+top5-co2-consumption,3,Malta,MLT,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-co2-consumption,3,Malta,MLT,4,Its capital city starts with “V”.,,World Bank country metadata (capitalCity)
+top5-co2-consumption,3,Malta,MLT,5,Its name starts with “M”.,,the name
+top5-co2-consumption,4,Kuwait,KWT,1,It's in Asia.,,continent (6-continent model)
+top5-co2-consumption,4,Kuwait,KWT,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-co2-consumption,4,Kuwait,KWT,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-co2-consumption,4,Kuwait,KWT,4,It has a coastline.,,standard list of landlocked countries
+top5-co2-consumption,4,Kuwait,KWT,5,Its name starts with “K”.,,the name
+top5-co2-consumption,5,United Arab Emirates,ARE,1,It's in Asia.,,continent (6-continent model)
+top5-co2-consumption,5,United Arab Emirates,ARE,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-co2-consumption,5,United Arab Emirates,ARE,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-co2-consumption,5,United Arab Emirates,ARE,4,Its capital city starts with “A”.,,World Bank country metadata (capitalCity)
+top5-co2-consumption,5,United Arab Emirates,ARE,5,Its name starts with “U”.,,the name
+top5-height-gain,1,China,CHN,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain,1,China,CHN,2,It has more than 150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain,1,China,CHN,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain,1,China,CHN,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
+top5-height-gain,1,China,CHN,5,Its name starts with “C”.,,the name
+top5-height-gain,2,Saudi Arabia,SAU,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain,2,Saudi Arabia,SAU,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain,2,Saudi Arabia,SAU,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain,2,Saudi Arabia,SAU,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-height-gain,2,Saudi Arabia,SAU,5,Its name starts with “S”.,,the name
+top5-height-gain,3,Maldives,MDV,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain,3,Maldives,MDV,2,It has fewer than 1 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain,3,Maldives,MDV,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain,3,Maldives,MDV,4,It has a coastline.,,standard list of landlocked countries
+top5-height-gain,3,Maldives,MDV,5,Its name starts with “M”.,,the name
+top5-height-gain,3,South Korea,KOR,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain,3,South Korea,KOR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain,3,South Korea,KOR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain,3,South Korea,KOR,4,It has a coastline.,,standard list of landlocked countries
+top5-height-gain,3,South Korea,KOR,5,Its name starts with “S”.,,the name
+top5-height-gain,5,Thailand,THA,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain,5,Thailand,THA,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain,5,Thailand,THA,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain,5,Thailand,THA,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
+top5-height-gain,5,Thailand,THA,5,Its name starts with “T”.,,the name
+top5-sex-partners,1,Turkey,TUR,1,It spans Europe and Asia.,,continent (6-continent model)
+top5-sex-partners,1,Turkey,TUR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-sex-partners,1,Turkey,TUR,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-sex-partners,1,Turkey,TUR,4,Its capital city starts with “A”.,,World Bank country metadata (capitalCity)
+top5-sex-partners,1,Turkey,TUR,5,Its name starts with “T”.,,the name
+top5-sex-partners,2,Australia,AUS,1,It's in Oceania.,,continent (6-continent model)
+top5-sex-partners,2,Australia,AUS,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-sex-partners,2,Australia,AUS,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-sex-partners,2,Australia,AUS,4,Its capital city starts with “C”.,,World Bank country metadata (capitalCity)
+top5-sex-partners,2,Australia,AUS,5,Its name starts with “A”.,,the name
+top5-sex-partners,3,New Zealand,NZL,1,It's in Oceania.,,continent (6-continent model)
+top5-sex-partners,3,New Zealand,NZL,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-sex-partners,3,New Zealand,NZL,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-sex-partners,3,New Zealand,NZL,4,Its capital city starts with “W”.,,World Bank country metadata (capitalCity)
+top5-sex-partners,3,New Zealand,NZL,5,Its name starts with “N”.,,the name
+top5-sex-partners,4,Iceland,ISL,1,It's in Europe.,,continent (6-continent model)
+top5-sex-partners,4,Iceland,ISL,2,It has fewer than 1 million people (2024).,,World Bank SP.POP.TOTL
+top5-sex-partners,4,Iceland,ISL,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-sex-partners,4,Iceland,ISL,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-sex-partners,4,Iceland,ISL,5,Its name starts with “I”.,,the name
+top5-sex-partners,5,South Africa,ZAF,1,It's in Africa.,,continent (6-continent model)
+top5-sex-partners,5,South Africa,ZAF,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-sex-partners,5,South Africa,ZAF,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-sex-partners,5,South Africa,ZAF,4,It has a coastline.,,standard list of landlocked countries
+top5-sex-partners,5,South Africa,ZAF,5,Its name starts with “S”.,,the name
+top5-trends-kpop,1,Philippines,PHL,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,1,Philippines,PHL,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,1,Philippines,PHL,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,1,Philippines,PHL,4,Its capital city starts with “M”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,1,Philippines,PHL,5,Its name starts with “P”.,,the name
+top5-trends-kpop,2,Singapore,SGP,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,2,Singapore,SGP,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,2,Singapore,SGP,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,2,Singapore,SGP,4,It has a coastline.,,standard list of landlocked countries
+top5-trends-kpop,2,Singapore,SGP,5,Its name starts with “S”.,,the name
+top5-trends-kpop,3,Myanmar,MMR,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,3,Myanmar,MMR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,3,Myanmar,MMR,3,"Its GDP per person is under $2,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,3,Myanmar,MMR,4,Its capital city starts with “N”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,3,Myanmar,MMR,5,Its name starts with “M”.,,the name
+top5-trends-kpop,4,Malaysia,MYS,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,4,Malaysia,MYS,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,4,Malaysia,MYS,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,4,Malaysia,MYS,4,Its capital city starts with “K”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,4,Malaysia,MYS,5,Its name starts with “M”.,,the name
+top5-trends-kpop,5,South Korea,KOR,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,5,South Korea,KOR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,5,South Korea,KOR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,5,South Korea,KOR,4,It has a coastline.,,standard list of landlocked countries
+top5-trends-kpop,5,South Korea,KOR,5,Its name starts with “S”.,,the name
+top5-trends-kpop,5,Indonesia,IDN,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,5,Indonesia,IDN,2,It has more than 150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,5,Indonesia,IDN,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,5,Indonesia,IDN,4,Its capital city starts with “J”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,5,Indonesia,IDN,5,Its name starts with “I”.,,the name

@@ -1,0 +1,865 @@
+﻿puzzle_id,country,iso3,emoji,value,year
+top-potatoes,Belarus,BLR,🇧🇾,166.9,2023
+top-potatoes,Ukraine,UKR,🇺🇦,147,2023
+top-potatoes,Bosnia and Herzegovina,BIH,🇧🇦,102.9,2023
+top-potatoes,Nepal,NPL,🇳🇵,99.5,2023
+top-potatoes,Kyrgyzstan,KGZ,🇰🇬,98.8,2023
+top-potatoes,Poland,POL,🇵🇱,92.9,2023
+top-potatoes,Uzbekistan,UZB,🇺🇿,92.8,2023
+top-potatoes,Belgium,BEL,🇧🇪,90.8,2023
+top-potatoes,Peru,PER,🇵🇪,90,2023
+top-potatoes,Ireland,IRL,🇮🇪,85.3,2023
+top-potatoes,Russia,RUS,🇷🇺,84.2,2023
+top-potatoes,Azerbaijan,AZE,🇦🇿,83.5,2023
+top-potatoes,Canada,CAN,🇨🇦,80.6,2023
+top-potatoes,North Macedonia,MKD,🇲🇰,77.2,2023
+top-potatoes,Netherlands,NLD,🇳🇱,76,2023
+top-potatoes,Bolivia,BOL,🇧🇴,72.3,2023
+top-potatoes,United Kingdom,GBR,🇬🇧,72.1,2023
+top-potatoes,Germany,DEU,🇩🇪,71.7,2023
+top-potatoes,Estonia,EST,🇪🇪,68.5,2023
+top-potatoes,Denmark,DNK,🇩🇰,68.2,2023
+top-potatoes,Australia,AUS,🇦🇺,67,2023
+top-potatoes,Portugal,PRT,🇵🇹,65.5,2023
+top-potatoes,Armenia,ARM,🇦🇲,65,2023
+top-potatoes,Turkmenistan,TKM,🇹🇲,64.2,2023
+top-potatoes,Sweden,SWE,🇸🇪,61.7,2023
+top-potatoes,Latvia,LVA,🇱🇻,60.1,2023
+top-potatoes,Spain,ESP,🇪🇸,60.1,2023
+top-potatoes,Romania,ROU,🇷🇴,59.6,2023
+top-potatoes,Czechia,CZE,🇨🇿,59,2023
+top-potatoes,Algeria,DZA,🇩🇿,58.9,2023
+top-potatoes,Finland,FIN,🇫🇮,58.4,2023
+top-potatoes,Lesotho,LSO,🇱🇸,58.3,2023
+top-potatoes,Slovakia,SVK,🇸🇰,57.1,2023
+top-potatoes,Colombia,COL,🇨🇴,56.9,2023
+top-potatoes,Rwanda,RWA,🇷🇼,56.1,2023
+top-potatoes,Serbia,SRB,🇷🇸,56,2023
+top-potatoes,Barbados,BRB,🇧🇧,55.4,2023
+top-potatoes,United States,USA,🇺🇸,55.4,2023
+top-potatoes,Moldova,MDA,🇲🇩,54.8,2023
+top-potatoes,Slovenia,SVN,🇸🇮,54.7,2023
+top-potatoes,France,FRA,🇫🇷,53.3,2023
+top-potatoes,Greece,GRC,🇬🇷,53,2023
+top-potatoes,Georgia,GEO,🇬🇪,52.1,2023
+top-potatoes,Lithuania,LTU,🇱🇹,52.1,2023
+top-potatoes,Albania,ALB,🇦🇱,51.8,2023
+top-potatoes,Croatia,HRV,🇭🇷,51.3,2023
+top-potatoes,Turkey,TUR,🇹🇷,51.2,2023
+top-potatoes,Bangladesh,BGD,🇧🇩,50.9,2023
+top-potatoes,French Polynesia,PYF,🇵🇫,49.7,2023
+top-potatoes,Chile,CHL,🇨🇱,48.8,2023
+top-potatoes,China,CHN,🇨🇳,48.8,2023
+top-potatoes,Lebanon,LBN,🇱🇧,48.4,2023
+top-potatoes,Italy,ITA,🇮🇹,48,2023
+top-potatoes,Kazakhstan,KAZ,🇰🇿,47.5,2023
+top-potatoes,New Zealand,NZL,🇳🇿,47,2023
+top-potatoes,Mongolia,MNG,🇲🇳,46.2,2023
+top-potatoes,Trinidad and Tobago,TTO,🇹🇹,45.8,2023
+top-potatoes,Malta,MLT,🇲🇹,44.9,2023
+top-potatoes,Switzerland,CHE,🇨🇭,44.4,2023
+top-potatoes,Austria,AUT,🇦🇹,42.5,2023
+top-potatoes,Iceland,ISL,🇮🇸,41.6,2023
+top-potatoes,Morocco,MAR,🇲🇦,41,2023
+top-potatoes,Tajikistan,TJK,🇹🇯,40.9,2023
+top-potatoes,Oman,OMN,🇴🇲,40.1,2023
+top-potatoes,Luxembourg,LUX,🇱🇺,39.5,2023
+top-potatoes,Seychelles,SYC,🇸🇨,39.5,2023
+top-potatoes,Kuwait,KWT,🇰🇼,39.2,2023
+top-potatoes,Hungary,HUN,🇭🇺,37.7,2023
+top-potatoes,Bahrain,BHR,🇧🇭,36.3,2023
+top-potatoes,Malawi,MWI,🇲🇼,36.1,2023
+top-potatoes,Argentina,ARG,🇦🇷,35.9,2023
+top-potatoes,Qatar,QAT,🇶🇦,35.9,2023
+top-potatoes,Uruguay,URY,🇺🇾,35.8,2023
+top-potatoes,Saudi Arabia,SAU,🇸🇦,35,2023
+top-potatoes,Egypt,EGY,🇪🇬,34.4,2023
+top-potatoes,United Arab Emirates,ARE,🇦🇪,33.8,2023
+top-potatoes,Israel,ISR,🇮🇱,33.7,2023
+top-potatoes,Saint Kitts and Nevis,KNA,🇰🇳,33.7,2023
+top-potatoes,Montenegro,MNE,🇲🇪,33.6,2023
+top-potatoes,Macao,MAC,🇲🇴,33.5,2023
+top-potatoes,New Caledonia,NCL,🇳🇨,33.5,2023
+top-potatoes,Cyprus,CYP,🇨🇾,33.2,2023
+top-potatoes,Zimbabwe,ZWE,🇿🇼,32.3,2023
+top-potatoes,South Africa,ZAF,🇿🇦,31.9,2023
+top-potatoes,Jordan,JOR,🇯🇴,31.2,2023
+top-potatoes,Fiji,FJI,🇫🇯,30.9,2023
+top-potatoes,Norway,NOR,🇳🇴,30,2023
+top-potatoes,Kenya,KEN,🇰🇪,29.7,2023
+top-potatoes,Tunisia,TUN,🇹🇳,29.7,2023
+top-potatoes,India,IND,🇮🇳,27.9,2023
+top-potatoes,Libya,LBY,🇱🇾,27.8,2023
+top-potatoes,Maldives,MDV,🇲🇻,27.1,2023
+top-potatoes,Costa Rica,CRI,🇨🇷,26.7,2023
+top-potatoes,Pakistan,PAK,🇵🇰,26.6,2023
+top-potatoes,Afghanistan,AFG,🇦🇫,26.5,2023
+top-potatoes,Cape Verde,CPV,🇨🇻,26.1,2023
+top-potatoes,Antigua and Barbuda,ATG,🇦🇬,25.9,2023
+top-potatoes,Bulgaria,BGR,🇧🇬,24.9,2023
+top-potatoes,Iran,IRN,🇮🇷,23.4,2023
+top-potatoes,Hong Kong,HKG,🇭🇰,23.1,2023
+top-potatoes,Japan,JPN,🇯🇵,23,2022
+top-potatoes,Saint Lucia,LCA,🇱🇨,22.9,2023
+top-potatoes,Mauritius,MUS,🇲🇺,22.1,2023
+top-potatoes,Guatemala,GTM,🇬🇹,21.5,2023
+top-potatoes,Eswatini,SWZ,🇸🇿,21.1,2023
+top-potatoes,Grenada,GRD,🇬🇩,21.1,2023
+top-potatoes,Dominica,DMA,🇩🇲,20.7,2022
+top-potatoes,Guyana,GUY,🇬🇾,20.4,2023
+top-potatoes,Panama,PAN,🇵🇦,20.4,2023
+top-potatoes,Brazil,BRA,🇧🇷,19.7,2023
+top-potatoes,Malaysia,MYS,🇲🇾,19.1,2023
+top-potatoes,Djibouti,DJI,🇩🇯,18.8,2023
+top-potatoes,Saint Vincent and the Grenadines,VCT,🇻🇨,18.8,2023
+top-potatoes,Syria,SYR,🇸🇾,17.6,2023
+top-potatoes,Suriname,SUR,🇸🇷,17.5,2023
+top-potatoes,El Salvador,SLV,🇸🇻,16.6,2023
+top-potatoes,Mexico,MEX,🇲🇽,16.6,2023
+top-potatoes,Dominican Republic,DOM,🇩🇴,16.5,2023
+top-potatoes,Guinea,GIN,🇬🇳,16.2,2023
+top-potatoes,Jamaica,JAM,🇯🇲,16.2,2023
+top-potatoes,Samoa,WSM,🇼🇸,16.2,2023
+top-potatoes,Venezuela,VEN,🇻🇪,16,2023
+top-potatoes,Ecuador,ECU,🇪🇨,15.5,2023
+top-potatoes,Tonga,TON,🇹🇴,15.4,2023
+top-potatoes,South Korea,KOR,🇰🇷,15.3,2023
+top-potatoes,Bahamas,BHS,🇧🇸,15.1,2023
+top-potatoes,Mozambique,MOZ,🇲🇿,14.9,2023
+top-potatoes,Burundi,BDI,🇧🇮,14.6,2022
+top-potatoes,Namibia,NAM,🇳🇦,14.1,2023
+top-potatoes,Bhutan,BTN,🇧🇹,13.7,2023
+top-potatoes,Belize,BLZ,🇧🇿,12.8,2023
+top-potatoes,Botswana,BWA,🇧🇼,12,2023
+top-potatoes,Sudan,SDN,🇸🇩,10.3,2022
+top-potatoes,Taiwan,TWN,🇹🇼,9.6,2023
+top-potatoes,Mauritania,MRT,🇲🇷,9,2023
+top-potatoes,Angola,AGO,🇦🇴,8.8,2023
+top-potatoes,Honduras,HND,🇭🇳,8.8,2023
+top-potatoes,Paraguay,PRY,🇵🇾,8.8,2023
+top-potatoes,Nicaragua,NIC,🇳🇮,8.5,2023
+top-potatoes,Uganda,UGA,🇺🇬,8.3,2023
+top-potatoes,Senegal,SEN,🇸🇳,7.9,2023
+top-potatoes,Sri Lanka,LKA,🇱🇰,7.9,2023
+top-potatoes,Ethiopia,ETH,🇪🇹,7.6,2023
+top-potatoes,Cameroon,CMR,🇨🇲,7.3,2023
+top-potatoes,Myanmar,MMR,🇲🇲,7.3,2023
+top-potatoes,Niger,NER,🇳🇪,7,2023
+top-potatoes,Yemen,YEM,🇾🇪,7,2023
+top-potatoes,Iraq,IRQ,🇮🇶,6.7,2023
+top-potatoes,Mali,MLI,🇲🇱,6.7,2022
+top-potatoes,Tuvalu,TUV,🇹🇻,6.3,2023
+top-potatoes,Tanzania,TZA,🇹🇿,6,2023
+top-potatoes,Marshall Islands,MHL,🇲🇭,5.9,2023
+top-potatoes,Nauru,NRU,🇳🇷,5.8,2023
+top-potatoes,Comoros,COM,🇰🇲,5.2,2023
+top-potatoes,Gabon,GAB,🇬🇦,5.1,2023
+top-potatoes,Thailand,THA,🇹🇭,5.1,2023
+top-potatoes,Vanuatu,VUT,🇻🇺,4.9,2023
+top-potatoes,Vietnam,VNM,🇻🇳,4.8,2023
+top-potatoes,Madagascar,MDG,🇲🇬,4.6,2023
+top-potatoes,Indonesia,IDN,🇮🇩,4.3,2023
+top-potatoes,Nigeria,NGA,🇳🇬,3.9,2023
+top-potatoes,Philippines,PHL,🇵🇭,3.7,2023
+top-potatoes,Somalia,SOM,🇸🇴,3.4,2022
+top-potatoes,Zambia,ZMB,🇿🇲,3.4,2023
+top-potatoes,East Timor,TLS,🇹🇱,3,2023
+top-potatoes,Haiti,HTI,🇭🇹,2.7,2023
+top-potatoes,Gambia,GMB,🇬🇲,2.6,2023
+top-potatoes,Chad,TCD,🇹🇩,1.7,2022
+top-potatoes,Congo,COG,🇨🇬,1.6,2023
+top-potatoes,Kiribati,KIR,🇰🇮,1.6,2023
+top-potatoes,Papua New Guinea,PNG,🇵🇬,1.5,2023
+top-potatoes,Burkina Faso,BFA,🇧🇫,1.4,2023
+top-potatoes,Sao Tome and Principe,STP,🇸🇹,1.2,2023
+top-potatoes,Democratic Republic of Congo,COD,🇨🇩,0.9,2023
+top-potatoes,Guinea-Bissau,GNB,🇬🇼,0.6,2023
+top-potatoes,Togo,TGO,🇹🇬,0.6,2022
+top-potatoes,Benin,BEN,🇧🇯,0.5,2022
+top-potatoes,Cote d'Ivoire,CIV,🇨🇮,0.5,2023
+top-potatoes,Laos,LAO,🇱🇦,0.5,2023
+top-potatoes,Cambodia,KHM,🇰🇭,0.4,2023
+top-potatoes,Ghana,GHA,🇬🇭,0.4,2023
+top-potatoes,Solomon Islands,SLB,🇸🇧,0.3,2023
+top-potatoes,Central African Republic,CAF,🇨🇫,0.2,2022
+top-potatoes,Liberia,LBR,🇱🇷,0.2,2023
+top-potatoes,Sierra Leone,SLE,🇸🇱,0.2,2023
+top-potatoes,Micronesia (country),FSM,🇫🇲,0,2023
+top-potatoes,South Sudan,SSD,🇸🇸,0,2022
+top-wine,Luxembourg,LUX,🇱🇺,75.9,2023
+top-wine,Portugal,PRT,🇵🇹,53.5,2023
+top-wine,Belgium,BEL,🇧🇪,48,2023
+top-wine,France,FRA,🇫🇷,45.7,2023
+top-wine,Italy,ITA,🇮🇹,37.7,2023
+top-wine,Switzerland,CHE,🇨🇭,31.8,2023
+top-wine,Netherlands,NLD,🇳🇱,29.3,2023
+top-wine,Austria,AUT,🇦🇹,26.8,2023
+top-wine,Denmark,DNK,🇩🇰,24.3,2023
+top-wine,Chile,CHL,🇨🇱,23.1,2023
+top-wine,Romania,ROU,🇷🇴,21.6,2023
+top-wine,Sweden,SWE,🇸🇪,20.1,2023
+top-wine,Hungary,HUN,🇭🇺,19.2,2023
+top-wine,United Kingdom,GBR,🇬🇧,18.3,2023
+top-wine,Ireland,IRL,🇮🇪,18.2,2023
+top-wine,Spain,ESP,🇪🇸,18.2,2023
+top-wine,Germany,DEU,🇩🇪,17.3,2023
+top-wine,Latvia,LVA,🇱🇻,17.3,2023
+top-wine,Estonia,EST,🇪🇪,16.5,2023
+top-wine,Norway,NOR,🇳🇴,16.5,2023
+top-wine,Namibia,NAM,🇳🇦,15.5,2023
+top-wine,Australia,AUS,🇦🇺,15.1,2023
+top-wine,Uruguay,URY,🇺🇾,15.1,2023
+top-wine,Argentina,ARG,🇦🇷,14.9,2023
+top-wine,Croatia,HRV,🇭🇷,14.8,2023
+top-wine,Malta,MLT,🇲🇹,14,2023
+top-wine,Antigua and Barbuda,ATG,🇦🇬,13.6,2023
+top-wine,Iceland,ISL,🇮🇸,13.1,2023
+top-wine,Seychelles,SYC,🇸🇨,13.1,2023
+top-wine,Cape Verde,CPV,🇨🇻,12.4,2023
+top-wine,Macao,MAC,🇲🇴,12.4,2023
+top-wine,Montenegro,MNE,🇲🇪,12.3,2023
+top-wine,Sao Tome and Principe,STP,🇸🇹,12,2023
+top-wine,Cyprus,CYP,🇨🇾,11.7,2023
+top-wine,Barbados,BRB,🇧🇧,11.2,2023
+top-wine,Finland,FIN,🇫🇮,10.9,2023
+top-wine,New Zealand,NZL,🇳🇿,10.7,2023
+top-wine,Czechia,CZE,🇨🇿,10.3,2023
+top-wine,Bulgaria,BGR,🇧🇬,10.2,2023
+top-wine,Lithuania,LTU,🇱🇹,9.8,2023
+top-wine,Saint Lucia,LCA,🇱🇨,9.8,2023
+top-wine,New Caledonia,NCL,🇳🇨,9.7,2023
+top-wine,Georgia,GEO,🇬🇪,9.5,2023
+top-wine,Moldova,MDA,🇲🇩,9.5,2023
+top-wine,Belarus,BLR,🇧🇾,9,2023
+top-wine,Slovenia,SVN,🇸🇮,8.7,2023
+top-wine,Dominica,DMA,🇩🇲,8.6,2022
+top-wine,United States,USA,🇺🇸,8.5,2023
+top-wine,Grenada,GRD,🇬🇩,8.4,2023
+top-wine,North Macedonia,MKD,🇲🇰,8.4,2023
+top-wine,Greece,GRC,🇬🇷,8.3,2023
+top-wine,Bahamas,BHS,🇧🇸,8.1,2023
+top-wine,Saint Kitts and Nevis,KNA,🇰🇳,7.8,2023
+top-wine,French Polynesia,PYF,🇵🇫,7.6,2023
+top-wine,Turkmenistan,TKM,🇹🇲,7.2,2023
+top-wine,Russia,RUS,🇷🇺,6.1,2023
+top-wine,Guinea-Bissau,GNB,🇬🇼,5.8,2023
+top-wine,Canada,CAN,🇨🇦,5.6,2023
+top-wine,Poland,POL,🇵🇱,5,2023
+top-wine,Serbia,SRB,🇷🇸,5,2023
+top-wine,Saint Vincent and the Grenadines,VCT,🇻🇨,4,2023
+top-wine,Costa Rica,CRI,🇨🇷,3.6,2023
+top-wine,Mauritius,MUS,🇲🇺,3.4,2023
+top-wine,Ukraine,UKR,🇺🇦,3.2,2023
+top-wine,Botswana,BWA,🇧🇼,3,2023
+top-wine,Hong Kong,HKG,🇭🇰,2.8,2023
+top-wine,Maldives,MDV,🇲🇻,2.8,2023
+top-wine,Armenia,ARM,🇦🇲,2.7,2023
+top-wine,Bosnia and Herzegovina,BIH,🇧🇦,2.7,2023
+top-wine,Peru,PER,🇵🇪,2.7,2023
+top-wine,South Africa,ZAF,🇿🇦,2.7,2023
+top-wine,Trinidad and Tobago,TTO,🇹🇹,2.7,2023
+top-wine,Japan,JPN,🇯🇵,2.6,2022
+top-wine,Albania,ALB,🇦🇱,2.5,2023
+top-wine,Cote d'Ivoire,CIV,🇨🇮,2.5,2023
+top-wine,Kazakhstan,KAZ,🇰🇿,2.5,2023
+top-wine,Tunisia,TUN,🇹🇳,2.5,2023
+top-wine,Brazil,BRA,🇧🇷,2.3,2023
+top-wine,Gabon,GAB,🇬🇦,2.3,2023
+top-wine,Vanuatu,VUT,🇻🇺,2.3,2023
+top-wine,Tonga,TON,🇹🇴,2.2,2023
+top-wine,Belize,BLZ,🇧🇿,2.1,2023
+top-wine,Paraguay,PRY,🇵🇾,2.1,2023
+top-wine,Slovakia,SVK,🇸🇰,2.1,2023
+top-wine,Panama,PAN,🇵🇦,1.9,2023
+top-wine,Dominican Republic,DOM,🇩🇴,1.7,2023
+top-wine,Fiji,FJI,🇫🇯,1.7,2023
+top-wine,Lesotho,LSO,🇱🇸,1.5,2023
+top-wine,China,CHN,🇨🇳,1.4,2023
+top-wine,Israel,ISR,🇮🇱,1.2,2023
+top-wine,Marshall Islands,MHL,🇲🇭,1.2,2023
+top-wine,Morocco,MAR,🇲🇦,1.2,2023
+top-wine,Angola,AGO,🇦🇴,1,2023
+top-wine,Turkey,TUR,🇹🇷,1,2023
+top-wine,Bahrain,BHR,🇧🇭,0.9,2023
+top-wine,Mongolia,MNG,🇲🇳,0.9,2023
+top-wine,Venezuela,VEN,🇻🇪,0.9,2023
+top-wine,Azerbaijan,AZE,🇦🇿,0.8,2023
+top-wine,Eswatini,SWZ,🇸🇿,0.8,2023
+top-wine,Lebanon,LBN,🇱🇧,0.8,2023
+top-wine,Liberia,LBR,🇱🇷,0.8,2023
+top-wine,South Korea,KOR,🇰🇷,0.8,2023
+top-wine,Suriname,SUR,🇸🇷,0.8,2023
+top-wine,Taiwan,TWN,🇹🇼,0.8,2023
+top-wine,Congo,COG,🇨🇬,0.7,2023
+top-wine,Ecuador,ECU,🇪🇨,0.7,2023
+top-wine,Samoa,WSM,🇼🇸,0.7,2023
+top-wine,Uzbekistan,UZB,🇺🇿,0.7,2023
+top-wine,Bolivia,BOL,🇧🇴,0.6,2023
+top-wine,El Salvador,SLV,🇸🇻,0.6,2023
+top-wine,Guyana,GUY,🇬🇾,0.6,2023
+top-wine,Benin,BEN,🇧🇯,0.5,2022
+top-wine,Colombia,COL,🇨🇴,0.5,2023
+top-wine,Burkina Faso,BFA,🇧🇫,0.4,2023
+top-wine,Cambodia,KHM,🇰🇭,0.4,2023
+top-wine,Kyrgyzstan,KGZ,🇰🇬,0.4,2023
+top-wine,Madagascar,MDG,🇲🇬,0.4,2023
+top-wine,Nauru,NRU,🇳🇷,0.4,2023
+top-wine,Cameroon,CMR,🇨🇲,0.3,2023
+top-wine,Guatemala,GTM,🇬🇹,0.3,2023
+top-wine,Haiti,HTI,🇭🇹,0.3,2023
+top-wine,Kiribati,KIR,🇰🇮,0.3,2023
+top-wine,Micronesia (country),FSM,🇫🇲,0.3,2023
+top-wine,Nicaragua,NIC,🇳🇮,0.3,2023
+top-wine,Qatar,QAT,🇶🇦,0.3,2023
+top-wine,Senegal,SEN,🇸🇳,0.3,2023
+top-wine,East Timor,TLS,🇹🇱,0.2,2023
+top-wine,Honduras,HND,🇭🇳,0.2,2023
+top-wine,Kenya,KEN,🇰🇪,0.2,2023
+top-wine,Malaysia,MYS,🇲🇾,0.2,2023
+top-wine,Oman,OMN,🇴🇲,0.2,2023
+top-wine,Vietnam,VNM,🇻🇳,0.2,2023
+top-wine,Zimbabwe,ZWE,🇿🇼,0.2,2023
+top-wine,Algeria,DZA,🇩🇿,0.1,2023
+top-wine,Bhutan,BTN,🇧🇹,0.1,2023
+top-wine,Burundi,BDI,🇧🇮,0.1,2022
+top-wine,Central African Republic,CAF,🇨🇫,0.1,2022
+top-wine,Comoros,COM,🇰🇲,0.1,2023
+top-wine,Djibouti,DJI,🇩🇯,0.1,2023
+top-wine,Egypt,EGY,🇪🇬,0.1,2023
+top-wine,Ghana,GHA,🇬🇭,0.1,2023
+top-wine,Guinea,GIN,🇬🇳,0.1,2023
+top-wine,Laos,LAO,🇱🇦,0.1,2023
+top-wine,Mexico,MEX,🇲🇽,0.1,2023
+top-wine,Mozambique,MOZ,🇲🇿,0.1,2023
+top-wine,Myanmar,MMR,🇲🇲,0.1,2023
+top-wine,Nigeria,NGA,🇳🇬,0.1,2023
+top-wine,Papua New Guinea,PNG,🇵🇬,0.1,2023
+top-wine,Philippines,PHL,🇵🇭,0.1,2023
+top-wine,Rwanda,RWA,🇷🇼,0.1,2023
+top-wine,Sierra Leone,SLE,🇸🇱,0.1,2023
+top-wine,Solomon Islands,SLB,🇸🇧,0.1,2023
+top-wine,Sri Lanka,LKA,🇱🇰,0.1,2023
+top-wine,Tanzania,TZA,🇹🇿,0.1,2023
+top-wine,Tuvalu,TUV,🇹🇻,0.1,2023
+top-wine,Uganda,UGA,🇺🇬,0.1,2023
+top-wine,Zambia,ZMB,🇿🇲,0.1,2023
+top-wine,Afghanistan,AFG,🇦🇫,0,2023
+top-wine,Bangladesh,BGD,🇧🇩,0,2023
+top-wine,Chad,TCD,🇹🇩,0,2022
+top-wine,Democratic Republic of Congo,COD,🇨🇩,0,2023
+top-wine,Ethiopia,ETH,🇪🇹,0,2023
+top-wine,Gambia,GMB,🇬🇲,0,2023
+top-wine,India,IND,🇮🇳,0,2023
+top-wine,Indonesia,IDN,🇮🇩,0,2023
+top-wine,Iran,IRN,🇮🇷,0,2023
+top-wine,Iraq,IRQ,🇮🇶,0,2023
+top-wine,Jamaica,JAM,🇯🇲,0,2023
+top-wine,Jordan,JOR,🇯🇴,0,2023
+top-wine,Kuwait,KWT,🇰🇼,0,2023
+top-wine,Libya,LBY,🇱🇾,0,2023
+top-wine,Malawi,MWI,🇲🇼,0,2023
+top-wine,Mali,MLI,🇲🇱,0,2022
+top-wine,Mauritania,MRT,🇲🇷,0,2023
+top-wine,Nepal,NPL,🇳🇵,0,2023
+top-wine,Niger,NER,🇳🇪,0,2023
+top-wine,Pakistan,PAK,🇵🇰,0,2023
+top-wine,Saudi Arabia,SAU,🇸🇦,0,2023
+top-wine,Somalia,SOM,🇸🇴,0,2022
+top-wine,South Sudan,SSD,🇸🇸,0,2022
+top-wine,Sudan,SDN,🇸🇩,0,2022
+top-wine,Syria,SYR,🇸🇾,0,2023
+top-wine,Tajikistan,TJK,🇹🇯,0,2023
+top-wine,Thailand,THA,🇹🇭,0,2023
+top-wine,Togo,TGO,🇹🇬,0,2022
+top-wine,United Arab Emirates,ARE,🇦🇪,0,2023
+top-wine,Yemen,YEM,🇾🇪,0,2023
+top-co2-consumption,Singapore,SGP,🇸🇬,32.29,2023
+top-co2-consumption,Qatar,QAT,🇶🇦,27.6,2023
+top-co2-consumption,Malta,MLT,🇲🇹,26.82,2023
+top-co2-consumption,Kuwait,KWT,🇰🇼,25.28,2023
+top-co2-consumption,United Arab Emirates,ARE,🇦🇪,23.31,2023
+top-co2-consumption,Saudi Arabia,SAU,🇸🇦,19.66,2023
+top-co2-consumption,Hong Kong,HKG,🇭🇰,19.37,2023
+top-co2-consumption,Brunei,BRN,🇧🇳,19.34,2023
+top-co2-consumption,Belgium,BEL,🇧🇪,16.78,2023
+top-co2-consumption,Oman,OMN,🇴🇲,16.51,2023
+top-co2-consumption,United States,USA,🇺🇸,15.81,2023
+top-co2-consumption,Trinidad and Tobago,TTO,🇹🇹,14.87,2023
+top-co2-consumption,Australia,AUS,🇦🇺,14.07,2023
+top-co2-consumption,Bahrain,BHR,🇧🇭,14.06,2023
+top-co2-consumption,South Korea,KOR,🇰🇷,13.7,2023
+top-co2-consumption,Switzerland,CHE,🇨🇭,13.34,2023
+top-co2-consumption,Canada,CAN,🇨🇦,13.23,2023
+top-co2-consumption,Taiwan,TWN,🇹🇼,12.64,2023
+top-co2-consumption,Luxembourg,LUX,🇱🇺,11.02,2023
+top-co2-consumption,Mongolia,MNG,🇲🇳,10.67,2023
+top-co2-consumption,Kazakhstan,KAZ,🇰🇿,10.46,2023
+top-co2-consumption,Russia,RUS,🇷🇺,9.67,2023
+top-co2-consumption,Israel,ISR,🇮🇱,9.54,2023
+top-co2-consumption,Slovenia,SVN,🇸🇮,9.32,2023
+top-co2-consumption,Czechia,CZE,🇨🇿,9.25,2023
+top-co2-consumption,Estonia,EST,🇪🇪,9.2,2023
+top-co2-consumption,Japan,JPN,🇯🇵,9.18,2023
+top-co2-consumption,Germany,DEU,🇩🇪,9.09,2023
+top-co2-consumption,Finland,FIN,🇫🇮,8.47,2023
+top-co2-consumption,Austria,AUT,🇦🇹,8.38,2023
+top-co2-consumption,Denmark,DNK,🇩🇰,8.32,2023
+top-co2-consumption,Netherlands,NLD,🇳🇱,8.3,2023
+top-co2-consumption,Malaysia,MYS,🇲🇾,8.16,2023
+top-co2-consumption,New Zealand,NZL,🇳🇿,8,2023
+top-co2-consumption,Ireland,IRL,🇮🇪,7.86,2023
+top-co2-consumption,China,CHN,🇨🇳,7.63,2023
+top-co2-consumption,Iran,IRN,🇮🇷,7.38,2023
+top-co2-consumption,Italy,ITA,🇮🇹,7.21,2023
+top-co2-consumption,Lithuania,LTU,🇱🇹,7.19,2023
+top-co2-consumption,Latvia,LVA,🇱🇻,7.1,2023
+top-co2-consumption,United Kingdom,GBR,🇬🇧,7.09,2023
+top-co2-consumption,Norway,NOR,🇳🇴,7.06,2023
+top-co2-consumption,Poland,POL,🇵🇱,7.06,2023
+top-co2-consumption,Belarus,BLR,🇧🇾,6.86,2023
+top-co2-consumption,Greece,GRC,🇬🇷,6.56,2023
+top-co2-consumption,Cyprus,CYP,🇨🇾,6.41,2023
+top-co2-consumption,Slovakia,SVK,🇸🇰,6.35,2023
+top-co2-consumption,Mauritius,MUS,🇲🇺,6.21,2023
+top-co2-consumption,France,FRA,🇫🇷,6.13,2023
+top-co2-consumption,Croatia,HRV,🇭🇷,6.09,2023
+top-co2-consumption,Hungary,HUN,🇭🇺,5.86,2023
+top-co2-consumption,Botswana,BWA,🇧🇼,5.85,2023
+top-co2-consumption,Sweden,SWE,🇸🇪,5.85,2023
+top-co2-consumption,Turkey,TUR,🇹🇷,5.54,2023
+top-co2-consumption,Spain,ESP,🇪🇸,5.44,2023
+top-co2-consumption,Bulgaria,BGR,🇧🇬,5.2,2023
+top-co2-consumption,South Africa,ZAF,🇿🇦,5.15,2023
+top-co2-consumption,Portugal,PRT,🇵🇹,4.55,2023
+top-co2-consumption,Chile,CHL,🇨🇱,4.48,2023
+top-co2-consumption,Ukraine,UKR,🇺🇦,4.41,2023
+top-co2-consumption,Panama,PAN,🇵🇦,4.38,2023
+top-co2-consumption,Mexico,MEX,🇲🇽,4.36,2023
+top-co2-consumption,Thailand,THA,🇹🇭,4.26,2023
+top-co2-consumption,Romania,ROU,🇷🇴,4.09,2023
+top-co2-consumption,Argentina,ARG,🇦🇷,4.08,2023
+top-co2-consumption,Georgia,GEO,🇬🇪,4.04,2023
+top-co2-consumption,Azerbaijan,AZE,🇦🇿,3.96,2023
+top-co2-consumption,Dominican Republic,DOM,🇩🇴,3.57,2023
+top-co2-consumption,Venezuela,VEN,🇻🇪,3.55,2023
+top-co2-consumption,Namibia,NAM,🇳🇦,3.26,2023
+top-co2-consumption,Uruguay,URY,🇺🇾,3.18,2023
+top-co2-consumption,Jamaica,JAM,🇯🇲,2.94,2023
+top-co2-consumption,Costa Rica,CRI,🇨🇷,2.88,2023
+top-co2-consumption,Jordan,JOR,🇯🇴,2.78,2023
+top-co2-consumption,Ecuador,ECU,🇪🇨,2.72,2023
+top-co2-consumption,Kyrgyzstan,KGZ,🇰🇬,2.71,2023
+top-co2-consumption,Armenia,ARM,🇦🇲,2.61,2023
+top-co2-consumption,Indonesia,IDN,🇮🇩,2.59,2023
+top-co2-consumption,Tunisia,TUN,🇹🇳,2.47,2023
+top-co2-consumption,Vietnam,VNM,🇻🇳,2.47,2023
+top-co2-consumption,Peru,PER,🇵🇪,2.33,2023
+top-co2-consumption,Cambodia,KHM,🇰🇭,2.24,2023
+top-co2-consumption,Brazil,BRA,🇧🇷,2.23,2023
+top-co2-consumption,Egypt,EGY,🇪🇬,2.21,2023
+top-co2-consumption,Bolivia,BOL,🇧🇴,2.09,2023
+top-co2-consumption,Sri Lanka,LKA,🇱🇰,2.02,2023
+top-co2-consumption,Colombia,COL,🇨🇴,2,2023
+top-co2-consumption,Laos,LAO,🇱🇦,1.93,2023
+top-co2-consumption,Paraguay,PRY,🇵🇾,1.92,2023
+top-co2-consumption,Albania,ALB,🇦🇱,1.91,2023
+top-co2-consumption,Morocco,MAR,🇲🇦,1.85,2023
+top-co2-consumption,Philippines,PHL,🇵🇭,1.84,2023
+top-co2-consumption,El Salvador,SLV,🇸🇻,1.78,2023
+top-co2-consumption,India,IND,🇮🇳,1.77,2023
+top-co2-consumption,Nepal,NPL,🇳🇵,1.59,2023
+top-co2-consumption,Guatemala,GTM,🇬🇹,1.4,2023
+top-co2-consumption,Tajikistan,TJK,🇹🇯,1.25,2023
+top-co2-consumption,Nicaragua,NIC,🇳🇮,1.05,2023
+top-co2-consumption,Senegal,SEN,🇸🇳,1.05,2023
+top-co2-consumption,Togo,TGO,🇹🇬,1.05,2023
+top-co2-consumption,Bangladesh,BGD,🇧🇩,0.98,2023
+top-co2-consumption,Honduras,HND,🇭🇳,0.98,2023
+top-co2-consumption,Zimbabwe,ZWE,🇿🇼,0.94,2023
+top-co2-consumption,Pakistan,PAK,🇵🇰,0.89,2023
+top-co2-consumption,Ghana,GHA,🇬🇭,0.78,2023
+top-co2-consumption,Kenya,KEN,🇰🇪,0.63,2023
+top-co2-consumption,Zambia,ZMB,🇿🇲,0.61,2023
+top-co2-consumption,Benin,BEN,🇧🇯,0.6,2023
+top-co2-consumption,Nigeria,NGA,🇳🇬,0.58,2023
+top-co2-consumption,Cote d'Ivoire,CIV,🇨🇮,0.57,2023
+top-co2-consumption,Guinea,GIN,🇬🇳,0.44,2023
+top-co2-consumption,Mozambique,MOZ,🇲🇿,0.43,2023
+top-co2-consumption,Tanzania,TZA,🇹🇿,0.39,2023
+top-co2-consumption,Cameroon,CMR,🇨🇲,0.37,2023
+top-co2-consumption,Burkina Faso,BFA,🇧🇫,0.25,2023
+top-co2-consumption,Rwanda,RWA,🇷🇼,0.25,2023
+top-co2-consumption,Madagascar,MDG,🇲🇬,0.21,2023
+top-co2-consumption,Ethiopia,ETH,🇪🇹,0.18,2023
+top-co2-consumption,Uganda,UGA,🇺🇬,0.18,2023
+top-co2-consumption,Malawi,MWI,🇲🇼,0.15,2023
+top-height-gain,China,CHN,🇨🇳,8,2019
+top-height-gain,Saudi Arabia,SAU,🇸🇦,7.7,2019
+top-height-gain,Maldives,MDV,🇲🇻,6.8,2019
+top-height-gain,South Korea,KOR,🇰🇷,6.8,2019
+top-height-gain,Thailand,THA,🇹🇭,5.9,2019
+top-height-gain,Costa Rica,CRI,🇨🇷,5.8,2019
+top-height-gain,Dominica,DMA,🇩🇲,5.6,2019
+top-height-gain,Puerto Rico,PRI,🇵🇷,5.6,2019
+top-height-gain,Montenegro,MNE,🇲🇪,5.5,2019
+top-height-gain,Tunisia,TUN,🇹🇳,5.4,2019
+top-height-gain,Dominican Republic,DOM,🇩🇴,5.2,2019
+top-height-gain,Portugal,PRT,🇵🇹,5.2,2019
+top-height-gain,Hong Kong,HKG,🇭🇰,5.1,2019
+top-height-gain,Trinidad and Tobago,TTO,🇹🇹,5.1,2019
+top-height-gain,Vietnam,VNM,🇻🇳,5.1,2019
+top-height-gain,Iran,IRN,🇮🇷,4.9,2019
+top-height-gain,North Korea,PRK,🇰🇵,4.9,2019
+top-height-gain,Libya,LBY,🇱🇾,4.7,2019
+top-height-gain,Sri Lanka,LKA,🇱🇰,4.7,2019
+top-height-gain,Algeria,DZA,🇩🇿,4.6,2019
+top-height-gain,Bhutan,BTN,🇧🇹,4.6,2019
+top-height-gain,Brazil,BRA,🇧🇷,4.6,2019
+top-height-gain,India,IND,🇮🇳,4.6,2019
+top-height-gain,Bahrain,BHR,🇧🇭,4.5,2019
+top-height-gain,Colombia,COL,🇨🇴,4.5,2019
+top-height-gain,Cuba,CUB,🇨🇺,4.5,2019
+top-height-gain,Poland,POL,🇵🇱,4.5,2019
+top-height-gain,Brunei,BRN,🇧🇳,4.4,2019
+top-height-gain,Lebanon,LBN,🇱🇧,4.3,2019
+top-height-gain,Samoa,WSM,🇼🇸,4.3,2019
+top-height-gain,Suriname,SUR,🇸🇷,4.3,2019
+top-height-gain,Taiwan,TWN,🇹🇼,4.3,2019
+top-height-gain,Mexico,MEX,🇲🇽,4.2,2019
+top-height-gain,Venezuela,VEN,🇻🇪,4.2,2019
+top-height-gain,Bahamas,BHS,🇧🇸,4.1,2019
+top-height-gain,Haiti,HTI,🇭🇹,4.1,2019
+top-height-gain,Saint Vincent and the Grenadines,VCT,🇻🇨,4.1,2019
+top-height-gain,Uruguay,URY,🇺🇾,4.1,2019
+top-height-gain,Cook Islands,COK,🇨🇰,4,2019
+top-height-gain,Denmark,DNK,🇩🇰,4,2019
+top-height-gain,Morocco,MAR,🇲🇦,4,2019
+top-height-gain,Antigua and Barbuda,ATG,🇦🇬,3.9,2019
+top-height-gain,Indonesia,IDN,🇮🇩,3.9,2019
+top-height-gain,Kuwait,KWT,🇰🇼,3.9,2019
+top-height-gain,Turkey,TUR,🇹🇷,3.9,2019
+top-height-gain,Barbados,BRB,🇧🇧,3.8,2019
+top-height-gain,Bolivia,BOL,🇧🇴,3.8,2019
+top-height-gain,Cambodia,KHM,🇰🇭,3.8,2019
+top-height-gain,Honduras,HND,🇭🇳,3.8,2019
+top-height-gain,Saint Kitts and Nevis,KNA,🇰🇳,3.8,2019
+top-height-gain,Grenada,GRD,🇬🇩,3.7,2019
+top-height-gain,Iraq,IRQ,🇮🇶,3.7,2019
+top-height-gain,Paraguay,PRY,🇵🇾,3.7,2019
+top-height-gain,Saint Lucia,LCA,🇱🇨,3.7,2019
+top-height-gain,Chile,CHL,🇨🇱,3.6,2019
+top-height-gain,Belgium,BEL,🇧🇪,3.5,2019
+top-height-gain,Bermuda,BMU,🇧🇲,3.5,2019
+top-height-gain,Nicaragua,NIC,🇳🇮,3.5,2019
+top-height-gain,Niue,NIU,🇳🇺,3.5,2019
+top-height-gain,Tuvalu,TUV,🇹🇻,3.5,2019
+top-height-gain,United Arab Emirates,ARE,🇦🇪,3.5,2019
+top-height-gain,Jamaica,JAM,🇯🇲,3.4,2019
+top-height-gain,Myanmar,MMR,🇲🇲,3.4,2019
+top-height-gain,Malaysia,MYS,🇲🇾,3.3,2019
+top-height-gain,Palestine,PSE,🇵🇸,3.3,2019
+top-height-gain,Qatar,QAT,🇶🇦,3.3,2019
+top-height-gain,Tanzania,TZA,🇹🇿,3.3,2019
+top-height-gain,Afghanistan,AFG,🇦🇫,3.2,2019
+top-height-gain,Croatia,HRV,🇭🇷,3.2,2019
+top-height-gain,El Salvador,SLV,🇸🇻,3.2,2019
+top-height-gain,Laos,LAO,🇱🇦,3.2,2019
+top-height-gain,Netherlands,NLD,🇳🇱,3.2,2019
+top-height-gain,Syria,SYR,🇸🇾,3.2,2019
+top-height-gain,East Timor,TLS,🇹🇱,3.2,2019
+top-height-gain,Belarus,BLR,🇧🇾,3.1,2019
+top-height-gain,Cyprus,CYP,🇨🇾,3.1,2019
+top-height-gain,Ecuador,ECU,🇪🇨,3.1,2019
+top-height-gain,Guyana,GUY,🇬🇾,3.1,2019
+top-height-gain,Lithuania,LTU,🇱🇹,3.1,2019
+top-height-gain,Romania,ROU,🇷🇴,3.1,2019
+top-height-gain,Armenia,ARM,🇦🇲,3,2019
+top-height-gain,Belize,BLZ,🇧🇿,3,2019
+top-height-gain,Greece,GRC,🇬🇷,3,2019
+top-height-gain,Seychelles,SYC,🇸🇨,3,2019
+top-height-gain,Mauritius,MUS,🇲🇺,2.9,2019
+top-height-gain,Oman,OMN,🇴🇲,2.9,2019
+top-height-gain,Philippines,PHL,🇵🇭,2.9,2019
+top-height-gain,Slovenia,SVN,🇸🇮,2.8,2019
+top-height-gain,Tokelau,TKL,🇹🇰,2.8,2019
+top-height-gain,Bosnia and Herzegovina,BIH,🇧🇦,2.7,2019
+top-height-gain,Panama,PAN,🇵🇦,2.7,2019
+top-height-gain,Serbia,SRB,🇷🇸,2.7,2019
+top-height-gain,Spain,ESP,🇪🇸,2.7,2019
+top-height-gain,Argentina,ARG,🇦🇷,2.6,2019
+top-height-gain,Mongolia,MNG,🇲🇳,2.6,2019
+top-height-gain,Nepal,NPL,🇳🇵,2.6,2019
+top-height-gain,Slovakia,SVK,🇸🇰,2.6,2019
+top-height-gain,Andorra,AND,🇦🇩,2.5,2019
+top-height-gain,Azerbaijan,AZE,🇦🇿,2.5,2019
+top-height-gain,Bangladesh,BGD,🇧🇩,2.5,2019
+top-height-gain,Finland,FIN,🇫🇮,2.5,2019
+top-height-gain,France,FRA,🇫🇷,2.5,2019
+top-height-gain,French Polynesia,PYF,🇵🇫,2.5,2019
+top-height-gain,North Macedonia,MKD,🇲🇰,2.5,2019
+top-height-gain,Georgia,GEO,🇬🇪,2.4,2019
+top-height-gain,Peru,PER,🇵🇪,2.4,2019
+top-height-gain,Singapore,SGP,🇸🇬,2.4,2019
+top-height-gain,Jordan,JOR,🇯🇴,2.3,2019
+top-height-gain,Kiribati,KIR,🇰🇮,2.3,2019
+top-height-gain,Eritrea,ERI,🇪🇷,2.2,2019
+top-height-gain,Guatemala,GTM,🇬🇹,2.2,2019
+top-height-gain,Hungary,HUN,🇭🇺,2.2,2019
+top-height-gain,Kazakhstan,KAZ,🇰🇿,2.2,2019
+top-height-gain,Moldova,MDA,🇲🇩,2.2,2019
+top-height-gain,Canada,CAN,🇨🇦,2.1,2019
+top-height-gain,Tonga,TON,🇹🇴,2.1,2019
+top-height-gain,Congo,COG,🇨🇬,2,2019
+top-height-gain,Ireland,IRL,🇮🇪,2,2019
+top-height-gain,Palau,PLW,🇵🇼,2,2019
+top-height-gain,Switzerland,CHE,🇨🇭,2,2019
+top-height-gain,Turkmenistan,TKM,🇹🇲,2,2019
+top-height-gain,South Africa,ZAF,🇿🇦,1.9,2019
+top-height-gain,American Samoa,ASM,🇦🇸,1.8,2019
+top-height-gain,Angola,AGO,🇦🇴,1.8,2019
+top-height-gain,Estonia,EST,🇪🇪,1.8,2019
+top-height-gain,Gabon,GAB,🇬🇦,1.8,2019
+top-height-gain,Luxembourg,LUX,🇱🇺,1.8,2019
+top-height-gain,United Kingdom,GBR,🇬🇧,1.8,2019
+top-height-gain,Australia,AUS,🇦🇺,1.7,2019
+top-height-gain,Russia,RUS,🇷🇺,1.7,2019
+top-height-gain,Czechia,CZE,🇨🇿,1.6,2019
+top-height-gain,Iceland,ISL,🇮🇸,1.6,2019
+top-height-gain,Japan,JPN,🇯🇵,1.6,2019
+top-height-gain,Malta,MLT,🇲🇹,1.6,2019
+top-height-gain,Sweden,SWE,🇸🇪,1.6,2019
+top-height-gain,Latvia,LVA,🇱🇻,1.5,2019
+top-height-gain,Malawi,MWI,🇲🇼,1.5,2019
+top-height-gain,Nauru,NRU,🇳🇷,1.5,2019
+top-height-gain,Djibouti,DJI,🇩🇯,1.4,2019
+top-height-gain,Tajikistan,TJK,🇹🇯,1.4,2019
+top-height-gain,Ukraine,UKR,🇺🇦,1.4,2019
+top-height-gain,Greenland,GRL,🇬🇱,1.3,2019
+top-height-gain,Germany,DEU,🇩🇪,1.2,2019
+top-height-gain,Kyrgyzstan,KGZ,🇰🇬,1.2,2019
+top-height-gain,Madagascar,MDG,🇲🇬,1.2,2019
+top-height-gain,Somalia,SOM,🇸🇴,1.2,2019
+top-height-gain,United States,USA,🇺🇸,1.2,2019
+top-height-gain,Austria,AUT,🇦🇹,1.1,2019
+top-height-gain,Uzbekistan,UZB,🇺🇿,1.1,2019
+top-height-gain,Vanuatu,VUT,🇻🇺,1.1,2019
+top-height-gain,Comoros,COM,🇰🇲,0.9,2019
+top-height-gain,Equatorial Guinea,GNQ,🇬🇶,0.9,2019
+top-height-gain,Norway,NOR,🇳🇴,0.9,2019
+top-height-gain,Yemen,YEM,🇾🇪,0.9,2019
+top-height-gain,Albania,ALB,🇦🇱,0.8,2019
+top-height-gain,Bulgaria,BGR,🇧🇬,0.8,2019
+top-height-gain,Zambia,ZMB,🇿🇲,0.8,2019
+top-height-gain,Burundi,BDI,🇧🇮,0.7,2019
+top-height-gain,Kenya,KEN,🇰🇪,0.7,2019
+top-height-gain,Botswana,BWA,🇧🇼,0.6,2019
+top-height-gain,Cameroon,CMR,🇨🇲,0.6,2019
+top-height-gain,Central African Republic,CAF,🇨🇫,0.6,2019
+top-height-gain,Fiji,FJI,🇫🇯,0.6,2019
+top-height-gain,Israel,ISR,🇮🇱,0.6,2019
+top-height-gain,Marshall Islands,MHL,🇲🇭,0.5,2019
+top-height-gain,Sudan,SDN,🇸🇩,0.5,2019
+top-height-gain,Micronesia (country),FSM,🇫🇲,0.4,2019
+top-height-gain,Egypt,EGY,🇪🇬,0.3,2019
+top-height-gain,Ethiopia,ETH,🇪🇹,0.3,2019
+top-height-gain,Lesotho,LSO,🇱🇸,0.3,2019
+top-height-gain,Mozambique,MOZ,🇲🇿,0.3,2019
+top-height-gain,Cape Verde,CPV,🇨🇻,0.2,2019
+top-height-gain,Democratic Republic of Congo,COD,🇨🇩,0.1,2019
+top-height-gain,Gambia,GMB,🇬🇲,0,2019
+top-height-gain,Ghana,GHA,🇬🇭,0,2019
+top-height-gain,Pakistan,PAK,🇵🇰,0,2019
+top-height-gain,Eswatini,SWZ,🇸🇿,0,2019
+top-height-gain,Zimbabwe,ZWE,🇿🇼,0,2019
+top-height-gain,New Zealand,NZL,🇳🇿,-0.3,2019
+top-height-gain,Guinea-Bissau,GNB,🇬🇼,-0.5,2019
+top-height-gain,Rwanda,RWA,🇷🇼,-0.5,2019
+top-height-gain,Uganda,UGA,🇺🇬,-0.5,2019
+top-height-gain,Italy,ITA,🇮🇹,-0.7,2019
+top-height-gain,Liberia,LBR,🇱🇷,-0.7,2019
+top-height-gain,Senegal,SEN,🇸🇳,-0.7,2019
+top-height-gain,Guinea,GIN,🇬🇳,-0.8,2019
+top-height-gain,Namibia,NAM,🇳🇦,-0.8,2019
+top-height-gain,Togo,TGO,🇹🇬,-0.8,2019
+top-height-gain,Chad,TCD,🇹🇩,-0.9,2019
+top-height-gain,Nigeria,NGA,🇳🇬,-0.9,2019
+top-height-gain,Cote d'Ivoire,CIV,🇨🇮,-1,2019
+top-height-gain,Niger,NER,🇳🇪,-1,2019
+top-height-gain,Sierra Leone,SLE,🇸🇱,-1,2019
+top-height-gain,Benin,BEN,🇧🇯,-1.3,2019
+top-height-gain,Sao Tome and Principe,STP,🇸🇹,-1.4,2019
+top-height-gain,Mali,MLI,🇲🇱,-1.8,2019
+top-height-gain,Burkina Faso,BFA,🇧🇫,-1.9,2019
+top-height-gain,Mauritania,MRT,🇲🇷,-1.9,2019
+top-height-gain,Papua New Guinea,PNG,🇵🇬,-2.5,2019
+top-height-gain,Solomon Islands,SLB,🇸🇧,-2.6,2019
+top-sex-partners,Turkey,TUR,🇹🇷,14.5,2005
+top-sex-partners,Australia,AUS,🇦🇺,13.3,2005
+top-sex-partners,New Zealand,NZL,🇳🇿,13.2,2005
+top-sex-partners,Iceland,ISL,🇮🇸,13,2005
+top-sex-partners,South Africa,ZAF,🇿🇦,12.5,2005
+top-sex-partners,Finland,FIN,🇫🇮,12.4,2005
+top-sex-partners,Norway,NOR,🇳🇴,12.1,2005
+top-sex-partners,Italy,ITA,🇮🇹,11.8,2005
+top-sex-partners,Sweden,SWE,🇸🇪,11.8,2005
+top-sex-partners,Ireland,IRL,🇮🇪,11.1,2005
+top-sex-partners,Switzerland,CHE,🇨🇭,11.1,2005
+top-sex-partners,Canada,CAN,🇨🇦,10.7,2005
+top-sex-partners,United States,USA,🇺🇸,10.7,2005
+top-sex-partners,Greece,GRC,🇬🇷,10.6,2005
+top-sex-partners,Israel,ISR,🇮🇱,10.6,2005
+top-sex-partners,Thailand,THA,🇹🇭,10.6,2005
+top-sex-partners,Japan,JPN,🇯🇵,10.2,2005
+top-sex-partners,Chile,CHL,🇨🇱,10.1,2005
+top-sex-partners,Serbia & Montenegro,SCG,🇷🇸,10.1,2005
+top-sex-partners,United Kingdom,GBR,🇬🇧,9.8,2005
+top-sex-partners,Austria,AUT,🇦🇹,9.7,2005
+top-sex-partners,Denmark,DNK,🇩🇰,9.3,2005
+top-sex-partners,Bulgaria,BGR,🇧🇬,9.1,2005
+top-sex-partners,Czechia,CZE,🇨🇿,9,2005
+top-sex-partners,France,FRA,🇫🇷,8.1,2005
+top-sex-partners,Croatia,HRV,🇭🇷,7.5,2005
+top-sex-partners,Belgium,BEL,🇧🇪,7.5,2005
+top-sex-partners,Singapore,SGP,🇸🇬,7.2,2005
+top-sex-partners,Netherlands,NLD,🇳🇱,7,2005
+top-sex-partners,Portugal,PRT,🇵🇹,7,2005
+top-sex-partners,Taiwan,TWN,🇹🇼,6.6,2005
+top-sex-partners,Spain,ESP,🇪🇸,6.1,2005
+top-sex-partners,Poland,POL,🇵🇱,6,2005
+top-sex-partners,Germany,DEU,🇩🇪,5.8,2005
+top-sex-partners,Malaysia,MYS,🇲🇾,5.8,2005
+top-sex-partners,Slovakia,SVK,🇸🇰,5.4,2005
+top-sex-partners,Indonesia,IDN,🇮🇩,5.1,2005
+top-sex-partners,Hong Kong,HKG,🇭🇰,3.7,2005
+top-sex-partners,Vietnam,VNM,🇻🇳,3.2,2005
+top-sex-partners,China,CHN,🇨🇳,3.1,2005
+top-sex-partners,India,IND,🇮🇳,3,2005
+top-tea,Turkey,TUR,🇹🇷,3.16,2016
+top-tea,Ireland,IRL,🇮🇪,2.19,2016
+top-tea,United Kingdom,GBR,🇬🇧,1.94,2016
+top-tea,Russia,RUS,🇷🇺,1.38,2016
+top-tea,Morocco,MAR,🇲🇦,1.22,2016
+top-tea,New Zealand,NZL,🇳🇿,1.19,2016
+top-tea,Egypt,EGY,🇪🇬,1.01,2016
+top-tea,Poland,POL,🇵🇱,1,2016
+top-tea,Japan,JPN,🇯🇵,0.97,2016
+top-tea,Saudi Arabia,SAU,🇸🇦,0.9,2016
+top-tea,South Africa,ZAF,🇿🇦,0.81,2016
+top-tea,Netherlands,NLD,🇳🇱,0.78,2016
+top-tea,Australia,AUS,🇦🇺,0.75,2016
+top-tea,United Arab Emirates,ARE,🇦🇪,0.72,2016
+top-tea,Germany,DEU,🇩🇪,0.69,2016
+top-tea,Hong Kong,HKG,🇭🇰,0.65,2016
+top-tea,Ukraine,UKR,🇺🇦,0.58,2016
+top-tea,China,CHN,🇨🇳,0.57,2016
+top-tea,Canada,CAN,🇨🇦,0.51,2016
+top-tea,Malaysia,MYS,🇲🇾,0.48,2016
+top-tea,Indonesia,IDN,🇮🇩,0.46,2016
+top-tea,Switzerland,CHE,🇨🇭,0.44,2016
+top-tea,Czechia,CZE,🇨🇿,0.42,2016
+top-tea,Singapore,SGP,🇸🇬,0.37,2016
+top-tea,Slovakia,SVK,🇸🇰,0.36,2016
+top-tea,India,IND,🇮🇳,0.33,2016
+top-tea,Taiwan,TWN,🇹🇼,0.29,2016
+top-tea,Sweden,SWE,🇸🇪,0.29,2016
+top-tea,Hungary,HUN,🇭🇺,0.28,2016
+top-tea,Norway,NOR,🇳🇴,0.27,2016
+top-tea,Austria,AUT,🇦🇹,0.27,2016
+top-tea,Finland,FIN,🇫🇮,0.24,2016
+top-tea,United States,USA,🇺🇸,0.23,2016
+top-tea,Argentina,ARG,🇦🇷,0.21,2016
+top-tea,Israel,ISR,🇮🇱,0.2,2016
+top-tea,France,FRA,🇫🇷,0.2,2016
+top-tea,Vietnam,VNM,🇻🇳,0.2,2016
+top-tea,South Korea,KOR,🇰🇷,0.17,2016
+top-tea,Spain,ESP,🇪🇸,0.15,2016
+top-tea,Denmark,DNK,🇩🇰,0.15,2016
+top-tea,Italy,ITA,🇮🇹,0.14,2016
+top-tea,Belgium,BEL,🇧🇪,0.13,2016
+top-tea,Bulgaria,BGR,🇧🇬,0.11,2016
+top-tea,Romania,ROU,🇷🇴,0.07,2016
+top-tea,Portugal,PRT,🇵🇹,0.06,2016
+top-tea,Thailand,THA,🇹🇭,0.05,2016
+top-tea,Philippines,PHL,🇵🇭,0.03,2016
+top-tea,Greece,GRC,🇬🇷,0.02,2016
+top-tea,Venezuela,VEN,🇻🇪,0.02,2016
+top-tea,Peru,PER,🇵🇪,0.02,2016
+top-tea,Colombia,COL,🇨🇴,0.02,2016
+top-tea,Brazil,BRA,🇧🇷,0.02,2016
+top-tea,Mexico,MEX,🇲🇽,0.01,2016
+top-trends-kpop,Philippines,PHL,🇵🇭,100,Oct 2021–Oct 2026
+top-trends-kpop,Singapore,SGP,🇸🇬,95,Oct 2021–Oct 2026
+top-trends-kpop,Myanmar,MMR,🇲🇲,94,Oct 2021–Oct 2026
+top-trends-kpop,Malaysia,MYS,🇲🇾,70,Oct 2021–Oct 2026
+top-trends-kpop,South Korea,KOR,🇰🇷,51,Oct 2021–Oct 2026
+top-trends-kpop,Indonesia,IDN,🇮🇩,51,Oct 2021–Oct 2026
+top-trends-kpop,Chile,CHL,🇨🇱,47,Oct 2021–Oct 2026
+top-trends-kpop,Hong Kong,HKG,🇭🇰,47,Oct 2021–Oct 2026
+top-trends-kpop,Cambodia,KHM,🇰🇭,47,Oct 2021–Oct 2026
+top-trends-kpop,Bolivia,BOL,🇧🇴,44,Oct 2021–Oct 2026
+top-trends-kpop,Mexico,MEX,🇲🇽,44,Oct 2021–Oct 2026
+top-trends-kpop,Peru,PER,🇵🇪,44,Oct 2021–Oct 2026
+top-trends-kpop,Puerto Rico,PRI,🇵🇷,40,Oct 2021–Oct 2026
+top-trends-kpop,Australia,AUS,🇦🇺,39,Oct 2021–Oct 2026
+top-trends-kpop,Nepal,NPL,🇳🇵,38,Oct 2021–Oct 2026
+top-trends-kpop,El Salvador,SLV,🇸🇻,38,Oct 2021–Oct 2026
+top-trends-kpop,United States,USA,🇺🇸,36,Oct 2021–Oct 2026
+top-trends-kpop,Paraguay,PRY,🇵🇾,36,Oct 2021–Oct 2026
+top-trends-kpop,New Zealand,NZL,🇳🇿,36,Oct 2021–Oct 2026
+top-trends-kpop,Sri Lanka,LKA,🇱🇰,36,Oct 2021–Oct 2026
+top-trends-kpop,Canada,CAN,🇨🇦,35,Oct 2021–Oct 2026
+top-trends-kpop,Bangladesh,BGD,🇧🇩,35,Oct 2021–Oct 2026
+top-trends-kpop,Guatemala,GTM,🇬🇹,34,Oct 2021–Oct 2026
+top-trends-kpop,Japan,JPN,🇯🇵,33,Oct 2021–Oct 2026
+top-trends-kpop,Thailand,THA,🇹🇭,32,Oct 2021–Oct 2026
+top-trends-kpop,Portugal,PRT,🇵🇹,31,Oct 2021–Oct 2026
+top-trends-kpop,Ecuador,ECU,🇪🇨,30,Oct 2021–Oct 2026
+top-trends-kpop,United Arab Emirates,ARE,🇦🇪,30,Oct 2021–Oct 2026
+top-trends-kpop,Iraq,IRQ,🇮🇶,30,Oct 2021–Oct 2026
+top-trends-kpop,Costa Rica,CRI,🇨🇷,29,Oct 2021–Oct 2026
+top-trends-kpop,Argentina,ARG,🇦🇷,29,Oct 2021–Oct 2026
+top-trends-kpop,Uruguay,URY,🇺🇾,29,Oct 2021–Oct 2026
+top-trends-kpop,United Kingdom,GBR,🇬🇧,28,Oct 2021–Oct 2026
+top-trends-kpop,Venezuela,VEN,🇻🇪,28,Oct 2021–Oct 2026
+top-trends-kpop,Romania,ROU,🇷🇴,27,Oct 2021–Oct 2026
+top-trends-kpop,Kazakhstan,KAZ,🇰🇿,27,Oct 2021–Oct 2026
+top-trends-kpop,France,FRA,🇫🇷,27,Oct 2021–Oct 2026
+top-trends-kpop,Taiwan,TWN,🇹🇼,27,Oct 2021–Oct 2026
+top-trends-kpop,Brazil,BRA,🇧🇷,26,Oct 2021–Oct 2026
+top-trends-kpop,Iran,IRN,🇮🇷,25,Oct 2021–Oct 2026
+top-trends-kpop,Pakistan,PAK,🇵🇰,25,Oct 2021–Oct 2026
+top-trends-kpop,Spain,ESP,🇪🇸,25,Oct 2021–Oct 2026
+top-trends-kpop,Uzbekistan,UZB,🇺🇿,24,Oct 2021–Oct 2026
+top-trends-kpop,Vietnam,VNM,🇻🇳,24,Oct 2021–Oct 2026
+top-trends-kpop,Colombia,COL,🇨🇴,24,Oct 2021–Oct 2026
+top-trends-kpop,Hungary,HUN,🇭🇺,23,Oct 2021–Oct 2026
+top-trends-kpop,Finland,FIN,🇫🇮,23,Oct 2021–Oct 2026
+top-trends-kpop,Ireland,IRL,🇮🇪,22,Oct 2021–Oct 2026
+top-trends-kpop,Belgium,BEL,🇧🇪,22,Oct 2021–Oct 2026
+top-trends-kpop,Sweden,SWE,🇸🇪,22,Oct 2021–Oct 2026
+top-trends-kpop,Norway,NOR,🇳🇴,22,Oct 2021–Oct 2026
+top-trends-kpop,India,IND,🇮🇳,22,Oct 2021–Oct 2026
+top-trends-kpop,Poland,POL,🇵🇱,22,Oct 2021–Oct 2026
+top-trends-kpop,Saudi Arabia,SAU,🇸🇦,21,Oct 2021–Oct 2026
+top-trends-kpop,Algeria,DZA,🇩🇿,21,Oct 2021–Oct 2026
+top-trends-kpop,Denmark,DNK,🇩🇰,20,Oct 2021–Oct 2026
+top-trends-kpop,Russia,RUS,🇷🇺,20,Oct 2021–Oct 2026
+top-trends-kpop,Czechia,CZE,🇨🇿,19,Oct 2021–Oct 2026
+top-trends-kpop,Slovakia,SVK,🇸🇰,19,Oct 2021–Oct 2026
+top-trends-kpop,Greece,GRC,🇬🇷,19,Oct 2021–Oct 2026
+top-trends-kpop,Germany,DEU,🇩🇪,19,Oct 2021–Oct 2026
+top-trends-kpop,Dominican Republic,DOM,🇩🇴,18,Oct 2021–Oct 2026
+top-trends-kpop,Bulgaria,BGR,🇧🇬,18,Oct 2021–Oct 2026
+top-trends-kpop,Croatia,HRV,🇭🇷,18,Oct 2021–Oct 2026
+top-trends-kpop,Netherlands,NLD,🇳🇱,18,Oct 2021–Oct 2026
+top-trends-kpop,Austria,AUT,🇦🇹,17,Oct 2021–Oct 2026
+top-trends-kpop,Turkey,TUR,🇹🇷,17,Oct 2021–Oct 2026
+top-trends-kpop,Morocco,MAR,🇲🇦,17,Oct 2021–Oct 2026
+top-trends-kpop,Israel,ISR,🇮🇱,17,Oct 2021–Oct 2026
+top-trends-kpop,Switzerland,CHE,🇨🇭,17,Oct 2021–Oct 2026
+top-trends-kpop,South Africa,ZAF,🇿🇦,17,Oct 2021–Oct 2026
+top-trends-kpop,Belarus,BLR,🇧🇾,16,Oct 2021–Oct 2026
+top-trends-kpop,Nigeria,NGA,🇳🇬,16,Oct 2021–Oct 2026
+top-trends-kpop,Ukraine,UKR,🇺🇦,16,Oct 2021–Oct 2026
+top-trends-kpop,Italy,ITA,🇮🇹,15,Oct 2021–Oct 2026
+top-trends-kpop,Egypt,EGY,🇪🇬,12,Oct 2021–Oct 2026
