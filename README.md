@@ -215,6 +215,21 @@ The food country lists are FAO Food Balance "food available for consumption" fig
 2023, or 2022 where 2023 is missing), downloaded from Our World in Data's Global Food explorer. They measure supply,
 not what people actually eat, and don't account for household waste.
 
+### v11.1: Clear all data
+
+Settings → **Your data → 🗑️ Clear all data…** opens a confirm step (Cancel / Clear). Clear removes only Rankd's own
+storage and then reloads to a fresh state:
+
+* `rankd.results.v2`: progress for every mode (daily/archive `d:`, All puzzles `p:`, random Practice history `r:`)
+* `rankd.stats.v2`: played, wins, streak, best and the distribution
+* `rankd.settings.v1`: theme, show-values and streamer mode
+* `rankd.custom.v2`: an uploaded spreadsheet
+* any other key starting with `rankd.`, `rankd:`, `rankd_` or `rankd-`, in localStorage **and** sessionStorage
+
+Ads and win-animation state are kept in memory only, so they have no stored keys. `localStorage.clear()` is never called,
+because the michaelyao88.github.io origin is shared with other projects (e.g. whereisshe). The key list lives in `LS` and
+`isRankdKey` near the top of app.js; `window.RankdData.keys()` lists what would be cleared.
+
 ## Files
 ```
 index.html styles.css app.js       the site

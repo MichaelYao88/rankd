@@ -20,6 +20,20 @@ const CONFIG = {
   SHOW_ALL_PUZZLES: true,
 };
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2" };
+// v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
+//   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
+//   rankd.stats.v2    : played / wins / streak / best / guess distribution
+//   rankd.settings.v1 : theme, show-values and streamer mode (also written by the inline script in index.html for ?stream=)
+//   rankd.custom.v2   : an uploaded spreadsheet
+// Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The clear removes the keys above plus any
+// "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
+// michaelyao88.github.io is shared with other projects (e.g. whereisshe), so localStorage.clear() is never called.
+const isRankdKey = k => Object.values(LS).includes(k) || /^rankd[.:_-]/i.test(k);
+const RankdData = {
+  keys() { const out = []; for (const st of [localStorage, sessionStorage]) { try { for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k != null && isRankdKey(k)) out.push([st === localStorage ? "local" : "session", k]); } } catch {} } return out; },
+  clear() { const gone = this.keys(); for (const [w, k] of gone) { try { (w === "local" ? localStorage : sessionStorage).removeItem(k); } catch {} } return gone.map(x => x[0] + ":" + x[1]); },
+};
+window.RankdData = RankdData;
 
 // ================================================================
 // COMMUNITY STATS: BACKEND PLUG-IN POINT
@@ -916,13 +930,22 @@ function settingsModal() {
     <h3>Puzzles</h3><div class="menu-list">
     <button id="mLoad">📄 Load spreadsheet<small>Your edited puzzles.xlsx, or one or more of the CSV sheets</small></button>
     <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Guess the top 5 sheets: see puzzles.xlsx)</small></button>
-    ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>`);
+    ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>
+    <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history and settings on this device</small></button>`);
   $$(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
     settings[sg.dataset.set] = b.dataset.v; saveSettings(); sg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
     if (sg.dataset.set === "theme") applyTheme(); else if (sg.dataset.set === "stream") applyStreamer(); else if (state.puzzle?.type === "rank" && !$("#playView").classList.contains("hidden")) renderRank(getResult(), true);
   }));
   $("#mLoad").onclick = () => $("#fileInput").click(); $("#mTemplate").onclick = downloadCsv;
+  $("#mClear").onclick = clearDataModal;
   if ($("#mReset")) $("#mReset").onclick = () => { localStorage.removeItem(LS.custom); custom = null; PUZZLES = window.RANKD_PUZZLES; closeModal(); toast("Built-in puzzles restored"); goToday(); };
+}
+function clearDataModal() {   // v11.1: confirm step for "Clear all data"
+  openModal(`<div id="clearConfirm" role="alertdialog" aria-labelledby="clearTitle" aria-describedby="clearDesc"><h2 id="clearTitle">Clear all data?</h2>
+    <p id="clearDesc">This will erase your <b>stats, streaks, puzzle progress, practice history and settings</b> on this device. It can't be undone.</p>
+    <div class="confirm-row"><button class="pill-btn outline" id="clearCancel">Cancel</button><button class="pill-btn danger" id="clearConfirmBtn">Clear</button></div></div>`);
+  $("#clearCancel").onclick = settingsModal; $("#clearCancel").focus();
+  $("#clearConfirmBtn").onclick = () => { RankdData.clear(); location.replace(location.pathname); };   // drop ?stream= / #hash so nothing is re-written
 }
 function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + future), filterable by mode; hidden when CONFIG.SHOW_ALL_PUZZLES = false
   if (!CONFIG.SHOW_ALL_PUZZLES) return;
