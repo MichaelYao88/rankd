@@ -6,6 +6,7 @@ Static site (no build step): open index.html or serve the folder. puzzles.xlsx a
 
 ---
 
+# Rankd: daily stereotype-busting stats game (prototype)
 
 There are two puzzle types, mixed into one daily rotation:
 
@@ -87,6 +88,21 @@ There are two puzzle types, mixed into one daily rotation:
    ```
    `python3 build.py --reset` rebuilds the workbook from the defaults in `build.py` plus `seed/*.csv`
    (`v6_puzzles`, `v7_puzzles`, `v8_puzzles`, `v9_puzzles`, `v7_top5_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
+
+## v10 (Oct 21, 2026)
+* **Variant puzzles (Group A/B/C):** Rank it puzzles get a `dataset` id (puzzles sheet). When a dataset is used more than
+  once, titles get " (Group A)", " (Group B)", ... by date, e.g. the old serial-killers is now Group A. One-off datasets
+  have no suffix. **Rule:** two puzzles from the same dataset may share at most 1 country. `build.py` checks this and
+  stops with an error; the test suite checks it too.
+* **31 new puzzles** (seed/v10_puzzles.csv, made by `data/v10/gen.py` from World Bank bulk CSVs, Our World in Data
+  grapher CSVs and the Wikipedia UNODC rape table). Each value has its year and real world rank #N of M. Scheduled
+  Dec 2 2026 (#058) to Jan 1 2027 (#088). Earlier dates are unchanged.
+* **6-item Rank it:** a puzzle can have 6 rows. Rows get more compact (`.board.n6`), so all 6 cards and the values column
+  fit on a 390px phone. There are 5 six-item puzzles: homicide-c, fertility-c, prison-b, life-gap, military-b.
+* **Top 5 ties:** the board always has exactly 5 slots. A tie at #5 uses the optional `tiebreak` column (unrounded
+  value) in country_lists. With no tiebreak it becomes one shared #5 slot ("South Korea = Indonesia" for K-pop):
+  either country counts, and the reveal notes the tie.
+* Fix: the obesity world totals are now "of 199" countries. The v6 count included 6 WHO regions by mistake.
 
 ## v9 (Oct 21, 2026)
 * **Guess the top 5 titles** are short: "Top 5 tea-drinking countries", "Top 5 potato-eating countries", "Top 5 carbon footprints" ...

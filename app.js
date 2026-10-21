@@ -58,8 +58,8 @@ const norm = s => String(s).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toL
 
 // ================================================================ data parsing (mirrors build.py)
 const SHEET_COLS = {
-  puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","higher_is","values_visible","item_name","item_emoji","value","data_year","source_name","source_url","fun_fact","global_rank","global_total","global_scope","art","support_url"],
-  country_lists: ["puzzle_id","country","iso3","emoji","value","year"],
+  puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","higher_is","values_visible","item_name","item_emoji","value","data_year","source_name","source_url","fun_fact","global_rank","global_total","global_scope","art","support_url","dataset"],
+  country_lists: ["puzzle_id","country","iso3","emoji","value","year","tiebreak"],
   country_info: ["iso3","country","region","continent","capital","landlocked","part_of","population","population_year","gdp_per_capita_usd","gdp_year","source"],
   hint_bank: ["puzzle_id","rank","country","iso3","hint_no","auto_hint","override_hint","source"],
   top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url"],
@@ -91,7 +91,7 @@ function parseTables(t) {
       const hi = str(r.higher_is).toLowerCase(); p.higherIs = hi === "bottom" ? "bottom" : "top";
       p.valuesVisible = ["yes", "y", "true", "1"].includes(str(r.values_visible).toLowerCase());
     }
-    for (const [k, c] of [["emoji","puzzle_emoji"],["question","question"],["stat","stat_label"],["unit","unit"],["source","source_name"],["sourceUrl","source_url"],["fact","fun_fact"],["art","art"],["support","support_url"]])
+    for (const [k, c] of [["emoji","puzzle_emoji"],["question","question"],["stat","stat_label"],["unit","unit"],["source","source_name"],["sourceUrl","source_url"],["fact","fun_fact"],["art","art"],["support","support_url"],["dataset","dataset"]])
       if (!p[k] && str(r[c])) p[k] = str(r[c]);
     const value = num(r.value); if (value == null) continue;
     const it = { name: str(r.item_name) || "?", emoji: str(r.item_emoji), value, year: str(r.data_year) };
@@ -101,12 +101,12 @@ function parseTables(t) {
   }
   const data = {}, bank = {};
   for (const raw of t.country_lists || t.guess_data || []) { const r = lowerKeys(raw), id = str(r.puzzle_id), v = num(r.value);   // guess_data = pre-v7 name
-    if (id && v != null && str(r.country)) (data[id] ||= []).push({ name: str(r.country), iso3: str(r.iso3), emoji: str(r.emoji), value: v, year: str(r.year) }); }
+    if (id && v != null && str(r.country)) (data[id] ||= []).push({ name: str(r.country), iso3: str(r.iso3), emoji: str(r.emoji), value: v, year: str(r.year), ...(num(r.tiebreak) != null ? { exact: num(r.tiebreak) } : {}) }); }
   for (const raw of t.hint_bank || []) { const r = lowerKeys(raw), h = str(r.override_hint) || str(r.auto_hint), n = num(r.hint_no);
     if (h && n) ((bank[str(r.puzzle_id) + "|" + (str(r.iso3) || str(r.country))] ||= [])[Math.round(n) - 1] = h); }
   (t.top5_puzzles || []).forEach((raw, i) => {
     const r = lowerKeys(raw), id = str(r.puzzle_id); if (!id) return;
-    let countries = (data[str(r.data_from) || id] || []).slice().sort((a, b) => b.value - a.value); if (countries.length < 6) return;
+    let countries = (data[str(r.data_from) || id] || []).slice().sort((a, b) => b.value - a.value || (b.exact ?? 0) - (a.exact ?? 0)); if (countries.length < 6) return;
     if (countries.length < MIN_TOP5_COUNTRIES) {   // v9 rule (same as build.py): too few countries -> 5-item Rank it
       const n = countries.length, idx = [...new Set([0, .25, .5, .75, 1].map(f => Math.round((n - 1) * f)))];
       out.push({ type: "rank", id, order: orderOf(r.daily_order, out.length + i), emoji: str(r.puzzle_emoji), question: str(r.question) || id,
@@ -116,13 +116,17 @@ function parseTables(t) {
           gRank: 1 + countries.filter(x => x.value > c.value).length, gTotal: n, gScope: "" })) });
       return;
     }
-    const cut = countries[4].value;
-    countries = countries.map(c => { const b = bank[id + "|" + (c.iso3 || c.name)]; return c.value >= cut && b ? { ...c, hints: b.filter(Boolean) } : c; });
+    const c5 = countries[4], cut = c => countries.indexOf(c) < 4 || (c.value === c5.value && (c.exact ?? null) === (c5.exact ?? null));
+    countries = countries.map(c => { const b = bank[id + "|" + (c.iso3 || c.name)]; return cut(c) && b ? { ...c, hints: b.filter(Boolean) } : c; });
     out.push({ type: "top5", id, order: orderOf(r.daily_order, out.length + i), emoji: str(r.puzzle_emoji), question: str(r.question) || id,
       stat: str(r.stat_label), unit: str(r.unit), maxMisses: Math.round(num(r.max_misses) || 10), year: str(r.data_year),
       source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), countries });
   });
-  return out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
+  const res = out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
+  // v10 (same as build.py): rankers sharing a "dataset" key get "(Group A)", "(Group B)", ... in daily order
+  const byDs = {}; res.forEach(p => { if (p.type === "rank" && p.dataset) (byDs[p.dataset] ||= []).push(p); });
+  Object.values(byDs).forEach(ps => ps.forEach((p, i) => { const base = p.question.replace(/\s*\(Group [A-Z]\)\s*$/, ""); p.question = ps.length > 1 ? `${base} (Group ${String.fromCharCode(65 + i)})` : base; }));
+  return res;
 }
 
 let custom = load(LS.custom, null);
@@ -282,7 +286,7 @@ function renderRank(saved, keepOrder) {
   if (!keepOrder) state.order = g.done ? g.attempts[g.attempts.length - 1].order : (g.cur || shuffledOrder(p, (state.mode === "practice" ? "p" + Date.now() : state.dateKey) + p.id));
   if (!g.done) state.order = enforcePinned(p, state.order, g.pinned);
   const vis = valuesOn(p), board = $("#board");
-  board.classList.toggle("values", vis); board.classList.toggle("locked", locked);
+  board.classList.toggle("values", vis); board.classList.toggle("locked", locked); board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
   $("#direction").textContent = p.higherIs === "bottom" ? "▲ Lowest at the top" : "▲ Highest at the top";
   const chip = $("#valuesChip"); chip.setAttribute("aria-pressed", String(vis)); chip.textContent = vis ? "👁 Values on" : "👁 Show values"; chip.disabled = locked;
   // v8: values are shown together in ONE panel (sorted, top to bottom = the order asked for), never on the draggable cards
@@ -414,12 +418,24 @@ function renderTop5(saved) {
 }
 const findCountry = (p, key) => p.countries.find(c => (c.iso3 && c.iso3 === key) || c.name === key);
 const cKey = c => c.iso3 || c.name;
-// the top set is the 5 highest values (plus anything tied with #5)
+// v10: ALWAYS exactly 5 slots. Countries are sorted by value (then by the optional unrounded "exact" tiebreak value).
+// If #5 is still tied (same value and no tiebreak that separates them), slot #5 is shared: either tied country counts.
 const isTop5 = p => p.type === "top5";
-const inTop = (p, c) => c.value >= p.countries[4].value;
-const topSet = p => p.countries.filter(c => inTop(p, c));
-const hitsOf = (p, g) => Math.min(5, g.guesses.filter(k => inTop(p, findCountry(p, k))).length);   // a tie at #5 counts either country, max 5
-const tieRank = (p, c) => 1 + p.countries.filter(x => x.value > c.value).length;
+const sameRank = (a, b) => a.value === b.value && (a.exact ?? null) === (b.exact ?? null);
+const beats = (a, b) => a.value > b.value || (a.value === b.value && a.exact != null && b.exact != null && a.exact > b.exact);
+const SLOTS = new WeakMap();
+function slotsOf(p) {
+  if (SLOTS.has(p)) return SLOTS.get(p);
+  const cs = p.countries, sl = cs.slice(0, 4).map(c => [c]);
+  sl.push(cs.slice(4).filter(c => sameRank(c, cs[4])));
+  const out = sl.map((group, i) => ({ i, group, value: group[0].value, tied: group.length > 1 })); SLOTS.set(p, out); return out;
+}
+const slotOf = (p, c) => c && slotsOf(p).find(s => s.group.includes(c));
+const inTop = (p, c) => !!slotOf(p, c);
+const topSet = p => slotsOf(p).map(s => s.group[0]);   // one representative per slot (always 5)
+const slotFound = (p, s, keys) => s.group.find(c => keys.has(cKey(c)));
+const hitsOf = (p, g) => { const k = new Set(g.guesses); return slotsOf(p).filter(s => slotFound(p, s, k)).length; };   // max 5
+const tieRank = (p, c) => 1 + p.countries.filter(x => beats(x, c)).length;
 const missesOf = (p, g) => g.guesses.length - g.guesses.filter(k => inTop(p, findCountry(p, k))).length;
 const missesLeft = (p, g) => Math.max(0, p.maxMisses - missesOf(p, g));
 const plural = (n, w, pl = w + "es") => `${n} ${n === 1 ? w : pl}`;
@@ -430,12 +446,13 @@ function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 
   const found = new Set(g.guesses), show = g.done;
   // v9: ONE dashed values box on the LEFT (all top-5 values, sorted high to low, with units, one per row) and the
   // #1-#5 slots on the right; country names fill in as they're found (all of them at the end).
-  const top = topSet(p), u = p.unit ? ` <small>${esc(p.unit)}</small>` : "";
+  const sl = slotsOf(p), u = p.unit ? ` <small>${esc(p.unit)}</small>` : "";
   $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
-    + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${top.map((c, i) => `<li class="vchip t5val${found.has(cKey(c)) ? " hit" : ""}" data-slot="${i + 1}"><b>${fmt1(c.value)}</b>${u}</li>`).join("")}</ol></div>`
-    + `<div class="t5slots">` + top.map((c, i) => {
-    const hit = found.has(cKey(c)), open = hit || show;
-    return `<div class="t5 ${hit ? "hit" : open ? "missed" : ""}" data-slot="${i + 1}"><span class="t5r">#${open ? tieRank(p, c) : i + 1}</span>${open ? `<span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="t5n">${esc(c.name)}</span>` : `<span class="t5n q">?</span>`}</div>`; }).join("") + `</div></div>`;
+    + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${fmt1(s.value)}</b>${u}</li>`).join("")}</ol></div>`
+    + `<div class="t5slots">` + sl.map((s, i) => {
+    const f = slotFound(p, s, found), c = f || s.group[0], open = !!f || show;
+    const name = f ? esc(f.name) : s.tied ? s.group.map(x => esc(x.name)).join(" = ") : esc(c.name);
+    return `<div class="t5 ${f ? "hit" : open ? "missed" : ""}${s.tied ? " tied" : ""}" data-slot="${i + 1}"><span class="t5r">#${i + 1}</span>${open ? `<span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="t5n">${name}</span>` : `<span class="t5n q">?</span>`}</div>`; }).join("") + `</div></div>`;
   const lastKey = [...g.guesses].reverse().find(k => !inTop(p, findCountry(p, k))), lm = $("#lastMiss");
   const c = lastKey && findCountry(p, lastKey);
   lm.classList.toggle("hidden", !c);
@@ -450,7 +467,7 @@ function addGuessRow(c, animate = true) {
   const p = state.puzzle, li = document.createElement("li"), hit = inTop(p, c);
   li.className = "g-row t5row " + (hit ? "win" : ""); if (!animate) li.style.animation = "none";
   li.innerHTML = `<span class="emoji">${esc(c.emoji || "🏳️")}</span><div><div class="gn">${esc(c.name)}</div><div class="gv">${fmt1(c.value)} ${esc(p.unit)}${c.year && c.year !== p.year ? ` (${esc(c.year)})` : ""}</div></div>
-    <div class="gr">${hit ? `#${tieRank(p, c)}<span class="of"> of 5</span><small>✅ In the top 5!</small>` : `#${tieRank(p, c)}<span class="of"> of ${p.countries.length}</span><small>⬜ Miss</small>`}</div>`;
+    <div class="gr">${hit ? `#${slotOf(p, c).i + 1}<span class="of"> of 5</span><small>✅ In the top 5!${slotOf(p, c).tied ? " (tied #5)" : ""}</small>` : `#${tieRank(p, c)}<span class="of"> of ${p.countries.length}</span><small>⬜ Miss</small>`}</div>`;
   $("#guesses").prepend(li);
 }
 // --- hints (v8): after misses 2, 4, 6, 8, 9 one hint = ONE trait about ONE still-unfound top-5 country. The highest-ranked
@@ -460,25 +477,26 @@ function addGuessRow(c, animate = true) {
 const HINT_AT = [2, 4, 6, 8, 9];
 const bankOf = c => (c.hints && c.hints.length ? c.hints : [`Its name starts with “${c.name.normalize("NFD")[0].toUpperCase()}”.`]);
 function hintPlan(p, g) {
-  const top = topSet(p), found = new Set(), used = {}, given = []; let misses = 0;
+  const sl = slotsOf(p), found = new Set(), used = {}, given = []; let misses = 0;   // found = slot indexes
   const at = HINT_AT.filter(m => m < p.maxMisses);
   g.guesses.forEach(k => { const c = findCountry(p, k); if (!c) return;
-    if (inTop(p, c)) { found.add(cKey(c)); return; }
+    const s = slotOf(p, c); if (s) { found.add(s.i); return; }
     misses++; if (!at.includes(misses)) return;
-    const t = top.find(x => !found.has(cKey(x)) && (used[cKey(x)] || 0) < bankOf(x).length);
-    if (!t) { given.push(null); return; }
-    const n = used[cKey(t)] = (used[cKey(t)] || 0) + 1;
-    given.push({ target: t, n, text: bankOf(t)[n - 1] }); });
+    const ts = sl.find(x => !found.has(x.i) && (used[x.i] || 0) < bankOf(x.group[0]).length);   // tied slot: hints describe its first country
+    if (!ts) { given.push(null); return; }
+    const n = used[ts.i] = (used[ts.i] || 0) + 1, t = ts.group[0];
+    given.push({ target: t, slot: ts.i + 1, n, text: bankOf(t)[n - 1] }); });
   return at.map((m, i) => ({ at: m, unlocked: misses >= m, ...(given[i] || {}) }));
 }
 function renderHints() {
-  const p = state.puzzle, plan = hintPlan(p, state.guess), found = new Set(state.guess.guesses);
+  const p = state.puzzle, plan = hintPlan(p, state.guess), keys = new Set(state.guess.guesses);
+  const found = { has: k => { const c = findCountry(p, k), s = slotOf(p, c); return !!(s && slotFound(p, s, keys)); } };   // slot filled by either tied country
   $("#hints").innerHTML = plan.map((h, i) => !h.unlocked
     ? `<div class="hint-card">🔒 Hint ${i + 1} unlocks after ${plural(h.at, "miss")}</div>`
-    : h.target ? `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${tieRank(p, h.target)}" data-n="${h.n}"><span class="hk">Hint for #${tieRank(p, h.target)}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>` : "").join("");
+    : h.target ? `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>` : "").join("");
   const cur = [...plan].reverse().find(h => h.unlocked && h.target && !found.has(cKey(h.target))), lh = $("#lastHint");   // newest still-useful hint, in the blue card
   lh.classList.toggle("hidden", !cur || state.guess.done);
-  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${tieRank(p, cur.target)}</span><span>${esc(cur.text)}</span>` : "";
+  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : "";
 }
 function submitGuess(c) {
   const p = state.puzzle, g = state.guess; if (!c || g.done || state.busy) return;
@@ -559,8 +577,9 @@ function showResult(res) {
     $("#scoreTitle").textContent = (h >= 5 ? `Found all 5 with ${plural(m, "miss")}! 🖐️` : h >= 3 ? `Found ${h}/5. Nice!` : `Found ${h}/5`) + (avg ? ` · avg rank #${avg}` : "");
     const guessed = new Set(res.guesses);
     $("#answerBox").innerHTML = `<p class="avgrank" id="avgRank">Closeness: your ${plural(res.guesses.length, "guess")} averaged world rank <b>#${avg}</b> of ${p.countries.length} (lower = closer)</p>` +
-      `<h3>The top 5 of ${p.countries.length} countries · ${esc(p.unit)}</h3>` + topSet(p).map((c, i) => `<div class="top-row ${guessed.has(cKey(c)) ? "ans" : ""}"><span class="tr">#${tieRank(p, c)}</span><span>${esc(c.emoji)}</span>
-      <span>${esc(c.name)}${guessed.has(cKey(c)) ? " ✓" : ""}</span><span class="tv">${fmt1(c.value)}</span></div>`).join("");
+      `<h3>The top 5 of ${p.countries.length} countries · ${esc(p.unit)}</h3>` + slotsOf(p).map((s, i) => { const f = slotFound(p, s, guessed);
+      return `<div class="top-row ${f ? "ans" : ""}${s.tied ? " tied" : ""}"><span class="tr">#${i + 1}</span><span>${s.group.map(c => esc(c.emoji)).join("")}</span>
+      <span>${s.group.map(c => esc(c.name) + (guessed.has(cKey(c)) ? " ✓" : "")).join(" = ")}${s.tied ? `<small class="tienote"> tied at ${fmt1(s.value)}: either one counted</small>` : ""}</span><span class="tv">${fmt1(s.value)}</span></div>`; }).join("");
     $("#answerBox").classList.remove("hidden");
   }
   $("#emojiRow").textContent = res.type === "rank" ? rankGrid(res) : (res.marks || []).map(m => EMO[m]).join("");
@@ -580,7 +599,7 @@ async function renderCommunity(p) {
   badge.textContent = "Coming soon";
   const rows = p.type === "rank" ? p.items : p.countries.slice(0, 3);
   body.innerHTML = `No player data yet. This prototype has no backend; once one is connected this shows how everyone did.` +
-    rows.slice(0, 5).map(it => `<div class="crow" aria-hidden="true"><span class="cn">${esc(it.emoji)} ${esc(it.name)}</span><span class="cb"><i style="width:0"></i></span><span class="cp">–%</span></div>`).join("");
+    rows.slice(0, 6).map(it => `<div class="crow" aria-hidden="true"><span class="cn">${esc(it.emoji)} ${esc(it.name)}</span><span class="cb"><i style="width:0"></i></span><span class="cp">–%</span></div>`).join("");
 }
 
 // ================================================================ stats (today's daily only)
@@ -741,7 +760,7 @@ function aboutModal() {
 function downloadCsv() {
   const cols = SHEET_COLS.puzzles, q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v), lines = [cols.join(",")];
   PUZZLES.filter(p => p.type === "rank").forEach(p => p.items.forEach((it, n) => lines.push([p.id, n ? "" : p.order, n ? "" : p.emoji, n ? "" : p.question, n ? "" : p.stat, n ? "" : p.unit,
-    n ? "" : p.higherIs, n ? "" : (p.valuesVisible ? "yes" : "no"), it.name, it.emoji, it.value, it.year, n ? "" : p.source, n ? "" : p.sourceUrl, n ? "" : p.fact, it.gRank || "", it.gTotal || "", it.gScope || "", n ? "" : (p.art || ""), n ? "" : (p.support || "")].map(q).join(","))));
+    n ? "" : p.higherIs, n ? "" : (p.valuesVisible ? "yes" : "no"), it.name, it.emoji, it.value, it.year, n ? "" : p.source, n ? "" : p.sourceUrl, n ? "" : p.fact, it.gRank || "", it.gTotal || "", it.gScope || "", n ? "" : (p.art || ""), n ? "" : (p.support || ""), n ? "" : (p.dataset || "")].map(q).join(","))));
   const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8" })); a.download = "rankd-puzzles.csv"; a.click();
 }
 

@@ -432,3 +432,10 @@ html.streamer .ad-slot{display:none!important}
 .hero .t5slots .t5{grid-template-columns:28px 26px minmax(0,1fr)}
 .t5slots .t5n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:560px){.t5grid{grid-template-columns:minmax(86px,34%) minmax(0,1fr);gap:8px}.t5vals .vchip{padding:0 7px}.t5vals .vchip b{font-size:14px}.t5vals .vchip small{font-size:9px}}
+.tienote{display:block;font-size:11px;opacity:.75;font-weight:600}.t5.tied .t5n{font-size:13px}
+/* v10: 6-item rankers: compact rows so all 6 cards (and the values column) fit on a phone */
+.board.n6 .card{min-height:54px;padding-top:6px;padding-bottom:6px}
+.board.n6 .arrows{gap:2px}.board.n6 .arrows button{height:16px}
+.board.n6.vcol .card{height:56px}
+.board.n6 .vchip{height:56px}
+@media (max-width:560px){.board.n6 .card{min-height:52px}.board.n6 .name{font-size:14px}}
