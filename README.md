@@ -1,11 +1,3 @@
-# Rankd
-
-Live: https://michaelyao88.github.io/rankd/
-
-Static site (no build step): open index.html or serve the folder. puzzles.xlsx and the CSV sheets are the editable puzzle data (load them via Menu > Settings > Load spreadsheet); puzzles-data.js is generated from them by build.py in the source project.
-
----
-
 # Rankd: daily stereotype-busting stats game (prototype)
 
 There are two puzzle types, mixed into one daily rotation:
@@ -87,7 +79,48 @@ There are two puzzle types, mixed into one daily rotation:
    python3 build.py          # puzzles.xlsx -> puzzles-data.js + the CSV copies (fills in missing hint_bank rows)
    ```
    `python3 build.py --reset` rebuilds the workbook from the defaults in `build.py` plus `seed/*.csv`
-   (`v6_puzzles`, `v7_puzzles`, `v8_puzzles`, `v9_puzzles`, `v7_top5_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
+   (`v6`–`v12_puzzles`, `v7_top5_puzzles`, `v12_match_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
+
+## v12 (Oct 22, 2026)
+* **Schedule**: 108 puzzles (98 Rank it + 8 Top 5 + 2 Match it), dailies Oct 6 2026 (#001) to **Jan 21 2027 (#108)**, no gaps,
+  sensitive puzzles never back to back. New slots: #021 Mon Oct 26 *Foreign Relations* (Match it), #029 Tue Nov 3 *Last Call*,
+  #035 Mon Nov 9 *Community Count*, #043 Tue Nov 17 *Scale Tippers*, #048 Sun Nov 22 *Evidence Locker* (sensitive),
+  #057 Tue Dec 1 *Top Shelf* (Top 5), #061 Sat Dec 5 *Before the History Books* (Match it, sensitive), #105 Mon Jan 18 2027
+  *Who's Not Okay?* (sensitive), #106 *Weigh-In*, #107 *Vampire Hunters*, #108 Thu Jan 21 2027 *Alcohol is Haram* (sensitive).
+  Later days moved back. `TITLE_PIN` (build.py + app.js) keeps the already-published #003 title "Alcohol Consumption 🇮🇳🇮🇹".
+* **New rankers** (the first three also in random Practice; Weigh-In uses the existing obesity list):
+  * *Weigh-In* (`obesity-c`, OWID/WHO 2024 crude estimate, 3rd variant of `owid-obesity`, shares no country with
+    obesity/obesity-b): New Zealand 34.7 > Australia 32.4 > North Korea 12.1 > Kenya 10.4 > Vietnam 2.5 (% of adults).
+  * *Scale Tippers* (`obesity-d`, same list, 6 countries; shares only Japan with obesity-b, allowed): Argentina 38.1 >
+    Jamaica 35.7 > Guatemala 26.7 > Malaysia 23.6 > Japan 5.2 > Ethiopia 2.5.
+  * *Vampire Hunters* (`garlic`, new dataset `fao-garlic`, 182 countries, also in random Practice): apparent garlic
+    consumption per person, 2023 = FAOSTAT (production + imports − exports) / population, computed by
+    `tools/v12_garlic.py` (bulk files in `/home/box/rankd-work/garlic-raw`, output `data/v12/garlic_2023.json`):
+    China 13.73 > South Korea 6.20 > India 2.28 > Brazil 1.42 > Spain 1.10 > Italy 0.83 kg (#85 of 182).
+  * Alcohol (same WHO/World Bank 2020 list as `alcohol`/`alcohol-b`, 185 countries; `tools/v12_alcohol.py`): *Last Call*
+    (`alcohol-c`): South Korea 7.79 > Italy 6.97 > UAE 2.08 > DR Congo 1.92 > Guatemala 1.54 > Indonesia 0.07 L;
+    *Alcohol is Haram* (`alcohol-d`, subtitle "Muslim-majority countries by alcohol consumption" + 2 flags, sensitive):
+    Bosnia 5.87 > Kazakhstan 4.52 > Nigeria 3.78 > UAE 2.08 > Turkey 1.69 > Pakistan 0.08 (Pew 2020 Muslim shares in the
+    reveal); *Top Shelf* (`top5-alcohol`, Top 5): Romania, Georgia, Latvia, Lithuania, Czechia (Germany #6).
+  * *Evidence Locker*: federal child pornography offenders per million, FY2023 (USSC Quick Facts + FY2023 datafile for
+    Asian/PI, Census July 2023 population): White 5.55 > Hispanic 2.76 > Black 1.93 > Asian/PI 1.69. Federal cases only.
+  * *Who's Not Okay?*: US age-adjusted suicide rate by race and sex, 2017 (CDC NCHS Health E-Stat): AIAN men 33.8 >
+    White men 28.2 > Black men 11.4 > Asian/PI men 9.9 > White women 7.9 > Black women 2.8. Helpline link.
+  * *Community Count*: core Jewish population, 2020 (Wikipedia "Jewish population by country", Core population column,
+    revision 1369594672): Israel 7,466,200 > US 5,700,000 > Palestine 505,300 > Iran 9,500 > India 4,800 > Poland 4,500.
+    Caveat: under the "enlarged" definition the US (10,000,000) is ahead of Israel (8,001,300).
+* **New mode: Match it** (`type: "match"`, sheet/CSV `match_puzzles`: one row per person with `puzzle_id, daily_order,
+  headline, subtitle, item_name, country_iso, item_emoji, country_name, clue, fact, source_name, source_url, flag_img,
+  original_clue`). 6 or 7 people and the same number of clues; drag a clue onto a person or tap a clue, then a person.
+  Lock it in: right pairs turn green and lock, wrong ones turn red; 5 tries. Win tiers and ad rule as in Rank it
+  (1 try explosive, 2 tries big, no ad on the daily). The reveal lists every pair with a one-line fact and its source.
+  Share = one 🟩/🟥 row per try. In the All puzzles list (Match it filter), Archive, Studio preview; not in random Practice.
+  `flag_img` shows an image flag where no emoji exists (Karadžić: `flags/yug.svg`, SFR Yugoslavia).
+  Rule: a clue never names its own answer's country, nationality or demonym (asserted in `tests/test_e2e.py`).
+  Clue data: `tools/v12_match_gen.py` -> `seed/v12_match_puzzles.csv`.
+* **Rankd Studio** (`studio.html`, unlinked, `noindex`): (1) a preview list of every day (date, #, headline, subtitle,
+  mode, item count) with a Play button (`index.html?preview=YYYY-MM-DD`, sandboxed under `rankd.preview.*`, never
+  touches real stats); (2) a dataset list (name, source, year, count, times used), tap to expand the full table.
 
 ## v11 (Oct 21, 2026)
 * **Pre-launch switch: `SHOW_ALL_PUZZLES`** (top of `app.js`, in `CONFIG`). `true` (now) = an **All** tab and a menu

@@ -78,6 +78,20 @@
         </div>
       </section>
 
+      <!-- v12 MATCH IT: 6-7 clues to 6-7 people (drag a clue onto a person, or tap a clue then a person) -->
+      <section id="matchGame" class="hidden">
+        <div class="game-bar">
+          <span class="direction" id="matchDir">Match the clues</span>
+          <span class="tries" id="matchTries"></span>
+        </div>
+        <div class="m-people" id="mPeople" role="group" aria-label="People"></div>
+        <ol class="m-clues" id="mClues" aria-label="Clues"></ol>
+        <p class="hint" id="mHint"></p>
+        <div class="card-foot actions">
+          <button class="pill-btn outline" id="matchSubmit">Lock it in ↵</button>
+        </div>
+      </section>
+
       <!-- GUESS THE TOP 5 -->
       <section id="guessGame" class="hidden">
         <div class="tries" id="tries"></div>

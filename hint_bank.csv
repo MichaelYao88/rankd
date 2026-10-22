@@ -179,3 +179,28 @@ top5-trends-kpop,5,Indonesia,IDN,2,It has more than 150 million people (2024).,,
 top5-trends-kpop,5,Indonesia,IDN,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
 top5-trends-kpop,5,Indonesia,IDN,4,Its capital city starts with “J”.,,World Bank country metadata (capitalCity)
 top5-trends-kpop,5,Indonesia,IDN,5,Its name starts with “I”.,,the name
+top5-alcohol,1,Romania,ROU,1,It's in Europe.,,continent (6-continent model)
+top5-alcohol,1,Romania,ROU,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-alcohol,1,Romania,ROU,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-alcohol,1,Romania,ROU,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
+top5-alcohol,1,Romania,ROU,5,Its name starts with “R”.,,the name
+top5-alcohol,2,Georgia,GEO,1,It's in Asia.,,continent (6-continent model)
+top5-alcohol,2,Georgia,GEO,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-alcohol,2,Georgia,GEO,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-alcohol,2,Georgia,GEO,4,Its capital city starts with “T”.,,World Bank country metadata (capitalCity)
+top5-alcohol,2,Georgia,GEO,5,Its name starts with “G”.,,the name
+top5-alcohol,3,Latvia,LVA,1,It's in Europe.,,continent (6-continent model)
+top5-alcohol,3,Latvia,LVA,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-alcohol,3,Latvia,LVA,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-alcohol,3,Latvia,LVA,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-alcohol,3,Latvia,LVA,5,Its name starts with “L”.,,the name
+top5-alcohol,4,Lithuania,LTU,1,It's in Europe.,,continent (6-continent model)
+top5-alcohol,4,Lithuania,LTU,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-alcohol,4,Lithuania,LTU,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-alcohol,4,Lithuania,LTU,4,Its capital city starts with “V”.,,World Bank country metadata (capitalCity)
+top5-alcohol,4,Lithuania,LTU,5,Its name starts with “L”.,,the name
+top5-alcohol,5,Czechia,CZE,1,It's in Europe.,,continent (6-continent model)
+top5-alcohol,5,Czechia,CZE,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-alcohol,5,Czechia,CZE,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-alcohol,5,Czechia,CZE,4,Its capital city starts with “P”.,,World Bank country metadata (capitalCity)
+top5-alcohol,5,Czechia,CZE,5,Its name starts with “C”.,,the name

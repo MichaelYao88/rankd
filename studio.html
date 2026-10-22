@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Rankd Studio</title>
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="studio.css">
+</head>
+<body>
+<!-- v12 Rankd Studio: unlinked and noindexed. Two lists only: every scheduled day (with a sandboxed Play button) and every dataset. -->
+<header class="top">
+  <h1>Rankd Studio</h1>
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="tabPreview" aria-selected="true">Preview</button>
+    <button role="tab" id="tabData" aria-selected="false">Datasets</button>
+  </nav>
+</header>
+<main>
+  <section id="previewView">
+    <p class="note" id="pvNote"></p>
+    <ol class="days" id="days"></ol>
+  </section>
+  <section id="dataView" class="hidden">
+    <p class="note" id="dsNote"></p>
+    <ul class="sets" id="sets"></ul>
+  </section>
+</main>
+<script>window.RANKD_STUDIO = true;</script>
+<script src="puzzles-data.js"></script>
+<script src="practice-data.js"></script>
+<script src="app.js"></script>
+<script src="studio.js"></script>
+</body>
+</html>
