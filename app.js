@@ -18,12 +18,20 @@ const CONFIG = {
   // v11 PRE-LAUNCH SWITCH: true = show the "All puzzles" tab/list (every puzzle, past AND future, for testing).
   // Set to false at launch: the tab, the menu entry and #p= links disappear (random Practice stays).
   SHOW_ALL_PUZZLES: true,
+  // v12.1 GOOGLE ADSENSE. The loader is only added on the real site (https, not localhost/file://), never in studio.html,
+  // Studio preview (?preview=) or streamer mode. ?ads=live forces it on (tests), ?ads=placeholder forces the placeholders.
+  ADSENSE_CLIENT: "ca-pub-5196178239625142",
+  // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
+  // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
+  ADSENSE_SLOTS: { banner: "", interstitial: "" },
 };
+// tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
+if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
-//   rankd.settings.v1 : theme, show-values and streamer mode (also written by the inline script in index.html for ?stream=)
+//   rankd.settings.v1 : theme and streamer mode (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The clear removes the keys above plus any
 // "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
@@ -177,7 +185,8 @@ const KNOWN = p => p && (p.type === "rank" || p.type === "top5" || (p.type === "
 let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : (window.RANKD_PUZZLES || []);
 
 // ================================================================ settings + theme
-const settings = Object.assign({ theme: "system", showValues: "auto", stream: "off" }, load(LS.settings, {}));
+const settings = Object.assign({ theme: "system", stream: "off" }, load(LS.settings, {}));
+delete settings.showValues;   // v12.1: the show-values setting is gone; values are always shown (old saved "off" is overridden)
 const saveSettings = () => save(LS.settings, settings);
 const mq = matchMedia("(prefers-color-scheme: dark)");
 const effectiveTheme = () => settings.theme === "system" ? (mq.matches ? "dark" : "light") : settings.theme;
@@ -194,12 +203,60 @@ mq.addEventListener?.("change", () => settings.theme === "system" && applyTheme(
 (function () { const q = new URLSearchParams(location.search).get("stream");
   if (q === "1" || q === "0") { settings.stream = q === "1" ? "on" : "off"; saveSettings(); } })();
 const streamerOn = () => settings.stream === "on";
-function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); }
+function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }   // v12.1: turning streamer mode off loads ads then
 const Ads = { allowed: () => !streamerOn(),   // ad code must check this before requesting/rendering any creative
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
   last: () => Ads.decisions[Ads.decisions.length - 1] || null,
   skipsAfterWin: tier => !!tier };            // v11: interstitials are skipped after any win tier
 window.RankdAds = Ads;
+
+// v12.1: real Google AdSense behind window.RankdAds. mode: "placeholder" (dev/local: the grey placeholders), "waiting"
+// (wanted, but streamer mode is on, so the script is NOT loaded), "loading", "live", "blocked" (script failed / blocked).
+// Every failure path collapses the slot (no blank gap, no error); the banner keeps its reserved height while loading.
+const AdSense = {
+  mode: "placeholder", bannerDone: false,
+  wanted() {
+    if (window.RANKD_STUDIO || PREVIEW || !CONFIG.ADSENSE_CLIENT) return false;
+    const q = new URLSearchParams(location.search).get("ads");
+    if (q === "live") return true; if (q === "placeholder") return false;
+    return location.protocol === "https:" && !/^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(location.hostname);
+  },
+  init() {
+    if (!this.wanted()) { this.mode = "placeholder"; return; }
+    if (!Ads.allowed()) { if (this.mode === "placeholder") this.mode = "waiting"; return; }   // streamer: don't even load the script
+    if (this.mode !== "placeholder" && this.mode !== "waiting") return;
+    this.mode = "loading"; document.documentElement.classList.add("ads-live");
+    const s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous"; s.id = "adsbygoogleJs";
+    s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(CONFIG.ADSENSE_CLIENT);
+    s.onload = () => { if (this.mode === "loading") this.mode = "live"; };
+    s.onerror = () => { this.mode = "blocked"; this.collapse($("#adTop")); };
+    document.head.appendChild(s);
+    this.banner();
+  },
+  push() { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); return true; } catch (e) { return false; } },
+  unit(slot, cls) { return `<ins class="adsbygoogle ${cls}" data-ad-client="${esc(CONFIG.ADSENSE_CLIENT)}" data-ad-slot="${esc(slot)}"></ins>`; },
+  watch(ins, onUnfilled, onFilled) {   // AdSense sets data-ad-status="filled" | "unfilled" on the <ins>
+    const chk = () => { const st = ins.getAttribute("data-ad-status"); if (st === "unfilled") { mo.disconnect(); onUnfilled(); } else if (st === "filled") { mo.disconnect(); onFilled?.(); } };
+    const mo = new MutationObserver(chk); mo.observe(ins, { attributes: true, attributeFilter: ["data-ad-status"] }); chk();
+  },
+  collapse(box) { if (!box) return; box.classList.add("ad-collapsed"); window.RankdFit?.layout(); },
+  banner() {
+    if (this.bannerDone) return; this.bannerDone = true; const box = $("#adTop"), slot = CONFIG.ADSENSE_SLOTS.banner;
+    if (!slot || this.mode === "blocked") { this.collapse(box); return; }
+    box.querySelector(".ad-fill").innerHTML = this.unit(slot, "rk-ad-banner"); const ins = box.querySelector("ins");
+    if (!this.push()) { this.collapse(box); return; }
+    this.watch(ins, () => this.collapse(box), () => box.classList.add("ad-filled"));
+  },
+  // interstitial: placeholder mode keeps the old placeholder overlay; live mode needs a loaded script + an ad-unit ID
+  interstitialOk() { return this.mode === "placeholder" || ((this.mode === "live" || this.mode === "loading") && !!CONFIG.ADSENSE_SLOTS.interstitial); },
+  interstitial(onUnfilled) {
+    if (this.mode === "placeholder") return;
+    const fill = $("#interstitial .inter-fill"); fill.innerHTML = this.unit(CONFIG.ADSENSE_SLOTS.interstitial, "rk-ad-inter"); const ins = fill.querySelector("ins");
+    if (!this.push()) { onUnfilled(); return; }
+    this.watch(ins, onUnfilled);
+  },
+};
+window.RankdAdSense = AdSense;
 
 // ================================================================ random Practice (v11)
 // Generates a puzzle on the fly from the full ranked lists in practice-data.js (sensitive datasets included, each with its caveat; no rape data).
@@ -378,7 +435,6 @@ function shuffledOrder(p, seed) {
   for (let t = 0; t < 20; t++) { for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; } if (idx.join() !== right) break; }
   return idx;
 }
-const valuesOn = p => settings.showValues === "on" ? true : settings.showValues === "off" ? false : !!p.valuesVisible;
 
 // Retry flow: lock in -> cards in the right spot turn green and are pinned, wrong ones go red + shake.
 // Rearrange the rest and lock in again, up to CONFIG.rankMaxTries. Result object:
@@ -406,14 +462,14 @@ function renderRank(saved, keepOrder) {
   const locked = g.done;
   if (!keepOrder) state.order = g.done ? g.attempts[g.attempts.length - 1].order : (g.cur || shuffledOrder(p, (state.mode === "all" || state.mode === "practice" ? "p" + Date.now() : state.dateKey) + p.id));
   if (!g.done) state.order = enforcePinned(p, state.order, g.pinned);
-  const vis = valuesOn(p), board = $("#board");
-  board.classList.toggle("values", vis); board.classList.toggle("locked", locked); board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
+  const board = $("#board");
+  // v12.1: values are always on (no show-values setting or chip)
+  board.classList.toggle("values", true); board.classList.toggle("locked", locked); board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
   $("#direction").textContent = p.higherIs === "bottom" ? "▲ Lowest at the top" : "▲ Highest at the top";
-  const chip = $("#valuesChip"); chip.setAttribute("aria-pressed", String(vis)); chip.textContent = vis ? "👁 Values on" : "👁 Show values"; chip.disabled = locked;
   // v8: values are shown together in ONE panel (sorted, top to bottom = the order asked for), never on the draggable cards
   // v8.1: ONE separate column box to the left of the cards, one value per row (sorted, aligned with the card rows),
   // so no value looks attached to a draggable card. After the reveal each card shows its own value instead.
-  const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = vis && !locked;
+  const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = !locked;
   vp.classList.toggle("hidden", !showVals); cap.classList.toggle("hidden", !showVals); board.classList.toggle("vcol", showVals);
   cap.innerHTML = `<b>The values</b>${p.unit ? ` (${esc(p.unit)})` : ""}, ${p.higherIs === "bottom" ? "lowest" : "highest"} first. Which card has which?`;
   vp.innerHTML = `<ol class="vp-list" aria-label="The values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtP(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
@@ -471,8 +527,8 @@ function renderTryDots() {
   $("#rankTries").innerHTML = `${dots}<span>${g.done ? (g.solved ? `Solved in ${g.tries}` : "Out of tries") : `${left} ${left === 1 ? "try" : "tries"} left`}</span>`;
 }
 function updateRankHint() {
-  const p = state.puzzle, g = state.rank, vis = valuesOn(p);
-  if (!g.attempts.length) { $("#hint").textContent = vis ? "Put the cards in order: the values column tells you the numbers, not which country has which." : "Drag the cards (or tap ▲▼) into order, then lock it in."; return; }
+  const p = state.puzzle, g = state.rank;
+  if (!g.attempts.length) { $("#hint").textContent = "Put the cards in order: the values column tells you the numbers, not which country has which."; return; }
   const n = g.pinned.length, tot = p.items.length;
   $("#hint").innerHTML = `<b>${n} of ${tot}</b> in the right spot. Green cards are locked in. Move the others and try again.`;
 }
@@ -488,10 +544,10 @@ function submitRank() {
   const solved = marks.every(m => m === "good");
   if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
     g.done = true; g.solved = solved;
-    Object.assign(g, { marks, order: [...state.order], points: marks.filter(m => m === "good").length, max: marks.length, values: valuesOn(p) });
+    Object.assign(g, { marks, order: [...state.order], points: marks.filter(m => m === "good").length, max: marks.length, values: true });
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
-    $("#board").classList.add("locked"); state.sortable?.option("disabled", true); $("#valuesChip").disabled = true;
+    $("#board").classList.add("locked"); state.sortable?.option("disabled", true);
     $("#submitBtn").parentElement.classList.add("hidden"); $("#hint").classList.add("hidden"); renderTryDots();
     feedback(marks, true);
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "rank");
@@ -535,7 +591,7 @@ function revealRank(res, animate) {
 // Clue k belongs to person k (sheet row order); clues are shown in a shuffled order, people in sheet order.
 const LETTERS = "ABCDEFG";
 const FAMILY_FIRST = new Set(["CHN", "TWN", "HKG", "KOR", "PRK", "VNM", "KHM", "MNG"]);   // names written family name first
-const shortName = x => { const w = x.name.trim().split(/\s+/); return w.length < 2 ? w[0] : FAMILY_FIRST.has(x.iso3) ? w[0] : w[w.length - 1]; };
+const shortName = x => { if (x.name === x.country) return x.name; const w = x.name.trim().split(/\s+/); return w.length < 2 ? w[0] : FAMILY_FIRST.has(x.iso3) ? w[0] : w[w.length - 1]; };
 const flagHtml = x => x.flagImg ? `<img class="m-flag-img" src="${esc(x.flagImg)}" alt="${esc(x.country)} flag">` : esc(x.emoji);
 const matchSeed = p => (state.mode === "daily" || state.mode === "archive" || state.mode === "preview" ? state.dateKey : "m") + p.id;
 function clueOrder(p) {
@@ -548,7 +604,7 @@ function renderMatch(saved) {
   const g = state.match = saved && saved.type === "match" ? saved : { type: "match", attempts: [], cur: p.people.map(() => null), pinned: [], done: false, solved: false, tries: 0 };
   if (!g.cur) g.cur = p.people.map(() => null);
   state.mSel = null; state.mOrder = clueOrder(p);
-  $("#mPeople").innerHTML = p.people.map((x, i) => `<button class="m-person" data-p="${i}" type="button"><span class="m-flag">${flagHtml(x)}</span><span class="m-who"><b>${esc(x.name)}</b><small>${esc(x.country)}</small></span><span class="m-got" aria-label="Clue"></span></button>`).join("");
+  $("#mPeople").innerHTML = p.people.map((x, i) => `<button class="m-person" data-p="${i}" type="button"><span class="m-flag">${flagHtml(x)}</span><span class="m-who"><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}</span><span class="m-got" aria-label="Clue"></span></button>`).join("");
   $("#mClues").innerHTML = state.mOrder.map((k, n) => `<li class="m-clue" data-c="${k}" tabindex="0"><span class="m-letter">${LETTERS[n]}</span><span class="m-text">${esc(p.people[k].clue)}</span><span class="m-target"></span></li>`).join("");
   $("#matchGame").classList.toggle("locked", g.done); $("#matchGame").classList.toggle("m7", p.people.length > 6); $("#hero").classList.toggle("is-match7", p.people.length > 6);
   paintMatch();
@@ -623,7 +679,7 @@ function revealMatch(res, animate) {
   if (animate) setTimeout(() => showResult(res), 300 + 120 * p.people.length); else showResult(res);
 }
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
-  return `<h3>The matches</h3>` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b><small>${esc(x.country)}</small><span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
+  return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
     <p class="m-ans-clue">“${esc(x.clue)}”</p><p class="m-ans-fact">${esc(x.fact)}${x.sourceUrl ? ` <a href="${esc(x.sourceUrl)}" target="_blank" rel="noopener">${esc(x.sourceName || "Source")} ↗</a>` : ""}</p></div>`).join(""); };
 // drag a clue onto a person (pointer events: mouse, pen and touch); a short press without movement is a tap
 (function matchDrag() {
@@ -861,7 +917,7 @@ window.RankdFx = Fx; window.RankdWinTier = r => winTier(r);
 // ================================================================ after submit: interstitial (non-daily only)
 // v11: no interstitial after a celebrated win (Rank it solved in 1-2 tries, Top 5 all found with <= 2 misses).
 function afterSubmit(reveal, tier) {
-  const why = !Ads.allowed() ? "streamer" : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : null;
+  const why = !Ads.allowed() ? "streamer" : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: state.mode, tier: tier || null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) { reveal(); return; }
   showInterstitial(reveal);
@@ -869,9 +925,11 @@ function afterSubmit(reveal, tier) {
 function showInterstitial(done) {
   const ov = $("#interstitial"), btn = $("#skipAd"); let s = CONFIG.interstitialSeconds; state.busy = true;
   ov.classList.remove("hidden"); btn.disabled = true; btn.textContent = `Skip in ${s}`;
-  // ADSENSE / GAM: request + render the interstitial creative here.
   const t = setInterval(() => { s--; if (s <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = "See result ✕"; } else btn.textContent = `Skip in ${s}`; }, 1000);
-  btn.onclick = () => { if (btn.disabled) return; clearInterval(t); ov.classList.add("hidden"); state.busy = false; done(); };
+  let closed = false; const close = () => { if (closed) return; closed = true; clearInterval(t); ov.classList.add("hidden"); state.busy = false; done(); };
+  btn.onclick = () => { if (!btn.disabled) close(); };
+  // v12.1: AdSense creative (live mode). No fill -> close at once and go straight to the result (recorded on the decision).
+  AdSense.interstitial(() => { const d = Ads.last(); if (d) d.unfilled = true; close(); });
 }
 
 // ================================================================ result panel
@@ -979,10 +1037,11 @@ function fitLayout() {
   const fit = fitMQ.matches && b.classList.contains("playing");
   b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
   b.classList.toggle("fit", fit);
-  if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; return; }
+  if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); return; }
   const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8));
   // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
-  hero.style.height = ""; hero.style.maxHeight = "none"; const natural = hero.scrollHeight;
+  hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop"); let natural = hero.scrollHeight;
+  if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }   // 7 pairs on a short phone: drop the subtitle only if needed
   hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
   if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
 }
@@ -1083,7 +1142,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mArchive">🗓 Archive<small>Every past daily puzzle</small></button>
     ${Practice.ok() ? `<button id="mPractice">🎲 Practice<small>A new random puzzle from the full datasets</small></button>` : ""}
     ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
-    <button id="mSettings">⚙️ Settings<small>Theme, show values, load your spreadsheet</small></button>
+    <button id="mSettings">⚙️ Settings<small>Theme, streamer mode, load your spreadsheet</small></button>
     <button id="mHow">❓ How to play</button>
     <button id="mAbout">📚 About &amp; sources</button></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
@@ -1095,8 +1154,6 @@ function settingsModal() {
   const seg = (name, opts, cur) => `<div class="seg" data-set="${name}">${opts.map(([v, l]) => `<button data-v="${v}" class="${cur === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
   openModal(`<h2>Settings</h2>
     <h3>Theme</h3>${seg("theme", [["system", "System"], ["light", "Light"], ["dark", "Dark"]], settings.theme)}
-    <h3>Show values while guessing (Rank it)</h3>${seg("showValues", [["auto", "Puzzle default"], ["on", "Always"], ["off", "Never"]], settings.showValues)}
-    <p style="font-size:12px;color:var(--muted);margin:6px 2px 0">With values on, the real numbers are listed together in a column beside the cards and you match each item to its value.</p>
     <h3>Streamer mode</h3>${seg("stream", [["off", "Off"], ["on", "On (hide ads)"]], streamerOn() ? "on" : "off")}
     <p style="font-size:12px;color:var(--muted);margin:6px 2px 0">Hides all ad slots and interstitials while you stream or record. Your browser can't tell when OBS is capturing, so switch it on yourself (or open the game with ?stream=1).</p>
     <h3>Puzzles</h3><div class="menu-list">
@@ -1143,7 +1200,7 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
 }
 function howModal() {
   openModal(`<h2>How to play</h2>
-   <p><b>Rank it:</b> drag the cards (or tap ▲▼) into order and lock it in. Cards in the right spot turn 🟩 green and lock; the rest turn 🟥 red. Rearrange and lock in again. You get ${CONFIG.rankMaxTries} tries. Turn on <i>Show values</i> to see the real numbers listed together above the cards; match each item to its value.</p>
+   <p><b>Rank it:</b> drag the cards (or tap ▲▼) into order and lock it in. Cards in the right spot turn 🟩 green and lock; the rest turn 🟥 red. Rearrange and lock in again. You get ${CONFIG.rankMaxTries} tries. The real numbers are always listed together in a column beside the cards; match each item to its value.</p>
    <p><b>🖐️ Guess the top 5:</b> name as many of the top 5 countries as you can. Correct guesses are free; you can miss 10 times. Type a country, pick it from the list, then press <i>Guess</i> (or Enter). Each guess shows its real world rank and value: ✅ a hit, ⬜ a miss.</p>
    <p><b>🔗 Match it:</b> match each clue (6 or 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). After misses ${HINT_AT.join(", ")} you get a hint: one fact about one top-5 country you haven't found yet (the highest-ranked one), getting more specific each time: continent, then population, then GDP per person, then its capital, then its first letter.</p>
@@ -1190,7 +1247,6 @@ window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Obje
 $("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
 $("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
-$("#valuesChip").onclick = () => { settings.showValues = valuesOn(state.puzzle) ? "off" : "on"; saveSettings(); renderRank(getResult(), true); };
 $("#menuBtn").onclick = menuModal;
 $("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); setTimeout(fitLayout, 350); });
 $("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
@@ -1198,9 +1254,9 @@ $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeM
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
-$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : b.dataset.view === "all" ? goAll() : goPractice());
+$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : goPractice());   // v12.1: no top-bar "All" tab (the All puzzles list is in the menu)
 $("#newRandomTop").onclick = () => goPractice();
-if (!CONFIG.SHOW_ALL_PUZZLES) { $$('.tab[data-view="all"]').forEach(b => b.remove()); }
+
 if (!Practice.ok()) { $$('.tab[data-view="practice"]').forEach(b => b.remove()); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
 // guess input

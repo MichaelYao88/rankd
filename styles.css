@@ -80,9 +80,6 @@ a{color:var(--link)}
 .pill-btn.outline{background:transparent;color:#fff;box-shadow:none;border:1.5px solid rgba(255,255,255,.7);padding:13px 24px}
 .pill-btn.outline:hover{background:#fff;color:var(--brand)}
 .pill-btn:disabled{opacity:.5;cursor:default}
-.chip{border:1.5px solid rgba(255,255,255,.55);background:transparent;color:#fff;border-radius:999px;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.08em}
-.chip[aria-pressed="true"]{background:rgba(255,255,255,.18);border-color:transparent}
-.chip:disabled{opacity:.5}
 .card-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px}
 
 /* ---------- rank game (inside the card) ---------- */
@@ -504,7 +501,6 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .name{font-size:14px}
   body.fit .arrows button{height:15px}
   body.fit .card-foot{margin-top:8px;flex:none}
-  body.fit .chip{padding:8px 12px}
   body.fit .pill-btn.outline{padding:10px 18px}
   /* Top 5 */
   body.fit #tries{margin:0 0 6px;flex:none;row-gap:3px}
@@ -658,7 +654,8 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .hero.is-match7 .game-bar{margin-bottom:4px}
   body.fit .hero.is-match7 .card-foot{margin-top:6px}
 }
-@media (max-width:560px) and (max-height:700px){ body.fit .hero.is-match7 #question{display:none} }
+/* v12.1: the subtitle of a 7-pair match is dropped only when it really doesn't fit (fitLayout adds .q-drop) */
+body.fit .hero.is-match7.q-drop #question{display:none}
 @media (max-width:420px){
   body.fit .m-target .tn{display:none}
   body.fit .m-target{font-size:16px;max-width:none}
@@ -666,3 +663,15 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .m-target i{font-size:10.5px}
 }
 @media (max-width:400px){ body.fit .m-who b{font-size:11px;letter-spacing:-.02em} body.fit .m-flag{font-size:16px} body.fit .m-person{gap:5px} }
+
+/* v12.1: puzzle-level caveat above the Match it answers */
+.m-note{margin:0 0 10px;font-size:13px;line-height:1.35;opacity:.85;font-style:italic}
+
+/* v12.1 AdSense: the live banner keeps the placeholder's reserved size (no layout jump); unfilled/blocked slots collapse */
+html.ads-live .ad-banner .ad-tag,html.ads-live .ad-banner .ad-fill:empty{display:none}
+html.ads-live .ad-banner{background:transparent}
+.ad-banner .ad-fill{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.ad-banner.ad-collapsed,#adTop.ad-collapsed{display:none!important}
+ins.rk-ad-banner{display:block;width:100%;height:50px;max-width:728px;margin:0 auto}
+@media (min-width:760px){ins.rk-ad-banner{height:90px}}
+ins.rk-ad-inter{display:block;width:100%;min-height:250px}

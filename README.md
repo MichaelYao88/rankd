@@ -49,7 +49,7 @@ There are two puzzle types, mixed into one daily rotation:
   * Set `CONFIG.siteUrl` once the site has a domain. From `file://` a placeholder URL is used.
 * **Settings** (☰ → Settings):
   * Theme: System (the default) / Light / Dark. It's saved in the browser, and the 🌙/☀️ button in the header toggles it too.
-  * Show values while guessing: Puzzle default / Always / Never. The 👁 chip on each Rank-it puzzle toggles it as well.
+  * (v12.1) The show-values setting and the 👁 chip are gone: values are always shown in every mode; a saved showValues is ignored.
   * Load spreadsheet, and reset to the built-in puzzles.
 * **"What % of players got it right":** this is a placeholder only, and no player data exists yet. The backend plugs in
   at `CommunityStats.submit()` / `CommunityStats.fetch()` near the top of `app.js` (Supabase or a Cloudflare Worker + D1).
@@ -80,6 +80,32 @@ There are two puzzle types, mixed into one daily rotation:
    ```
    `python3 build.py --reset` rebuilds the workbook from the defaults in `build.py` plus `seed/*.csv`
    (`v6`–`v12_puzzles`, `v7_top5_puzzles`, `v12_match_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
+
+## v12.1 (Oct 22, 2026)
+* **Schedule**: 110 puzzles (98 Rank it + 8 Top 5 + 4 Match it), Oct 6 2026 (#001) to Jan 23 2027 (#110).
+* **Of Age** (Match it, 7 countries, sensitive, #076 Sun Dec 20 2026): age of consent with an adult who isn't a teacher or guardian
+  (Wikipedia "Age of consent by country", rev. 1380397931, "By authority" column, checked against the cited laws).
+* **Hard Line** (Match it, 6 countries, sensitive, #108 Thu Jan 21 2027): penalties in law for raping a child (Japan, India,
+  Pakistan, Israel, Netherlands, Switzerland), one statute/source per clue, plus a puzzle-level caveat (`note` column in
+  match_puzzles -> shown above the answers) that statutory penalties are not the sentences actually imposed. The WODC
+  "Hard Time" ranker is unchanged (content), now at #086.
+* **Alcohol is Haram**: Nigeria treated as Muslim-majority (Pew 2020: 56%), plain subtitle, no caveat.
+* **Top bar**: the "All" tab is gone (Today / Archive / Practice + gear). The All puzzles list stays in the menu
+  (gated by `CONFIG.SHOW_ALL_PUZZLES`).
+* **Values always on**: the show-values setting and the 👁 chip are removed; a saved `showValues` in rankd.settings.v1 is
+  ignored and dropped on the next save. (`values_visible` is still accepted in sheets but no longer changes anything.)
+* **Google AdSense** (ca-pub-5196178239625142) behind `window.RankdAds` / `window.RankdAdSense`: app.js adds
+  `adsbygoogle.js?client=ca-pub-5196178239625142` (async, crossorigin=anonymous) on the live https site only, never in
+  studio.html, Studio preview (`?preview=`), streamer mode (not even loaded) or localhost/file:// (placeholders there;
+  `?ads=live` / `?ads=placeholder` override). Ad-unit IDs go in `CONFIG.ADSENSE_SLOTS` ({banner, interstitial}); while they're
+  empty the banner slot collapses and no interstitial shows (Auto ads, if enabled in AdSense, can still place ads).
+  Banner keeps its reserved 50px/90px height; no fill / blocked script collapses the slot and skips the interstitial.
+  The interstitial rules are unchanged (never on today's daily, skipped after a win tier, never in streamer mode).
+* `ads.txt` (google.com, pub-5196178239625142, DIRECT, f08c47fec0942fa0) ships in the site root. AdSense reads it only at
+  the domain root: today that's https://michaelyao88.github.io/ads.txt (a separate MichaelYao88.github.io repo); once
+  ranki.gg points here it's https://ranki.gg/ads.txt, which this file already covers. All paths are relative (no /rankd/).
+* Match it: country-answer puzzles show the full country name and no duplicate country line; a 7-pair match drops its subtitle
+  on short phones only if it doesn't fit.
 
 ## v12 (Oct 22, 2026)
 * **Schedule**: 108 puzzles (98 Rank it + 8 Top 5 + 2 Match it), dailies Oct 6 2026 (#001) to **Jan 21 2027 (#108)**, no gaps,
