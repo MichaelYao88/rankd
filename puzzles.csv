@@ -1,5 +1,7 @@
 ﻿puzzle_id,daily_order,puzzle_emoji,question,stat_label,unit,higher_is,values_visible,item_name,item_emoji,value,data_year,source_name,source_url,fun_fact,global_rank,global_total,global_scope,art,support_url,dataset,series_title,headline
-work-hours,1,⏱️,Who works the most hours per year?,Average annual hours worked per worker,hours/yr,top,no,Greece,🇬🇷,1893,2023,Penn World Table 11 via Our World in Data,https://ourworldindata.org/grapher/annual-working-hours-per-worker,The 'siesta' stereotype doesn't survive the data: the average Greek worker puts in about 560 more hours a year than the average German.,74,129,,clock,,owid-work-hours,Hours Worked per Year,Grindset Nations
+work-hours,1,⏱️,Who works the most hours per year?,Average annual hours worked per worker,hours/yr,top,no,Indonesia,🇮🇩,1958,2023,Penn World Table 11 via Our World in Data,https://ourworldindata.org/grapher/annual-working-hours-per-worker,Indonesia leads this set. The 'siesta' stereotype doesn't survive the data: the average Greek worker puts in about 560 more hours a year than the average German.,69,129,,clock,,owid-work-hours,Hours Worked per Year,Grindset Nations
+work-hours,,,,,,,,South Korea,🇰🇷,1910,2023,,,,73,129,,,,,,
+work-hours,,,,,,,,Greece,🇬🇷,1893,2023,,,,74,129,,,,,,
 work-hours,,,,,,,,United States,🇺🇸,1789,2023,,,,85,129,,,,,,
 work-hours,,,,,,,,Japan,🇯🇵,1654,2023,,,,96,129,,,,,,
 work-hours,,,,,,,,Germany,🇩🇪,1335,2023,,,,129,129,,,,,,

@@ -449,6 +449,7 @@ function parseTables(t) {
   // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
   const TITLE_PIN = {
     alcohol: ["India", "Italy"],
+    "work-hours": ["Indonesia", "Germany"],   // Grindset Nations: Asia hours vs Germany, not the default famous pair
     "wealth-gini-nordic": ["Sweden", "United States"],
     "wealth-gini-top-heavy": ["Brazil", "Singapore"],
     "wealth-gini-level-field": ["Israel", "Slovakia"],
