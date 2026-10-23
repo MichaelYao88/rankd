@@ -51,8 +51,10 @@ There are two puzzle types, mixed into one daily rotation:
   * Theme: System (the default) / Light / Dark. It's saved in the browser, and the 🌙/☀️ button in the header toggles it too.
   * (v12.1) The show-values setting and the 👁 chip are gone: values are always shown in every mode; a saved showValues is ignored.
   * Load spreadsheet, and reset to the built-in puzzles.
-* **"What % of players got it right":** this is a placeholder only, and no player data exists yet. The backend plugs in
-  at `CommunityStats.submit()` / `CommunityStats.fetch()` near the top of `app.js` (Supabase or a Cloudflare Worker + D1).
+* **"What % of players got it right":** compare numbers come from the Ranki Supabase `community-stats` Edge Function
+  (`CONFIG.COMMUNITY_STATS_URL`). A finished Daily or Archive game inserts one anonymous row into `plays` from
+  `CommunityStats.submit()` near the top of `app.js`. Practice, Studio and `?preview=` are not inserted. `community-stats.json`
+  stays in the repo as the seeded fallback.
 * Your results, streak and stats are kept in `localStorage`.
 
 ## Editing puzzles (`puzzles.xlsx`)
