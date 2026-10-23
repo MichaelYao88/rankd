@@ -124,31 +124,6 @@ top5-height-gain,5,Thailand,THA,2,It has 50–150 million people (2024).,,World 
 top5-height-gain,5,Thailand,THA,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
 top5-height-gain,5,Thailand,THA,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
 top5-height-gain,5,Thailand,THA,5,Its name starts with “T”.,,the name
-top5-sex-partners,1,Turkey,TUR,1,It spans Europe and Asia.,,continent (6-continent model)
-top5-sex-partners,1,Turkey,TUR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
-top5-sex-partners,1,Turkey,TUR,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-sex-partners,1,Turkey,TUR,4,Its capital city starts with “A”.,,World Bank country metadata (capitalCity)
-top5-sex-partners,1,Turkey,TUR,5,Its name starts with “T”.,,the name
-top5-sex-partners,2,Australia,AUS,1,It's in Oceania.,,continent (6-continent model)
-top5-sex-partners,2,Australia,AUS,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
-top5-sex-partners,2,Australia,AUS,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-sex-partners,2,Australia,AUS,4,Its capital city starts with “C”.,,World Bank country metadata (capitalCity)
-top5-sex-partners,2,Australia,AUS,5,Its name starts with “A”.,,the name
-top5-sex-partners,3,New Zealand,NZL,1,It's in Oceania.,,continent (6-continent model)
-top5-sex-partners,3,New Zealand,NZL,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
-top5-sex-partners,3,New Zealand,NZL,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-sex-partners,3,New Zealand,NZL,4,Its capital city starts with “W”.,,World Bank country metadata (capitalCity)
-top5-sex-partners,3,New Zealand,NZL,5,Its name starts with “N”.,,the name
-top5-sex-partners,4,Iceland,ISL,1,It's in Europe.,,continent (6-continent model)
-top5-sex-partners,4,Iceland,ISL,2,It has fewer than 1 million people (2024).,,World Bank SP.POP.TOTL
-top5-sex-partners,4,Iceland,ISL,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-sex-partners,4,Iceland,ISL,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
-top5-sex-partners,4,Iceland,ISL,5,Its name starts with “I”.,,the name
-top5-sex-partners,5,South Africa,ZAF,1,It's in Africa.,,continent (6-continent model)
-top5-sex-partners,5,South Africa,ZAF,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
-top5-sex-partners,5,South Africa,ZAF,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-sex-partners,5,South Africa,ZAF,4,It has a coastline.,,standard list of landlocked countries
-top5-sex-partners,5,South Africa,ZAF,5,Its name starts with “S”.,,the name
 top5-trends-kpop,1,Philippines,PHL,1,It's in Asia.,,continent (6-continent model)
 top5-trends-kpop,1,Philippines,PHL,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
 top5-trends-kpop,1,Philippines,PHL,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)

@@ -133,6 +133,9 @@
       </div>
       <div class="actions"><button class="pill-btn ghost" id="nextBtn">More puzzles →</button></div>
     </section>
+    <!-- v12.2 AD SLOT: bottom banner, Practice only (body.mode-practice). On phones it sits right under the card and
+         fitLayout() shrinks the card so the banner and the Guess button both stay on screen. -->
+    <div class="ad-slot ad-banner ad-bottom" id="adBottom" data-ad="practice-bottom-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
   </section>
 
   <!-- ======== ARCHIVE VIEW ======== -->
@@ -146,14 +149,17 @@
 
 <footer class="foot">
   Rankd prototype · Data: WHO, World Bank, FAO, IIHS, Our World in Data &amp; others · <a href="#" id="aboutLink">Sources</a>
+  <!-- v12.2: static pages (also in the menu). The footer is hidden while a puzzle is being played on a phone (body.fit). -->
+  <nav class="foot-links" aria-label="Site"><a href="about.html" id="footAbout">About</a><a href="how-to-play.html" id="footHow">How to play</a><a href="privacy.html" id="footPrivacy">Privacy</a><a href="#" id="footContact" data-contact-link>Contact</a></nav>
 </footer>
 
 <!-- ===== INTERSTITIAL AD (placeholder) =====
      Shown on archive/practice puzzles only, between submitting and the reveal. Never on today's daily.
+     v12.2: also in Practice when the player asks for the next random puzzle without finishing the current one.
      For production use an AdSense "Ad placement" / vignette or a Google Ad Manager interstitial instead. -->
 <div class="overlay hidden ad-slot" id="interstitial" data-ad="interstitial" aria-modal="true" role="dialog">
   <div class="inter-box">
-    <div class="inter-top"><span class="ad-tag">Ad</span><span class="inter-note">Your result is ready</span><button class="skip" id="skipAd" disabled>Skip in 5</button></div>
+    <div class="inter-top"><span class="ad-tag">Ad</span><span class="inter-note" id="interNote">Your result is ready</span><button class="skip" id="skipAd" disabled>Skip in 5</button></div>
     <div class="inter-fill">
       <!-- ADSENSE: interstitial / large rectangle unit goes here -->
       <div class="inter-ph"><span>Interstitial ad placeholder<br><small>336×280 · full-screen on mobile</small></span></div>
@@ -171,6 +177,7 @@
 <div class="toast" id="toast"></div>
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden>
 
+<script src="site-config.js"></script>
 <script src="vendor/sortable.min.js"></script>
 <script src="vendor/xlsx.full.min.js"></script>
 <script src="puzzles-data.js"></script>

@@ -81,6 +81,34 @@ There are two puzzle types, mixed into one daily rotation:
    `python3 build.py --reset` rebuilds the workbook from the defaults in `build.py` plus `seed/*.csv`
    (`v6`–`v12_puzzles`, `v7_top5_puzzles`, `v12_match_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
 
+## v12.2 (Oct 23, 2026)
+* **Match it now takes 4 to 7 pairs** (was 6 or 7; app.js + build.py validation).
+* **Foreign Relations** (4): Stubb and Edi Rama removed; shorter clues. **Before the History Books** (5): Idi Amin and Xi removed; shorter clues.
+* **Hard Line** (5): Israel removed; compact clues (Netherlands "Up to 15 years or a fine (child under 12)", India "20+ years to death",
+  Switzerland "1–5 years (no force)", Pakistan "Death or life in prison", Japan "5–20 years"); caveat "Penalties written in law, not the sentences courts actually give."
+* **Of Age** (6): Ireland removed; subtitle "The general age of consent"; compact clues (US "16 in some regions", Japan "18 under every local law (16 nationally)",
+  Italy "14 (16 with a teacher or guardian)", Madagascar "14 (21 if same-sex)"). Japan source: RILG list of prefectural youth ordinances (all 47; Nagano last, 2016).
+* **Growth Spurt** subtitle: "Where men grew taller, 1985–2019" (NCD-RisC: mean height of 19-year-old men, 1985 to 2019).
+* **Body Count** (Durex 2005) deleted, and its dataset removed from Practice. Its slot (#042, Nov 16) goes to **Booked: UK**: Home Office arrests for
+  sexual offences by self-defined ethnic group, England and Wales, year to March 2025, per 100k with 2021 Census populations
+  (Black 152.6, Asian 89.7, Mixed 77.5, White 71.0; "Other" 92.9 left out, like the US version's excluded group; 12.5% "not stated" dropped). `tools/v122_seed_gen.py`, `data/ho-arrests-...csv`.
+* **In God We Trump** (second MAGA Math, #067 Dec 11): CNN/Edison 2024 national exit poll by religion: Protestant/other Christian 63, Catholic 59,
+  other religion 34, no religion 27, Jewish 22 (% Trump). Raw JSON saved in `data/cnn-exit-poll-2024-PG-US.json`. Now #067 (Dec 11) after the inserts below.
+* **Deadly Odds** (third "Deadliest for Women" variant, `homicide-women-c`, #059 Dec 3, sensitive; headlines must be unique): UNODC female
+  intentional homicide victims per 100k (World Bank VC.IHR.PSRC.FE.P5, 2022): US 2.81, New Zealand 1.12, Canada 1.05, South Korea 0.50, Poland 0.46,
+  Saudi Arabia 0.30 (2017, its only year in the series). Michael's exact six: it shares US + South Korea with `homicide-women` and New Zealand with
+  `homicide-women-b`, so it is exempt from the max-1-shared rule (`DATASET_SHARE_EXEMPT` in build.py). Title "Female Homicide Rate 🇨🇦🇸🇦";
+  `homicide-women` (past) keeps 🇮🇳🇺🇸 via `TITLE_PIN`.
+* **Swings Both Ways** (`ipsos-bisexual`, #044 Nov 18, sensitive): Ipsos LGBT+ Pride 2021 (27 countries), adults who identify as bisexual:
+  India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
+  The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
+* **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
+  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 113 puzzles (102 Rank it, 7 Top 5, 4 Match it), ends Jan 26 2027.
+* **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;
+  `tools/v122_practice_patch.py` + a runtime check). Top banner + a new **bottom banner** (`#adBottom`, Practice only; on phones it is pinned to the
+  bottom and the card shrinks so Guess / Lock it in stays above it). **Interstitial on "next"**: pressing 🎲 New (or the Practice tab) on an unfinished
+  random puzzle shows the interstitial first ("Your next puzzle is ready"). Never in streamer mode. Live ad unit: `CONFIG.ADSENSE_SLOTS.bottom`.
+
 ## v12.1 (Oct 22, 2026)
 * **Schedule**: 110 puzzles (98 Rank it + 8 Top 5 + 4 Match it), Oct 6 2026 (#001) to Jan 23 2027 (#110).
 * **Of Age** (Match it, 7 countries, sensitive, #076 Sun Dec 20 2026): age of consent with an adult who isn't a teacher or guardian
@@ -257,7 +285,7 @@ There are two puzzle types, mixed into one daily rotation:
 * **"Guess the #1" retired.** Each former Guess puzzle became either a Guess the top 5 (guessable top 5) or a 5-item Rank it
   built from the same dataset (when the #1 was obscure). Where a Guess and a Top 5 of the same list existed, one was kept
   (this also removes the spoiler pairs). Mapping: rice, tomatoes, onions, trends-anime, trends-minecraft, trends-messi,
-  suicide-world → Rank it; wine, potatoes, tea, trends-kpop, co2-consumption, height-gain, sex-partners, serial-killers → Top 5.
+  suicide-world → Rank it; wine, potatoes, tea, trends-kpop, co2-consumption, height-gain, sex-partners (deleted in v12.2), serial-killers → Top 5.
 * **Top 5** renamed **Guess the top 5**; new escalating attribute hints (see above); avg-rank closeness stat on the result card and in share text.
 * **Typeahead fix:** selecting a suggestion only fills the input; only the Guess button / Enter submits (Enter on a partial name first fills the highlighted suggestion).
 * **Alcohol** re-picked from the same WHO 2020 dataset for clear gaps: Romania 16.8, Uganda 11.3, Italy 6.97, India 4.1, Turkey 1.69 L.

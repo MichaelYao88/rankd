@@ -23,7 +23,7 @@ const CONFIG = {
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
-  ADSENSE_SLOTS: { banner: "", interstitial: "" },
+  ADSENSE_SLOTS: { banner: "", interstitial: "", bottom: "" },   // v12.2: bottom = Practice bottom banner (blank = slot collapses)
 };
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
@@ -155,12 +155,12 @@ function parseTables(t) {
       stat: str(r.stat_label), unit: str(r.unit), maxMisses: Math.round(num(r.max_misses) || 10), year: str(r.data_year),
       source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), headline: str(r.headline), countries });
   });
-  const mby = {};   // v12 Match it (same rules as build.py: 6 or 7 rows, distinct clues)
+  const mby = {};   // v12 Match it (same rules as build.py: 4 to 7 rows, distinct clues)
   for (const raw of t.match_puzzles || []) { const r = lowerKeys(raw), id = str(r.puzzle_id); if (!id) continue;
     const m = mby[id] ||= { type: "match", id, order: orderOf(r.daily_order, out.length + Object.keys(mby).length), emoji: "", headline: "", question: "", stat: "Match each clue to the right person", unit: "", source: "", sourceUrl: "", fact: "", art: "", support: "", people: [] };
     for (const [k, c] of [["emoji","puzzle_emoji"],["headline","headline"],["question","subtitle"],["art","art"]]) if (!m[k] && str(r[c])) m[k] = str(r[c]);
     if (str(r.item_name) && str(r.clue)) m.people.push({ name: str(r.item_name), iso3: str(r.country_iso).toUpperCase(), emoji: str(r.item_emoji), country: str(r.country_name) || str(r.country_iso), clue: str(r.clue), fact: str(r.fact), sourceName: str(r.source_name), sourceUrl: str(r.source_url), ...(str(r.flag_img) ? { flagImg: str(r.flag_img) } : {}) }); }
-  Object.values(mby).forEach(m => { if (m.people.length < 6 || m.people.length > 7 || new Set(m.people.map(x => x.clue)).size !== m.people.length) return;
+  Object.values(mby).forEach(m => { if (m.people.length < 4 || m.people.length > 7 || new Set(m.people.map(x => x.clue)).size !== m.people.length) return;
     m.emoji ||= "🔗"; m.question ||= m.headline || m.id; m.source = [...new Set(m.people.map(x => x.sourceName).filter(Boolean))].join("; "); m.sourceUrl = m.people[0].sourceUrl; out.push(m); });
   const res = out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
   // v11 (same as build.py apply_titles): no "(Group X)" labels. Rankers sharing a "dataset" key are titled with the plain
@@ -181,7 +181,7 @@ function parseTables(t) {
 }
 
 let custom = load(LS.custom, null);
-const KNOWN = p => p && (p.type === "rank" || p.type === "top5" || (p.type === "match" && p.people && p.people.length >= 6 && p.people.length <= 7));   // drops pre-v7 "guess" puzzles from old uploads
+const KNOWN = p => p && (p.type === "rank" || p.type === "top5" || (p.type === "match" && p.people && p.people.length >= 4 && p.people.length <= 7));   // drops pre-v7 "guess" puzzles from old uploads
 let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : (window.RANKD_PUZZLES || []);
 
 // ================================================================ settings + theme
@@ -214,7 +214,7 @@ window.RankdAds = Ads;
 // (wanted, but streamer mode is on, so the script is NOT loaded), "loading", "live", "blocked" (script failed / blocked).
 // Every failure path collapses the slot (no blank gap, no error); the banner keeps its reserved height while loading.
 const AdSense = {
-  mode: "placeholder", bannerDone: false,
+  mode: "placeholder", bannerDone: false, bottomDone: false,
   wanted() {
     if (window.RANKD_STUDIO || PREVIEW || !CONFIG.ADSENSE_CLIENT) return false;
     const q = new URLSearchParams(location.search).get("ads");
@@ -229,9 +229,9 @@ const AdSense = {
     const s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous"; s.id = "adsbygoogleJs";
     s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(CONFIG.ADSENSE_CLIENT);
     s.onload = () => { if (this.mode === "loading") this.mode = "live"; };
-    s.onerror = () => { this.mode = "blocked"; this.collapse($("#adTop")); };
+    s.onerror = () => { this.mode = "blocked"; this.collapse($("#adTop")); this.collapse($("#adBottom")); };
     document.head.appendChild(s);
-    this.banner();
+    this.banner(); this.bottom();
   },
   push() { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); return true; } catch (e) { return false; } },
   unit(slot, cls) { return `<ins class="adsbygoogle ${cls}" data-ad-client="${esc(CONFIG.ADSENSE_CLIENT)}" data-ad-slot="${esc(slot)}"></ins>`; },
@@ -241,7 +241,14 @@ const AdSense = {
   },
   collapse(box) { if (!box) return; box.classList.add("ad-collapsed"); window.RankdFit?.layout(); },
   banner() {
-    if (this.bannerDone) return; this.bannerDone = true; const box = $("#adTop"), slot = CONFIG.ADSENSE_SLOTS.banner;
+    if (this.bannerDone) return; this.bannerDone = true; this.fill($("#adTop"), CONFIG.ADSENSE_SLOTS.banner);
+  },
+  // v12.2: Practice bottom banner, requested the first time it is actually visible (AdSense can't size a hidden slot)
+  bottom() {
+    if (this.bottomDone || this.mode === "placeholder" || this.mode === "waiting" || state.mode !== "practice") return;
+    this.bottomDone = true; this.fill($("#adBottom"), CONFIG.ADSENSE_SLOTS.bottom);
+  },
+  fill(box, slot) {
     if (!slot || this.mode === "blocked") { this.collapse(box); return; }
     box.querySelector(".ad-fill").innerHTML = this.unit(slot, "rk-ad-banner"); const ins = box.querySelector("ins");
     if (!this.push()) { this.collapse(box); return; }
@@ -289,7 +296,7 @@ const Practice = {
     rows.forEach(r => { r.rank = 1 + rows.filter(x => x.value > r.value).length; });
     const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
       source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null };
-    if (rows.length >= PR.minTop5 && ds.hints && R() < 0.5)
+    if (rows.length >= PR.minTop5 && ds.hints && +rows[0].value !== 100 && R() < 0.5)   // v12.2: no Top 5 when #1 is 100% (ties at the cap)
       return { ...base, type: "top5", maxMisses: 10, countries: rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) })) };
     const k = R() < ru.sixShare ? 6 : 5, N = rows.length, gapR = ru.rankGap(N, k), gapV = (rows[0].value - rows[N - 1].value) * ru.minGapShare;
     const cand = rows.filter(r => r.pop >= ru.minPopM || tier(r.name));
@@ -413,6 +420,7 @@ function renderHero() {
     : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
   $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
+  document.body.classList.toggle("mode-practice", state.mode === "practice"); AdSense.bottom();   // v12.2: Practice bottom banner
   renderArt(p); $("#hero").dataset.kind = p.type; $("#shareChallengeTop").textContent = label + " ↗"; $("#shareChallengeBtn").textContent = label;
 }
 
@@ -551,10 +559,12 @@ function submitRank() {
     $("#submitBtn").parentElement.classList.add("hidden"); $("#hint").classList.add("hidden"); renderTryDots();
     feedback(marks, true);
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "rank");
+    else if (!solved && marks.every(m => m === "bad") && isIdentityRank(p)) Fx.celebrate("racist", "rank");   // v12.2
     setTimeout(() => afterSubmit(() => revealRank(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
   setResult(g); renderTryDots(); feedback(marks, false); updateRankHint();
+  if (marks.every(m => m === "bad") && isIdentityRank(p)) Fx.celebrate("racist", "rank");   // v12.2: all wrong on a country/demographic Rank it
   toast(`${g.pinned.length}/${marks.length} right · ${CONFIG.rankMaxTries - g.attempts.length} ${CONFIG.rankMaxTries - g.attempts.length === 1 ? "try" : "tries"} left`);
 }
 function feedback(marks, final) {
@@ -864,14 +874,24 @@ function onGuessSubmit() {
 // Rank it:  solved on try 1 = "explosive", try 2 = "big", 3+ (or not solved) = none (plain result, ads as normal).
 // Top 5:    all 5 found with 0 misses = "explosive", 1-2 misses = "big", otherwise none.
 // prefers-reduced-motion: no confetti / shake / flash, just a short fade-in banner.
+// v12.2: "Racist!" flash — Rank it only, every card wrong, puzzle is countries (flag emojis) or demographics/identity groups.
+function isIdentityRank(p) {
+  if (!p || p.type !== "rank" || !p.items || !p.items.length) return false;
+  const flag = e => /[\u{1F1E6}-\u{1F1FF}]{2}/u.test(e || "");
+  if (p.items.filter(it => flag(it.emoji)).length >= Math.ceil(p.items.length * 0.75)) return true;
+  if (/race|ethn|relig|gender|sex-offense|immigrant|nationality|jewish|ipsos|lgbt|bisexual|men-|women-|gcse|alevel|grad-earnings|home-ownership|hourly-pay|smoking-ethnicity|he-entry|convictions-nationality|trump-2024/i.test(p.id || "")) return true;
+  const blob = p.items.map(it => it.name).join(" ");
+  return /\b(men|women|Black|White|Hispanic|Asian|Christian|Jewish|Muslim|Catholic|Protestant|Mixed|Chinese|Indian|Buddhist|Hindu)\b/i.test(blob);
+}
 function winTier(r) {
   if (r.type === "rank" || r.type === "match") return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
   const p = state.puzzle; if (hitsOf(p, r) < 5) return null;
   const m = missesOf(p, r); return m === 0 ? "explosive" : m <= 2 ? "big" : null;
 }
 const Fx = (() => {
-  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!" } };
-  const CFG = { explosive: { n: 220, speed: 15, dur: 2600, spread: Math.PI * 2 }, big: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, normal: { n: 40, speed: 7.5, dur: 1500, spread: Math.PI * 1.1 } };
+  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", racist: "Racist!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!" } };
+  // v12.2 racist uses the same motion/timing as big (Brilliant!)
+  const CFG = { explosive: { n: 220, speed: 15, dur: 2600, spread: Math.PI * 2 }, big: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, racist: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, normal: { n: 40, speed: 7.5, dur: 1500, spread: Math.PI * 1.1 } };
   const COLORS = ["#FFE48A", "#16B364", "#EF4A4F", "#FFFFFF", "#8EA2FF", "#F5B82E", "#FF7AC6"];
   const api = { history: [], last: null };
   const reduced = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -884,7 +904,7 @@ const Fx = (() => {
     const total = red ? 1400 : CFG[tier].dur;
     if (!red) {
       if (tier === "explosive") { const fl = document.createElement("div"); fl.className = "fx-flash"; layer.appendChild(fl); document.body.classList.remove("fx-shake"); void document.body.offsetWidth; document.body.classList.add("fx-shake"); ev.shake = true; setTimeout(() => document.body.classList.remove("fx-shake"), 700); }
-      if (tier === "big") { const h = $("#hero"); h.classList.remove("fx-bump"); void h.offsetWidth; h.classList.add("fx-bump"); setTimeout(() => h.classList.remove("fx-bump"), 700); }
+      if (tier === "big" || tier === "racist") { const h = $("#hero"); h.classList.remove("fx-bump"); void h.offsetWidth; h.classList.add("fx-bump"); setTimeout(() => h.classList.remove("fx-bump"), 700); }
       confetti(layer, tier);
     }
     setTimeout(() => layer.remove(), total + 200);
@@ -895,10 +915,10 @@ const Fx = (() => {
     cv.width = W * dpr; cv.height = H * dpr; cv.className = "fx-canvas"; layer.appendChild(cv);
     const ctx = cv.getContext("2d"); ctx.scale(dpr, dpr);
     const hb = $("#hero").getBoundingClientRect(), ox = W / 2, oy = Math.max(60, Math.min(H * .55, hb.top + hb.height * .45));
-    const origins = tier === "big" ? [[0, H * .7, -Math.PI / 3.2], [W, H * .7, -Math.PI + Math.PI / 3.2]] : tier === "normal" ? [[ox, Math.min(H * .8, hb.bottom - 40), -Math.PI / 2]] : [[ox, oy, 0]];
+    const origins = (tier === "big" || tier === "racist") ? [[0, H * .7, -Math.PI / 3.2], [W, H * .7, -Math.PI + Math.PI / 3.2]] : tier === "normal" ? [[ox, Math.min(H * .8, hb.bottom - 40), -Math.PI / 2]] : [[ox, oy, 0]];
     const P = [];
     for (let k = 0; k < c.n; k++) { const [x, y, dir] = origins[k % origins.length];
-      const a = tier === "explosive" ? Math.random() * c.spread : dir + (Math.random() - .5) * (tier === "big" ? .9 : c.spread), v = c.speed * (.45 + Math.random() * .75);
+      const a = tier === "explosive" ? Math.random() * c.spread : dir + (Math.random() - .5) * ((tier === "big" || tier === "racist") ? .9 : c.spread), v = c.speed * (.45 + Math.random() * .75);
       P.push({ x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - (tier === "explosive" ? 3 : 0), r: 3 + Math.random() * (tier === "explosive" ? 6 : 4), rot: Math.random() * 6, vr: (Math.random() - .5) * .4, col: COLORS[k % COLORS.length], sh: k % 3 }); }
     const t0 = performance.now();
     (function frame(t) {
@@ -912,7 +932,7 @@ const Fx = (() => {
   }
   return api;
 })();
-window.RankdFx = Fx; window.RankdWinTier = r => winTier(r);
+window.RankdFx = Fx; window.RankdWinTier = r => winTier(r); window.RankdIsIdentityRank = isIdentityRank;
 
 // ================================================================ after submit: interstitial (non-daily only)
 // v11: no interstitial after a celebrated win (Rank it solved in 1-2 tries, Top 5 all found with <= 2 misses).
@@ -922,10 +942,21 @@ function afterSubmit(reveal, tier) {
   if (why) { reveal(); return; }
   showInterstitial(reveal);
 }
-function showInterstitial(done) {
+// v12.2: Practice "next puzzle" (🎲 New / the Practice tab) while the current random puzzle is unfinished -> interstitial
+// first (same rules: never in streamer mode, needs an interstitial ad unit on the live site). Finished puzzles go straight on.
+function practiceNext() {
+  if (state.busy) return;
+  if (state.mode !== "practice" || !state.puzzle || isDone(getResult())) return goPractice();
+  const why = !Ads.allowed() ? "streamer" : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
+  Ads.decisions.push({ puzzle: state.puzzle.id, mode: "practice-skip", tier: null, show: !why, reason: why || "shown", at: Date.now() });
+  if (why) return goPractice();
+  showInterstitial(() => goPractice(), true);
+}
+function showInterstitial(done, skipNext) {   // skipNext (v12.2): shown before the next Practice puzzle, not before a result
   const ov = $("#interstitial"), btn = $("#skipAd"); let s = CONFIG.interstitialSeconds; state.busy = true;
+  $("#interNote").textContent = skipNext ? "Your next puzzle is ready" : "Your result is ready";
   ov.classList.remove("hidden"); btn.disabled = true; btn.textContent = `Skip in ${s}`;
-  const t = setInterval(() => { s--; if (s <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = "See result ✕"; } else btn.textContent = `Skip in ${s}`; }, 1000);
+  const t = setInterval(() => { s--; if (s <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = skipNext ? "Next puzzle ✕" : "See result ✕"; } else btn.textContent = `Skip in ${s}`; }, 1000);
   let closed = false; const close = () => { if (closed) return; closed = true; clearInterval(t); ov.classList.add("hidden"); state.busy = false; done(); };
   btn.onclick = () => { if (!btn.disabled) close(); };
   // v12.1: AdSense creative (live mode). No fill -> close at once and go straight to the result (recorded on the decision).
@@ -1038,7 +1069,8 @@ function fitLayout() {
   b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
   b.classList.toggle("fit", fit);
   if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); return; }
-  const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8));
+  const ab = $("#adBottom"), abH = ab && ab.offsetHeight ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner stays on screen
+  const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
   // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
   hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop"); let natural = hero.scrollHeight;
   if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }   // 7 pairs on a short phone: drop the subtitle only if needed
@@ -1144,7 +1176,10 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
     <button id="mSettings">⚙️ Settings<small>Theme, streamer mode, load your spreadsheet</small></button>
     <button id="mHow">❓ How to play</button>
-    <button id="mAbout">📚 About &amp; sources</button></div>`);
+    <button id="mAbout">📚 About &amp; sources</button>
+    <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About Rankd<small>What it is, how we source the data, who makes it</small></a>
+    <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
+    <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
   $("#modal").classList.add("sheet");
   if ($("#mShare")) $("#mShare").onclick = () => { closeModal(); doShare(challengeText()); };
@@ -1160,7 +1195,8 @@ function settingsModal() {
     <button id="mLoad">📄 Load spreadsheet<small>Your edited puzzles.xlsx, or one or more of the CSV sheets</small></button>
     <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Guess the top 5 sheets: see puzzles.xlsx)</small></button>
     ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>
-    <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history and settings on this device</small></button>`);
+    <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history and settings on this device</small></button>
+    <p style="font-size:12px;color:var(--muted)">What Rankd stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
   $$(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
     settings[sg.dataset.set] = b.dataset.v; saveSettings(); sg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
     if (sg.dataset.set === "theme") applyTheme(); else if (sg.dataset.set === "stream") applyStreamer(); else if (state.puzzle?.type === "rank" && !$("#playView").classList.contains("hidden")) renderRank(getResult(), true);
@@ -1202,7 +1238,7 @@ function howModal() {
   openModal(`<h2>How to play</h2>
    <p><b>Rank it:</b> drag the cards (or tap ▲▼) into order and lock it in. Cards in the right spot turn 🟩 green and lock; the rest turn 🟥 red. Rearrange and lock in again. You get ${CONFIG.rankMaxTries} tries. The real numbers are always listed together in a column beside the cards; match each item to its value.</p>
    <p><b>🖐️ Guess the top 5:</b> name as many of the top 5 countries as you can. Correct guesses are free; you can miss 10 times. Type a country, pick it from the list, then press <i>Guess</i> (or Enter). Each guess shows its real world rank and value: ✅ a hit, ⬜ a miss.</p>
-   <p><b>🔗 Match it:</b> match each clue (6 or 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
+   <p><b>🔗 Match it:</b> match each clue (4 to 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). After misses ${HINT_AT.join(", ")} you get a hint: one fact about one top-5 country you haven't found yet (the highest-ranked one), getting more specific each time: continent, then population, then GDP per person, then its capital, then its first letter.</p>
    <p>🎉 Solve a Rank it or Match it on the 1st or 2nd try (or find all 5 with at most 2 misses) for a celebration. First try = the big one.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
@@ -1254,8 +1290,10 @@ $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeM
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
-$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : goPractice());   // v12.1: no top-bar "All" tab (the All puzzles list is in the menu)
-$("#newRandomTop").onclick = () => goPractice();
+$$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : practiceNext());   // v12.1: no top-bar "All" tab (the All puzzles list is in the menu)
+$("#newRandomTop").onclick = () => practiceNext();
+// v12.2: footer "Contact" = the CONTACT_EMAIL from site-config.js (the one place it is set)
+{ const mail = (window.RANKD_SITE || {}).CONTACT_EMAIL || ""; $$("[data-contact-link]").forEach(a => mail.includes("@") ? a.href = "mailto:" + mail : a.remove()); }
 
 if (!Practice.ok()) { $$('.tab[data-view="practice"]').forEach(b => b.remove()); }
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
