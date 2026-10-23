@@ -82,6 +82,10 @@ There are two puzzle types, mixed into one daily rotation:
    (`v6`–`v12_puzzles`, `v7_top5_puzzles`, `v12_match_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
 
 ## v12.2 (Oct 23, 2026)
+* **Single Ladies!** (`sex-ratio-15-64`, #046): females per male ages 15–64 (1 ÷ CIA World Factbook males-per-female via Wikipedia oldid 1372609821): Hong Kong 1.23, Russia 1.05, Thailand 1.04, US 1.00, India 0.93, Qatar 0.23.
+* **Dating Odds** (`sex-ratio-15-64-b`, #072): same dataset — Puerto Rico 1.09, Ireland 1.02, UK 0.98, China 0.94, South Korea 0.93, Saudi Arabia 0.70. Title uses 2 flags. Shares 0 countries with Single Ladies!.
+* **No Country for Old Men** (`sex-ratio-65`, #100): females per male ages 65+ — Ukraine 1.89, Cambodia 1.82, North Korea 1.69, Portugal 1.52, US 1.23, UAE 0.31. Shares only the US with Single Ladies!. (Former aged-65 headline renamed **Silver Wave**.)
+* Puerto Rico is listed separately on the Wikipedia table (`Puerto Rico (US)`). Practice datasets `cia-sex-ratio-15-64` and `cia-sex-ratio-65` (199 ISO-mapped places).
 * **Match it now takes 4 to 7 pairs** (was 6 or 7; app.js + build.py validation).
 * **Foreign Relations** (4): Stubb and Edi Rama removed; shorter clues. **Before the History Books** (5): Idi Amin and Xi removed; shorter clues.
 * **Hard Line** (5): Israel removed; compact clues (Netherlands "Up to 15 years or a fine (child under 12)", India "20+ years to death",
