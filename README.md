@@ -180,7 +180,7 @@ There are two puzzle types, mixed into one daily rotation:
     *Alcohol is Haram* (`alcohol-d`, subtitle "Muslim-majority countries by alcohol consumption" + 2 flags, sensitive):
     Bosnia 5.87 > Kazakhstan 4.52 > Nigeria 3.78 > UAE 2.08 > Turkey 1.69 > Pakistan 0.08 (Pew 2020 Muslim shares in the
     reveal); *Top Shelf* (`top5-alcohol`, Top 5): Romania, Georgia, Latvia, Lithuania, Czechia (Germany #6).
-  * *Evidence Locker*: federal child pornography offenders per million, FY2023 (USSC Quick Facts + FY2023 datafile for
+  * *Evidence Locker*: federal child cornography offenders per million, FY2023 (USSC Quick Facts + FY2023 datafile for
     Asian/PI, Census July 2023 population): White 5.55 > Hispanic 2.76 > Black 1.93 > Asian/PI 1.69. Federal cases only.
   * *Who's Not Okay?*: US age-adjusted suicide rate by race and sex, 2017 (CDC NCHS Health E-Stat): AIAN men 33.8 >
     White men 28.2 > Black men 11.4 > Asian/PI men 9.9 > White women 7.9 > Black women 2.8. Helpline link.
@@ -237,7 +237,7 @@ There are two puzzle types, mixed into one daily rotation:
   US household income by ancestry and by Asian group (ACS); US death rate by race and sex (NCHS 2022); England university
   entry, A-level AAA, graduate earnings, hourly pay, home ownership and smoking by ethnicity (GOV.UK Ethnicity facts and
   figures). Also: US sex-offence arrests per 100k by race (FBI UCR 2019 Table 43 + Census, coverage-scaled) and
-  federal child sex-abuse / child pornography offenders per million by race and ethnicity (USSC FY2024 datafile +
+  federal child sex-abuse / child cornography offenders per million by race and ethnicity (USSC FY2024 datafile +
   Census; Native Americans excluded). The England & Wales MoJ sex-offence-by-ethnicity puzzle was **not** added: MoJ
   publishes only counts and conviction ratios, not a per-1,000-population rate.
 * **No "(Group A/B/C)" labels.** When a dataset is used by 2 or more Rank it puzzles, each subtitle is the plain stat name
