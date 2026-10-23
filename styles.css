@@ -221,6 +221,10 @@ a{color:var(--link)}
 .arch .ar{font-weight:700;font-size:11px;letter-spacing:.06em;white-space:nowrap;padding:6px 11px;border-radius:999px;background:rgba(var(--ink-rgb),.06)}
 .arch .ar.done{background:var(--good-soft);color:var(--good)}.arch .ar.lost{background:var(--bad-soft);color:var(--bad)}
 .arch.today::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
+.arch.locked{opacity:.72;cursor:not-allowed}
+.arch.locked .ah,.arch.locked .asub{filter:grayscale(.15)}
+.arch .ar.lock{background:rgba(var(--brand-rgb),.12);color:var(--brand);letter-spacing:.04em}
+.prem-upsell{color:var(--brand);font-weight:700}
 
 /* ---------- overlays ---------- */
 .overlay{position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.58);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .2s}
@@ -429,6 +433,7 @@ body.has-fab{padding-bottom:96px}
 .board.vcol .value{display:none}.board.vcol .name{min-width:0;overflow-wrap:anywhere}
 /* v9: streamer mode hides every ad container */
 html.streamer .ad-slot{display:none!important}
+html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 /* v9: Guess the top 5 values box on the LEFT (one dashed box, one value per row, aligned with the #1-#5 slots) */
 .t5grid{display:grid;grid-template-columns:minmax(92px,32%) minmax(0,1fr);gap:10px;align-items:start;margin-top:6px}
 .t5vals{border:1.5px dashed var(--line);border-radius:14px;margin-top:4.5px}

@@ -4,5 +4,8 @@ Allow: /
 Disallow: /studio.html
 Disallow: /studio.js
 Disallow: /studio.css
+Disallow: /loadingzone.html
+Disallow: /loadingzone/
+Disallow: /loadingzone
 
 Sitemap: https://ranki.gg/sitemap.xml

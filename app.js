@@ -23,6 +23,9 @@ const CONFIG = {
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
   // Community compare snapshots (static JSON now; swap URL for Supabase/hourly later).
   COMMUNITY_STATS_URL: "community-stats.json",
+  // Premium (Lemon/Supabase later). enabled:false = everyone is free.
+  premium: { enabled: false },
+  freeArchiveDays: 7,   // free players: today + this many past calendar days (UTC)
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
   ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
@@ -220,8 +223,17 @@ mq.addEventListener?.("change", () => settings.theme === "system" && applyTheme(
 (function () { const q = new URLSearchParams(location.search).get("stream");
   if (q === "1" || q === "0") { settings.stream = q === "1" ? "on" : "off"; saveSettings(); } })();
 const streamerOn = () => settings.stream === "on";
-function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }   // v12.1: turning streamer mode off loads ads then
-const Ads = { allowed: () => !streamerOn(),   // ad code must check this before requesting/rendering any creative
+function isPremium() {
+  // Stub: CONFIG.premium.enabled must be true before any entitlement is honored.
+  if (!CONFIG.premium || !CONFIG.premium.enabled) return false;
+  try { return localStorage.getItem("rankd.premium.v1") === "1"; } catch (e) { return false; }
+}
+function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
+function applyPremium() {
+  document.documentElement.classList.toggle("premium", isPremium());
+  if (typeof AdSense !== "undefined") AdSense.init();
+}
+const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
   last: () => Ads.decisions[Ads.decisions.length - 1] || null,
   skipsAfterWin: tier => !!tier };            // v11: interstitials are skipped after any win tier
@@ -1288,7 +1300,7 @@ function showResult(res) {
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   $("#sourceName").textContent = p.source || "source";
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
-  $("#nextBtn").textContent = state.mode === "preview" ? "Back to Studio →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
+  $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderCommunity(p);
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
@@ -1475,6 +1487,7 @@ function goDate(key) {
   if (!validKey(key) || dayNumber(key) < 0) { toast("That puzzle doesn't exist"); return goToday(); }
   if (utc(key) > utc(today)) { toast("That puzzle isn't out yet 👀"); return goToday(); }   // never expose future dailies
   if (key === today) return goToday();
+  if (!archiveFreeUnlocked(key)) { toast("Premium unlocks the full archive"); return goArchive(); }
   state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
 }
 function goAll(idx) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
@@ -1487,26 +1500,45 @@ function goPreview(key) {   // v12 Studio preview of any scheduled day, past or 
   if (!validKey(key) || dayNumber(key) < 0) { toast("That day isn't scheduled"); return goToday(); }
   state.mode = "preview"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
 }
+
+// v12.2 Premium / free archive window (UTC day keys)
+function archiveAgeDays(key) { return Math.round((utc(todayKey()) - utc(key)) / 864e5); }   // 0 = today
+function archiveFreeUnlocked(key) {
+  if (isPremium()) return true;
+  const age = archiveAgeDays(key);
+  return age >= 0 && age < (CONFIG.freeArchiveDays || 7);   // today + 6 prior = 7 days
+}
 function goArchive() {
   state.view = "archive"; showView("archive"); setHash("#archive");
   const today = todayKey(), last = dayNumber(today), all = load(LS.results, {});
+  const prem = isPremium(), freeN = CONFIG.freeArchiveDays || 7;
+  const sub = document.querySelector("#archiveView .section-sub");
+  if (sub) sub.innerHTML = prem
+    ? "Every daily puzzle so far. Archive plays don't affect your streak."
+    : `Free archive: last <b>${freeN}</b> days. <span class="prem-upsell">Premium unlocks the full archive + no ads.</span>`;
   const rows = [];
   for (let n = last; n >= 0; n--) {          // only today and earlier; future dailies are never listed
     const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = r && r.id === p.id ? r : null;
-    let badge = `<span class="ar">Play →</span>`;
-    const mr = mine && mine.type === "rank" ? normRank(mine) : null;
-    if (mr && mr.done) badge = mr.solved ? `<span class="ar done">✓ in ${mr.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`;
-    else if (mine && mine.type === "rank") badge = `<span class="ar">In progress</span>`;
-    else if (mine && mine.type === "match") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
-    else if (mine && mine.type === "tier") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
-    else if (mine && mine.done) badge = mine.type === "rank" ? ""
-      : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
-    else if (mine) badge = `<span class="ar">In progress</span>`;
-    rows.push(`<li><button class="arch ${n === last ? "today" : ""}" data-key="${key}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
+    const locked = !archiveFreeUnlocked(key);
+    let badge = locked ? `<span class="ar lock">Premium 🔒</span>` : `<span class="ar">Play →</span>`;
+    if (!locked) {
+      const mr = mine && mine.type === "rank" ? normRank(mine) : null;
+      if (mr && mr.done) badge = mr.solved ? `<span class="ar done">✓ in ${mr.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`;
+      else if (mine && mine.type === "rank") badge = `<span class="ar">In progress</span>`;
+      else if (mine && mine.type === "match") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
+      else if (mine && mine.type === "tier") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
+      else if (mine && mine.done) badge = mine.type === "rank" ? ""
+        : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
+      else if (mine) badge = `<span class="ar">In progress</span>`;
+    }
+    rows.push(`<li><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}" ${locked ? 'aria-disabled="true"' : ""}><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Guess the top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
-  $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
+  $$(".arch").forEach(b => b.onclick = () => {
+    if (b.dataset.locked === "1") { toast("Premium unlocks the full archive"); return; }
+    goDate(b.dataset.key);
+  });
   window.scrollTo({ top: 0 });
 }
 // v8 floating "next" button (bottom-right), shown only once the puzzle is finished
@@ -1518,20 +1550,24 @@ function nextUnplayedPractice() {
 }
 function nextUnplayedDay() {   // most recent unplayed past daily (never today or the future), or null
   const all = load(LS.results, {}), last = dayNumber(todayKey());
-  for (let n = last - 1; n >= 0; n--) { const key = keyFromDay(n), r = all["d:" + key]; if (key !== state.dateKey && !(r && r.id === puzzleForDay(n).id && isDone(r))) return key; }
+  for (let n = last - 1; n >= 0; n--) {
+    const key = keyFromDay(n), r = all["d:" + key];
+    if (!archiveFreeUnlocked(key)) continue;   // free users: stay inside the week window
+    if (key !== state.dateKey && !(r && r.id === puzzleForDay(n).id && isDone(r))) return key;
+  }
   return null;
 }
 function fabGo() {
-  if (state.mode === "preview") { location.href = "studio.html"; return; }
+  if (state.mode === "preview") { location.href = "loadingzone.html"; return; }
   if (state.mode === "practice") return goPractice();
   if (state.mode === "all") return goAll(nextUnplayedPractice());
   const k = nextUnplayedDay(); k ? goDate(k) : goArchive();
 }
 function showFab(on) {
-  const f = $("#fab"); f.textContent = state.mode === "preview" ? "Back to Studio →" : state.mode === "daily" ? "Play the archive →" : state.mode === "practice" ? "🎲 New random puzzle →" : "Next puzzle →";
+  const f = $("#fab"); f.textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "daily" ? "Play the archive →" : state.mode === "practice" ? "🎲 New random puzzle →" : "Next puzzle →";
   f.classList.toggle("hidden", !on); document.body.classList.toggle("has-fab", on);
 }
-function next() { if (state.mode === "preview") { location.href = "studio.html"; return; } if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
+function next() { if (state.mode === "preview") { location.href = "loadingzone.html"; return; } if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
 
 // ================================================================ modals
 function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classList.remove("hidden", "sheet"); }
@@ -1695,7 +1731,7 @@ gi.addEventListener("blur", () => setTimeout(closeSuggest, 150));
 $("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); fillGuess(sugg[+li.dataset.i]); } });   // fill only, never submit
 $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
-applyTheme(); applyStreamer();
+applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
