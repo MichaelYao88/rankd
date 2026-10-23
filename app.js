@@ -902,6 +902,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
   "Gambling Morality": "think gambling is wrong",
   "After Dark": "feel safe at night", "Porch Light": "feel safe at night", "Walking Home": "feel safe at night",
+  "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
