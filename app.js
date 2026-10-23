@@ -453,6 +453,9 @@ function parseTables(t) {
     "wealth-gini-nordic": ["Sweden", "United States"],
     "wealth-gini-top-heavy": ["Brazil", "Singapore"],
     "wealth-gini-level-field": ["Israel", "Slovakia"],
+    "meat-lovers": ["Israel", "United States"],
+    "meat-meatiest": ["Argentina", "Japan"],
+    "meat-side-salad": ["India", "South Korea"],
   };
   // Safe-walking variants share a dataset but the headlines already tell them apart, so the question stays the plain stem (no flag pair).
   const NO_TITLE_FLAGS = new Set(["gallup-safe-night"]);
@@ -931,6 +934,7 @@ const VALUE_GLOSS_FALLBACK = {
   "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
   "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
   "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
+  "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
