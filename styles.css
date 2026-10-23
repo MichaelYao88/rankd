@@ -203,6 +203,16 @@ a{color:var(--link)}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
 .share-row .pill-btn{padding:15px 10px;font-size:11px}
+/* WhereIsShe suggestion: same surface card as the score / community blocks, pill actions, not a banner. */
+.crosspromo{margin-top:14px;padding:14px 16px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+.crosspromo-title{margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em}
+.crosspromo-body{margin:6px 0 0;font-size:13.5px;line-height:1.45;color:var(--muted)}
+.crosspromo-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin-top:12px}
+.crosspromo-cta{display:inline-flex;align-items:center;border:0;border-radius:999px;padding:10px 16px;background:var(--brand);color:var(--on-brand);font-weight:700;font-size:13px;line-height:1.2;text-decoration:none;box-shadow:0 10px 22px -14px rgba(var(--brand-rgb),.95)}
+.crosspromo-cta:hover{filter:brightness(1.06)}
+.crosspromo-dismiss{border:0;background:transparent;border-radius:999px;padding:10px 12px;font-weight:700;font-size:13px;line-height:1.2;color:var(--muted)}
+.crosspromo-dismiss:hover{color:var(--ink);background:rgba(var(--ink-rgb),.05)}
+.crosspromo-cta:focus-visible,.crosspromo-dismiss:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 .actions{display:flex;justify-content:center;margin-top:16px}
 .hero .actions{justify-content:space-between}
 
