@@ -478,18 +478,19 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 
 /* ---------- v12.2 Tier it ---------- */
 #tierGame{margin-top:22px;clear:both}
-.tier-board{display:flex;flex-direction:column;gap:8px;min-height:0}
-.tier-pool{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:6px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
+.tier-board{display:flex;flex-direction:column;gap:10px;min-height:0}
+.tier-pool{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;padding:8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
 .tier-pool:empty{display:none}
-.tier-rows{display:flex;flex-direction:column;gap:6px}
-.tier-row{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:stretch;min-height:44px;padding:6px;border-radius:12px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18)}
+.tier-rows{display:flex;flex-direction:column;gap:8px}
+.tier-row{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;min-height:48px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18)}
 .tier-row.drag-over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
 .tier-row.sel{border-color:#FFD84D;box-shadow:0 0 0 2px rgba(255,216,77,.35)}
-.tier-label{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;letter-spacing:-.02em;border-radius:9px;background:rgba(0,0,0,.22)}
-.tier-slots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:32px}
-.tier-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);cursor:grab;user-select:none;font-size:13px;font-weight:650;line-height:1.15;touch-action:none}
-.tier-chip .tc-flag{font-size:15px;line-height:1}
-.tier-chip .tc-val{opacity:.85;font-weight:700;font-size:11.5px;margin-left:2px}
+.tier-label{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;letter-spacing:-.02em;border-radius:9px;background:rgba(0,0,0,.22);min-height:36px;padding:4px 2px}
+.tier-slots{display:flex;flex-wrap:wrap;gap:6px;align-items:center;align-content:center;min-height:34px}
+.tier-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);cursor:grab;user-select:none;font-size:13.5px;font-weight:650;line-height:1.2;touch-action:none;flex:0 0 auto;max-width:100%}
+.tier-chip .tc-flag{font-size:16px;line-height:1;flex:none}
+.tier-chip .tc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tier-chip .tc-val{opacity:.85;font-weight:700;font-size:11.5px;margin-left:2px;flex:none}
 .tier-chip.sel{border-color:#FFD84D;background:rgba(255,216,77,.22)}
 .tier-chip.good{background:var(--good);border-color:rgba(255,255,255,.35);cursor:default}
 .tier-chip.bad{background:var(--bad);border-color:rgba(255,255,255,.35)}
@@ -499,18 +500,33 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 .tier-chip.shake{animation:shake .45s ease}
 #tierGame.locked .tier-chip{cursor:default}
 #tierGame.locked .tier-pool{display:none}
+
+/* Phone fit: reclaim chrome, roomy rows, compact 2-col pool — Lock stays on screen */
 @media (max-width:560px){
-  body.fit #tierGame{margin-top:8px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  body.fit #tierGame{margin-top:6px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:hidden}
   body.fit #tierGame.hidden{display:none!important}
-  body.fit .tier-board{flex:1 1 auto;min-height:0;gap:5px}
-  body.fit .tier-pool{gap:4px;padding:4px;min-height:28px}
-  body.fit .tier-rows{flex:1 1 auto;min-height:0;gap:4px;display:flex;flex-direction:column}
-  body.fit .tier-row{grid-template-columns:44px 1fr;gap:6px;min-height:0;flex:1 1 0;padding:4px 5px;border-radius:10px}
-  body.fit .tier-label{font-size:13px;border-radius:8px}
-  body.fit .tier-chip{padding:3px 7px;font-size:11.5px;gap:3px}
+  body.fit .hero.is-tier{padding:10px 12px 10px}
+  body.fit .hero.is-tier h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
+  body.fit .hero.is-tier #question{font-size:12px;line-height:1.2;margin:0 0 2px}
+  body.fit .hero.is-tier #statLabel{font-size:11px;line-height:1.25;-webkit-line-clamp:1}
+  body.fit .hero.is-tier.q-drop #question,
+  body.fit .hero.is-tier.q-drop #statLabel{display:none!important}
+  body.fit .hero.is-tier .game-bar{margin:0 0 6px}
+  body.fit .hero.is-tier .card-foot{margin-top:8px;flex:none}
+  body.fit .tier-board{flex:1 1 auto;min-height:0;gap:8px;overflow:hidden;display:flex;flex-direction:column}
+  /* Pool: 2 columns of compact chips above the tiers */
+  body.fit .tier-pool{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;min-height:0;flex:0 0 auto;max-height:28%;overflow:auto}
+  body.fit .tier-pool:empty{display:none}
+  body.fit .tier-rows{flex:1 1 auto;min-height:0;gap:8px;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden}
+  /* Rows grow with their chips (3-up wrap) but share leftover space — never clip chips */
+  body.fit .tier-row{grid-template-columns:46px 1fr;gap:7px;min-height:46px;flex:1 1 auto;padding:7px 8px;border-radius:11px;overflow:visible;align-items:center}
+  body.fit .tier-label{font-size:14px;min-height:30px;border-radius:8px}
+  body.fit .tier-slots{gap:5px;min-height:0;overflow:visible}
+  body.fit .tier-chip{padding:4px 7px;font-size:11.5px;gap:4px;max-width:100%}
   body.fit .tier-chip .tc-flag{font-size:13px}
-  body.fit .tier-chip .tc-val{font-size:10.5px}
+  body.fit .tier-chip .tc-val{font-size:10px}
   body.fit #tierHint{display:none!important}
+}
 }
 
 /* ---------- v11: phone fit while playing (body.fit = phone + a puzzle in play; see fitLayout() in app.js) ---------- */
@@ -698,6 +714,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 }
 /* v12.1: the subtitle of a 7-pair match is dropped only when it really doesn't fit (fitLayout adds .q-drop) */
 body.fit .hero.is-match7.q-drop #question{display:none}
+body.fit .hero.is-tier.q-drop #question{display:none}
 @media (max-width:420px){
   body.fit .m-target .tn{display:none}
   body.fit .m-target{font-size:16px;max-width:none}

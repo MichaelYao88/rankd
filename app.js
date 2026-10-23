@@ -450,7 +450,7 @@ function openPuzzle(p) {
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
-  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
+  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
   $("#t5board").classList.toggle("hidden", !g); $("#hints").classList.toggle("hidden", !g);
   setHash(linkHash());
   const saved = getResult();
@@ -761,6 +761,8 @@ window.RankdMatch = { state: () => state.match, order: () => state.mOrder, assig
 // Lock in: right tier = green + pinned; wrong = red. Same tries / win tiers / ads as Rank it.
 // Result: { type:"tier", attempts:[{assign:[tierIndex|null per item], marks:["good"|"bad",...]}], cur:[...], pinned:[itemIdx], done, solved, tries }
 function correctTierAssign(p) { return p.items.map(it => it.tierIndex); }
+const TIER_SHORT = {"United States":"US","United Kingdom":"UK","United Arab Emirates":"UAE","South Korea":"S. Korea","South Africa":"S. Africa","New Zealand":"NZ","Czech Republic":"Czechia"};
+const tierChipName = n => (fitMQ.matches && TIER_SHORT[n]) ? TIER_SHORT[n] : n;
 function renderTier(saved) {
   const p = state.puzzle;
   const g = state.tier = saved && saved.type === "tier" ? saved : { type: "tier", attempts: [], cur: p.items.map(() => null), pinned: [], done: false, solved: false, tries: 0 };
@@ -804,7 +806,8 @@ function tierChipEl(p, i, ti, mark, pinned) {
   const val = g.done ? `<span class="tc-val">${fmtP(p, it.value)}${p.unit && p.unit !== "%" ? "" : (p.unit === "%" ? "" : "")}</span>` : "";
   // after solve always show % on chip
   const valShow = g.done ? `<span class="tc-val">${fmtP(p, it.value)}${p.unit === "%" ? "%" : (p.unit ? " " + esc(p.unit) : "")}</span>` : "";
-  chip.innerHTML = `<span class="tc-flag">${esc(it.emoji || "•")}</span><span class="tc-name">${esc(it.name)}</span>${valShow}`;
+  const nm = tierChipName(it.name);
+  chip.innerHTML = `<span class="tc-flag">${esc(it.emoji || "•")}</span><span class="tc-name">${esc(nm)}</span>${valShow}`;
   if (!g.done && !pinned) {
     chip.addEventListener("click", e => { e.stopPropagation(); tierTapChip(i); });
     chip.addEventListener("dragstart", e => { if (chip.classList.contains("pinned")) { e.preventDefault(); return; } state.tierDrag = i; chip.classList.add("dragging"); e.dataTransfer.setData("text/plain", String(i)); e.dataTransfer.effectAllowed = "move"; });
@@ -1274,8 +1277,11 @@ function fitLayout() {
   const ab = $("#adBottom"), abH = ab && ab.offsetHeight ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner stays on screen
   const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
   // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
-  hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop"); let natural = hero.scrollHeight;
-  if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }   // 7 pairs on a short phone: drop the subtitle only if needed
+  hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop");
+  // Tier it on phone: always hide subtitle + stat (4 rows + chip pool need the room). Match-7: only if still tight.
+  if (fit && hero.classList.contains("is-tier")) hero.classList.add("q-drop");
+  let natural = hero.scrollHeight;
+  if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
   hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
   if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
 }
