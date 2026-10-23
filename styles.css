@@ -66,7 +66,7 @@ a{color:var(--link)}
 .hero-kind{font-size:10.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.8;white-space:nowrap}
 .hero h1{font-size:clamp(30px,7.6vw,44px);line-height:1.03;letter-spacing:-.04em;font-weight:700;margin:22px 0 10px;text-wrap:balance}
 .stat-label{margin:0;font-size:14px;line-height:1.4;opacity:.78;font-weight:700}
-.hero-date{margin-top:8px;font-size:10.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.6}
+.hero-date{margin-top:8px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.6;line-height:1.35;max-width:100%}
 .under-card{display:flex;justify-content:center;margin:14px 0 4px}
 .link-btn{border:0;background:none;font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:8px 10px;border-radius:999px}
 .link-btn:hover{color:var(--ink)}
@@ -461,7 +461,8 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 .fx-banner{position:relative;z-index:2;font-weight:800;letter-spacing:-.04em;color:#fff;
   /* v12.2 polish: hard black outline on every reward/penalty flash (readable on light + dark) */
   -webkit-text-stroke:2.5px #000;paint-order:stroke fill;
-  text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 -2px 0 #000,0 2px 0 #000,-2px 0 0 #000,2px 0 0 #000,0 6px 0 #000,0 14px 36px rgba(0,0,0,.55);
+  /* flat black outline only — no 3D extrusion / soft drop */
+  text-shadow:-2px -2px 0 #000,2px -2px 0 #000,-2px 2px 0 #000,2px 2px 0 #000,0 -2px 0 #000,0 2px 0 #000,-2px 0 0 #000,2px 0 0 #000;
   animation:fxBanner 1.4s cubic-bezier(.2,1.4,.4,1) both}
 .fx-explosive .fx-banner{font-size:clamp(54px,17vw,120px);animation-duration:2.4s}
 .fx-big .fx-banner{font-size:clamp(40px,12vw,84px);animation-duration:1.9s}

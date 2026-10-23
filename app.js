@@ -464,6 +464,40 @@ function renderArt(p) {
 }
 
 // ================================================================ rendering: shared header
+
+// Short brand label for the hero date line (source_name → PEW RESEARCH, etc.)
+const SOURCE_BRAND = [
+  [/pew research/i, "PEW RESEARCH"],
+  [/world bank/i, "WORLD BANK"],
+  [/our world in data|owid/i, "OUR WORLD IN DATA"],
+  [/world population review/i, "WORLD POPULATION REVIEW"],
+  [/wikipedia/i, "WIKIPEDIA"],
+  [/equaldex/i, "EQUALDEX"],
+  [/cia (world )?factbook|factbook/i, "CIA"],
+  [/\bwho\b|world health/i, "WHO"],
+  [/fao\b|food and agriculture/i, "FAO"],
+  [/unicef/i, "UNICEF"],
+  [/unodc|united nations office on drugs/i, "UNODC"],
+  [/cdc\b|centers for disease/i, "CDC"],
+  [/ipsos/i, "IPSOS"],
+  [/cnn\b/i, "CNN"],
+  [/fbi\b/i, "FBI"],
+  [/ussc|u\.?s\.? sentencing/i, "USSC"],
+  [/department for education|\bdfe\b/i, "DFE"],
+  [/ef epi|ef education/i, "EF EPI"],
+  [/iihs|highway safety/i, "IIHS"],
+  [/undp|human development/i, "UNDP"],
+];
+function sourceBrand(p) {
+  const raw = String((p && p.source) || "").replace(/\s+/g, " ").trim();
+  if (!raw) return "";
+  for (const [re, label] of SOURCE_BRAND) if (re.test(raw)) return label;
+  // strip trailing parentheticals / years / survey dates; take leading clause
+  let s = raw.replace(/\([^)]*\)/g, " ").replace(/\b(19|20)\d{2}\b/g, " ");
+  s = s.split(/[,;·|]/)[0].replace(/\s+/g, " ").trim();
+  if (s.length > 28) s = s.slice(0, 26).replace(/\s+\S*$/, "") + "…";
+  return s ? s.toUpperCase() : "";
+}
 function renderHero() {
   const p = state.puzzle, n = dayNumber(state.dateKey) + 1;
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
@@ -492,8 +526,10 @@ function renderHero() {
   if (state.mode === "all") { $("#heroDate").textContent = ""; $("#heroDate").classList.add("hidden"); }
   else {
     $("#heroDate").classList.remove("hidden");
-    $("#heroDate").textContent = state.mode === "preview" ? `Studio preview · ${longDate(state.dateKey)} · doesn't count toward stats` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count toward stats`
-      : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
+    const src = sourceBrand(p);
+    const srcBit = src ? ` · ${src}` : "";
+    $("#heroDate").textContent = state.mode === "preview" ? `Loading Zone preview · ${longDate(state.dateKey)} · doesn't count${srcBit}` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count${srcBit}`
+      : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}${srcBit}`;
   }
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
   $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
