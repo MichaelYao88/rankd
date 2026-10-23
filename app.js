@@ -21,10 +21,20 @@ const CONFIG = {
   // v12.1 GOOGLE ADSENSE. The loader is only added on the real site (https, not localhost/file://), never in studio.html,
   // Studio preview (?preview=) or streamer mode. ?ads=live forces it on (tests), ?ads=placeholder forces the placeholders.
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
-  // Community compare snapshots (static JSON now; swap URL for Supabase/hourly later).
-  COMMUNITY_STATS_URL: "community-stats.json",
+  // Community compare snapshots. Live site reads the Ranki Supabase Edge Function.
+  // community-stats.json stays in the repo and is the offline fallback (same seeded shape).
+  COMMUNITY_STATS_URL: "https://fkxbqftqxvgqrtvkpglx.supabase.co/functions/v1/community-stats",
+  // Anon key is public (RLS: insert-only on plays). Never put the service role in this file.
+  SUPABASE_URL: "https://fkxbqftqxvgqrtvkpglx.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
   // Premium (Lemon/Supabase later). enabled:false = everyone is free.
   premium: { enabled: false },
+  // Page analytics. No vendor script until enabled and a measurement id are set.
+  ANALYTICS: {
+    enabled: false,
+    provider: null, // "ga4" | "plausible"
+    measurementId: "", // GA4 G-XXXXXXXX or Plausible domain
+  },
   freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
   longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
@@ -60,27 +70,92 @@ const RankdData = {
 window.RankdData = RankdData;
 
 // ================================================================
-// COMMUNITY STATS: periodic snapshot (static JSON now; swap URL later)
+// COMMUNITY STATS: snapshot from the Ranki Supabase Edge Function.
+// Finished Daily / Archive games insert one row into public.plays.
 // ----------------------------------------------------------------
-// Shape (per puzzle id):
+// Shape (per puzzle id), served by COMMUNITY_STATS_URL:
 //   rank/tier/match: { players, pctPerfect, perItemCorrect: { [name]: pct 0–100 }, seeded? }
 //   top5:            { players, avgFound, avgRank, firstGuess: [{name, pct}], seeded? }
-// submit stays a no-op until a write backend exists (no per-play PR spam).
+// pctPerfect is "solved perfectly (first-try / full clear)".
+// Practice hides compare and is not inserted. Studio never starts the game.
+// ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
+// card already skip it) so those finishes are not inserted either. Streamer mode
+// only hides ads — a Daily or Archive finish there still counts.
+// Writes are fire-and-forget. Failures never surface in the UI.
 // ================================================================
+const COMMUNITY_STATS_FALLBACK = "community-stats.json";
+function communityPlayRow(result) {
+  if (!result || window.RANKD_STUDIO || PREVIEW) return null;
+  const mode = result.mode;
+  if (mode !== "daily" && mode !== "archive") return null;   // practice, all, preview
+  if (!result.puzzleId || !/^\d{4}-\d{2}-\d{2}$/.test(result.day || "")) return null;
+  const p = state.puzzle && state.puzzle.id === result.puzzleId ? state.puzzle : null;
+  const type = result.type || (p && p.type) || "";
+  if (type !== "rank" && type !== "top5" && type !== "tier" && type !== "match") return null;
+  const tries = result.tries ?? null;
+  let solved = false, perfect = false;
+  const payload = { tries };
+  if (type === "rank" || type === "tier" || type === "match") {
+    solved = !!result.solved;
+    perfect = solved && tries === 1;   // first-try / full clear (pctPerfect)
+    const marks = result.marks || [];
+    if (type === "match" && p && p.people) payload.items = p.people.map((person, i) => ({ name: person.name, mark: marks[i] || null }));
+    else if (type === "rank" && p && p.items && result.order) payload.items = result.order.map((idx, n) => ({ name: p.items[idx] ? p.items[idx].name : null, mark: marks[n] || null }));
+    else if (type === "tier" && p && p.items) payload.items = p.items.map((it, i) => ({ name: it.name, mark: marks[i] || null }));
+    else payload.marks = marks;
+  } else if (type === "top5") {
+    solved = !!result.won;   // found all 5
+    const misses = result.misses ?? null;
+    perfect = solved && misses === 0;   // flawless full clear (same bar as FLAWLESS)
+    const guesses = (result.guesses || []).map(k => {
+      const c = p && p.countries && p.countries.find(x => (x.iso3 && x.iso3 === k) || x.name === k);
+      return c ? { name: c.name, emoji: c.emoji || "", hit: inTop(p, c), rank: tieRank(p, c) } : { key: k };
+    });
+    payload.guesses = guesses;
+    payload.hits = result.hits ?? null;
+    payload.misses = misses;
+    payload.avgRank = result.avgRank ?? null;
+    const first = guesses[0];
+    payload.firstGuess = first && first.name ? { name: first.name, emoji: first.emoji || "" } : null;
+  } else {
+    solved = !!(result.solved || result.won);
+    perfect = solved && tries === 1;
+  }
+  return { puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload };
+}
 const CommunityStats = {
   _cache: null, _url: null,
   async load() {
-    const url = CONFIG.COMMUNITY_STATS_URL || "community-stats.json";
+    const url = CONFIG.COMMUNITY_STATS_URL || COMMUNITY_STATS_FALLBACK;
     if (this._cache && this._url === url) return this._cache;
     this._url = url;
-    try {
-      const res = await fetch(url, { cache: "no-store" });
+    const pull = async (u) => {
+      const res = await fetch(u, { cache: "no-store" });
       if (!res.ok) throw new Error("community-stats " + res.status);
-      this._cache = await res.json();
-    } catch (e) { this._cache = { puzzles: {} }; }
+      return res.json();
+    };
+    try { this._cache = await pull(url); }
+    catch (e) {
+      if (url !== COMMUNITY_STATS_FALLBACK) { try { this._cache = await pull(COMMUNITY_STATS_FALLBACK); return this._cache; } catch {} }
+      this._cache = { puzzles: {} };
+    }
     return this._cache;
   },
-  async submit(/* result */) { return false; },   // v1: snapshot-only; no live writes
+  submit(result) {
+    try {
+      const row = communityPlayRow(result);
+      const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
+      const key = CONFIG.SUPABASE_ANON_KEY;
+      if (!row || !base || !key) return false;
+      // return=minimal: anon can INSERT but not SELECT, so PostgREST must not echo the row.
+      fetch(base + "/rest/v1/plays", {
+        method: "POST", keepalive: true,
+        headers: { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key, Prefer: "return=minimal" },
+        body: JSON.stringify(row),
+      }).catch(() => {});
+      return true;
+    } catch { return false; }
+  },
   async fetch(puzzleId, /* dayKey */) {
     const doc = await this.load();
     const row = doc && doc.puzzles && doc.puzzles[puzzleId];
@@ -238,6 +313,12 @@ function applyStreamer() { document.documentElement.classList.toggle("streamer",
 function applyPremium() {
   document.documentElement.classList.toggle("premium", isPremium());
   if (typeof AdSense !== "undefined") AdSense.init();
+}
+// No-op until CONFIG.ANALYTICS.enabled and measurementId are both set. No GA4 or Plausible script is injected before that.
+function initAnalytics() {
+  const a = CONFIG.ANALYTICS;
+  if (!a || a.enabled !== true || !a.provider || !String(a.measurementId || "").trim()) return;
+  // enabled + id: the GA4 or Plausible snippet is added in a later change. Nothing loads today.
 }
 const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
@@ -1924,7 +2005,7 @@ gi.addEventListener("blur", () => setTimeout(closeSuggest, 150));
 $("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); fillGuess(sugg[+li.dataset.i]); } });   // fill only, never submit
 $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
-applyTheme(); applyStreamer(); applyPremium();
+applyTheme(); applyStreamer(); applyPremium(); initAnalytics();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
