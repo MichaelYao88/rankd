@@ -450,7 +450,7 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 .hero .t5vals{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.45)}
 .t5vals .vp-list{gap:6px}
 .t5vals .vchip{height:40px;padding:0 10px;flex-direction:row;align-items:baseline;justify-content:flex-start;gap:4px;align-self:stretch;display:flex;align-items:center}
-.t5vals .vchip b{font-size:15px}.t5vals .vchip small{font-size:10px;font-weight:700;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t5vals .vchip b{font-size:15px;flex:none}.t5vals .vchip small{font-size:10px;font-weight:700;opacity:.8;white-space:normal;line-height:1.1;min-width:0;flex:1 1 auto}
 .t5vals .vchip+.vchip::before{top:-3.5px}
 .t5vals .vchip.hit b{color:inherit}
 .t5slots .t5{height:40px;min-height:0;box-sizing:border-box;padding:0 10px}
@@ -458,6 +458,9 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 .hero .t5slots .t5{grid-template-columns:28px 26px minmax(0,1fr)}
 .t5slots .t5n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 @media (max-width:560px){.t5grid{grid-template-columns:minmax(86px,34%) minmax(0,1fr);gap:8px}.t5vals .vchip{padding:0 7px}.t5vals .vchip b{font-size:14px}.t5vals .vchip small{font-size:9px}}
+/* Long units ("cm taller since 1985") need the values column wide enough to read on one or two lines. */
+#t5board.long-unit .t5grid{grid-template-columns:minmax(168px,48%) minmax(0,1fr)}
+@media (max-width:560px){#t5board.long-unit .t5grid{grid-template-columns:minmax(148px,52%) minmax(0,1fr)}}
 .tienote{display:block;font-size:11px;opacity:.75;font-weight:600}.t5.tied .t5n{font-size:13px}
 /* v10: 6-item rankers: compact rows so all 6 cards (and the values column) fit on a phone */
 .board.n6 .card{min-height:54px;padding-top:6px;padding-bottom:6px}

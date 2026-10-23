@@ -179,3 +179,28 @@ top5-alcohol,5,Czechia,CZE,2,It has 10–50 million people (2024).,,World Bank S
 top5-alcohol,5,Czechia,CZE,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
 top5-alcohol,5,Czechia,CZE,4,Its capital city starts with “P”.,,World Bank country metadata (capitalCity)
 top5-alcohol,5,Czechia,CZE,5,Its name starts with “C”.,,the name
+top5-height-gain-women,1,Saudi Arabia,SAU,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain-women,1,Saudi Arabia,SAU,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain-women,1,Saudi Arabia,SAU,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain-women,1,Saudi Arabia,SAU,4,Its capital city starts with “R”.,,World Bank country metadata (capitalCity)
+top5-height-gain-women,1,Saudi Arabia,SAU,5,Its name starts with “S”.,,the name
+top5-height-gain-women,2,South Korea,KOR,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain-women,2,South Korea,KOR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain-women,2,South Korea,KOR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain-women,2,South Korea,KOR,4,It has a coastline.,,standard list of landlocked countries
+top5-height-gain-women,2,South Korea,KOR,5,Its name starts with “S”.,,the name
+top5-height-gain-women,3,China,CHN,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain-women,3,China,CHN,2,It has more than 150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain-women,3,China,CHN,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain-women,3,China,CHN,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
+top5-height-gain-women,3,China,CHN,5,Its name starts with “C”.,,the name
+top5-height-gain-women,4,Turkey,TUR,1,It spans Europe and Asia.,,continent (6-continent model)
+top5-height-gain-women,4,Turkey,TUR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain-women,4,Turkey,TUR,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain-women,4,Turkey,TUR,4,Its capital city starts with “A”.,,World Bank country metadata (capitalCity)
+top5-height-gain-women,4,Turkey,TUR,5,Its name starts with “T”.,,the name
+top5-height-gain-women,5,Vietnam,VNM,1,It's in Asia.,,continent (6-continent model)
+top5-height-gain-women,5,Vietnam,VNM,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-height-gain-women,5,Vietnam,VNM,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-height-gain-women,5,Vietnam,VNM,4,Its capital city starts with “H”.,,World Bank country metadata (capitalCity)
+top5-height-gain-women,5,Vietnam,VNM,5,Its name starts with “V”.,,the name

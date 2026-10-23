@@ -723,7 +723,7 @@ const unitAside = p => {   // small label after fmtVal on reveal cards — skip 
   if (!p.unit) return "";
   if (p.unit === "%" || p.valueFormat === "percent") return "";
   if (p.unit.startsWith("%")) { const rest = p.unit.slice(1).trim(); return rest ? `<small> ${esc(rest)}</small>` : ""; }
-  return `<small>${esc(p.unit)}</small>`;
+  return `<small> ${esc(p.unit)}</small>`;
 };
 // v12.2: muted gloss under each values-column number (fills short 5-item boards). Prefer puzzle.valueGloss;
 // else non-% unit; else a short phrase derived from headline/stat/question for bare-% puzzles.
@@ -1257,7 +1257,8 @@ function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 
   // #1-#5 slots on the right; country names fill in as they're found (all of them at the end).
   const sl = slotsOf(p);
   const t5v = v => isPercent(p) ? `${fmt1(v)}%` : fmt1(v);
-  const t5u = (!isPercent(p) && p.unit) ? ` <small>${esc(p.unit)}</small>` : (isPercent(p) && p.unit && p.unit !== "%" && p.unit.startsWith("%") ? ` <small>${esc(p.unit.slice(1).trim())}</small>` : "");
+  const t5u = unitAside(p);   // same player-facing unit as rank reveals ("8.0 cm taller since 1985")
+  $("#t5board").classList.toggle("long-unit", (p.unit || "").length > 12);
   $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found${g.guesses.length && !g.done ? `<button type="button" class="t5more" id="extraBtn" aria-label="Hints and guesses so far">💡 Hints</button>` : ""}<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
     + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${t5v(s.value)}</b>${t5u}</li>`).join("")}</ol></div>`
     + `<div class="t5slots">` + sl.map((s, i) => {
@@ -1482,7 +1483,7 @@ function showResult(res) {
     $("#answerBox").innerHTML = `<p class="avgrank" id="avgRank">Closeness: your ${plural(res.guesses.length, "guess")} averaged world rank <b>#${avg}</b> of ${p.countries.length} (lower = closer)</p>` +
       `<h3>The top 5 of ${p.countries.length} countries · ${esc(p.unit)}</h3>` + slotsOf(p).map((s, i) => { const f = slotFound(p, s, guessed);
       return `<div class="top-row ${f ? "ans" : ""}${s.tied ? " tied" : ""}"><span class="tr">#${i + 1}</span><span>${s.group.map(c => esc(c.emoji)).join("")}</span>
-      <span>${s.group.map(c => esc(c.name) + (guessed.has(cKey(c)) ? " ✓" : "")).join(" = ")}${s.tied ? `<small class="tienote"> tied at ${fmt1(s.value)}: either one counted</small>` : ""}</span><span class="tv">${fmt1(s.value)}</span></div>`; }).join("");
+      <span>${s.group.map(c => esc(c.name) + (guessed.has(cKey(c)) ? " ✓" : "")).join(" = ")}${s.tied ? `<small class="tienote"> tied at ${fmt1(s.value)}: either one counted</small>` : ""}</span><span class="tv">${fmt1(s.value)}${unitAside(p)}</span></div>`; }).join("");
     $("#answerBox").classList.remove("hidden");
   }
   $("#emojiRow").textContent = res.type === "rank" || res.type === "match" || res.type === "tier" ? rankGrid(res) : (res.marks || []).map(m => EMO[m]).join("");
