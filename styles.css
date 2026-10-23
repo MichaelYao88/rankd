@@ -801,3 +801,19 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 @media (min-width:720px){
   .howto-overlay{align-items:center}
 }
+
+/* ---------- v12.2 long-ad unlock overlay ---------- */
+#longAd{z-index:80}
+.long-ad-box{width:min(420px,92vw);background:var(--surface2);color:var(--ink);border-radius:22px;padding:22px 20px 18px;box-shadow:var(--shadow-card);text-align:center}
+.long-ad-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.long-ad-note{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.long-ad-box h2{margin:4px 0 8px;font-size:22px;letter-spacing:-.03em}
+.long-ad-copy{margin:0 0 14px;font-size:14px;color:var(--muted);line-height:1.4}
+.long-ad-timer{font-size:48px;font-weight:800;letter-spacing:-.04em;line-height:1;margin:8px 0 14px;color:var(--brand);font-variant-numeric:tabular-nums}
+.long-ad-fill{min-height:120px;border-radius:16px;background:rgba(var(--ink-rgb),.04);display:grid;place-items:center;margin-bottom:14px}
+.long-ad-ph{font-size:13px;font-weight:700;color:var(--muted);line-height:1.35}
+.long-ad-box .pill-btn{width:100%;max-width:none}
+.long-ad-box .pill-btn.outline{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}
+.long-ad-box .pill-btn:disabled{opacity:.55}
+.long-ad-prem{margin:12px 0 0;font-size:12px;color:var(--muted)}
+.arch .ar.unlock{background:rgba(var(--brand-rgb),.12);color:var(--brand)}

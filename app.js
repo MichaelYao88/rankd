@@ -25,19 +25,23 @@ const CONFIG = {
   COMMUNITY_STATS_URL: "community-stats.json",
   // Premium (Lemon/Supabase later). enabled:false = everyone is free.
   premium: { enabled: false },
-  freeArchiveDays: 7,   // free players: today + this many past calendar days (UTC)
+  freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
+  longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
   ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
 };
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
-const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2" };
+const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
+  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
 //   rankd.settings.v1 : theme and streamer mode (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
+//   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays)
+//   rankd.practiceAds.v1   : practice games since last long-ad gate
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The clear removes the keys above plus any
 // "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
 // michaelyao88.github.io is shared with other projects (e.g. whereisshe), so localStorage.clear() is never called.
@@ -388,8 +392,16 @@ if (window.RANKD_STUDIO) {
 function goPractice(seed) {
   if (!Practice.ok()) return goToday();
   if (seed == null) seed = 1 + Math.floor(Math.random() * 2e9);
-  const p = Practice.generate(seed); if (!p) return goToday();
-  state.mode = "practice"; openPuzzle(p);
+  const start = () => {
+    const p = Practice.generate(seed); if (!p) return goToday();
+    state.mode = "practice"; openPuzzle(p);
+  };
+  // Free: long ad every 5th Practice game (Premium / streamer skip)
+  if (!isPremium() && Ads.allowed()) {
+    const n = bumpPracticeGame();
+    if (n > 0 && n % 5 === 0) return showLongAd({ reason: "practice", onDone: start });
+  }
+  start();
 }
 
 // ================================================================ state
@@ -1523,8 +1535,13 @@ function goDate(key) {
   if (!validKey(key) || dayNumber(key) < 0) { toast("That puzzle doesn't exist"); return goToday(); }
   if (utc(key) > utc(today)) { toast("That puzzle isn't out yet 👀"); return goToday(); }   // never expose future dailies
   if (key === today) return goToday();
-  if (!archiveFreeUnlocked(key)) { toast("Premium unlocks the full archive"); return goArchive(); }
-  state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
+  if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); return; }
+  // Free: watch a long ad to unlock the next 7-day chunk, then retry
+  unlockNextArchiveWeek(() => {
+    goArchive();
+    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); }
+    else toast("Unlocked 7 more days — tap again for older puzzles");
+  });
 }
 function goAll(idx) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
   if (!CONFIG.SHOW_ALL_PUZZLES) return goToday();
@@ -1537,26 +1554,80 @@ function goPreview(key) {   // v12 Studio preview of any scheduled day, past or 
   state.mode = "preview"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
 }
 
-// v12.2 Premium / free archive window (UTC day keys)
+// v12.2 Premium / free archive rolling unlock (UTC day keys)
 function archiveAgeDays(key) { return Math.round((utc(todayKey()) - utc(key)) / 864e5); }   // 0 = today
+function archiveChunk() { return CONFIG.freeArchiveDays || 7; }
+function getArchiveUnlockedDays() {
+  if (isPremium()) return 1e9;
+  const base = archiveChunk();
+  const st = load(LS.archiveUnlock, { unlockedDays: base });
+  return Math.max(base, Number(st.unlockedDays) || base);
+}
+function setArchiveUnlockedDays(n) { save(LS.archiveUnlock, { unlockedDays: n, at: Date.now() }); }
 function archiveFreeUnlocked(key) {
   if (isPremium()) return true;
   const age = archiveAgeDays(key);
-  return age >= 0 && age < (CONFIG.freeArchiveDays || 7);   // today + 6 prior = 7 days
+  return age >= 0 && age < getArchiveUnlockedDays();
 }
+function longAdSeconds() {
+  const q = new URLSearchParams(location.search).get("longad");
+  if (q && /^\d+$/.test(q)) return Math.max(1, Math.min(60, +q));
+  return CONFIG.longAdSeconds || 20;
+}
+/** Placeholder long-ad / rewarded unlock. Swap #longAdFill for a real unit later. */
+function showLongAd({ reason, onDone, onCancel } = {}) {
+  if (isPremium() || !Ads.allowed()) { onDone && onDone({ skipped: true, reason: "premium-or-streamer" }); return; }
+  const ov = $("#longAd"), btn = $("#longAdContinue"), timer = $("#longAdTimer"), note = $("#longAdNote"), copy = $("#longAdCopy");
+  if (!ov || !btn) { onDone && onDone({ skipped: true, reason: "no-ui" }); return; }
+  let s = longAdSeconds(); state.busy = true;
+  note.textContent = reason === "practice" ? "Practice" : "Archive unlock";
+  copy.textContent = reason === "practice"
+    ? "Free Practice shows a longer ad every 5 games (plus normal interstitials). Premium is ad-free."
+    : "Watch to unlock the next 7 days of the archive. Premium unlocks everything with no ads.";
+  timer.textContent = String(s);
+  btn.disabled = true; btn.textContent = `Continue in ${s}`;
+  ov.classList.remove("hidden");
+  const tick = setInterval(() => {
+    s--;
+    if (s <= 0) { clearInterval(tick); btn.disabled = false; btn.textContent = "Continue"; timer.textContent = "0"; }
+    else { timer.textContent = String(s); btn.textContent = `Continue in ${s}`; }
+  }, 1000);
+  let closed = false;
+  const finish = (ok) => {
+    if (closed) return; closed = true; clearInterval(tick); ov.classList.add("hidden"); state.busy = false;
+    if (ok) onDone && onDone({ ok: true, reason }); else onCancel && onCancel();
+  };
+  btn.onclick = () => { if (!btn.disabled) finish(true); };
+  // Hook for a real rewarded unit: window.RankdLongAd.onCreative?.(fill, { done: () => finish(true) })
+  try { window.RankdLongAd && window.RankdLongAd.onCreative && window.RankdLongAd.onCreative($("#longAdFill"), { done: () => finish(true) }); } catch (e) {}
+}
+window.RankdLongAd = window.RankdLongAd || { show: (opts) => showLongAd(opts) };
+
+function unlockNextArchiveWeek(then) {
+  showLongAd({ reason: "archive", onDone: () => {
+    setArchiveUnlockedDays(getArchiveUnlockedDays() + archiveChunk());
+    then && then();
+  }});
+}
+function practiceGamesPlayed() { return Number(load(LS.practiceAds, { games: 0 }).games) || 0; }
+function bumpPracticeGame() {
+  const st = load(LS.practiceAds, { games: 0 });
+  st.games = (Number(st.games) || 0) + 1; st.at = Date.now(); save(LS.practiceAds, st); return st.games;
+}
+
 function goArchive() {
   state.view = "archive"; showView("archive"); setHash("#archive");
   const today = todayKey(), last = dayNumber(today), all = load(LS.results, {});
-  const prem = isPremium(), freeN = CONFIG.freeArchiveDays || 7;
+  const prem = isPremium(), freeN = archiveChunk(), unlocked = getArchiveUnlockedDays();
   const sub = document.querySelector("#archiveView .section-sub");
   if (sub) sub.innerHTML = prem
     ? "Every daily puzzle so far. Archive plays don't affect your streak."
-    : `Free archive: last <b>${freeN}</b> days. <span class="prem-upsell">Premium unlocks the full archive + no ads.</span>`;
+    : `Free: <b>${Math.min(unlocked, last + 1)}</b> days unlocked (base ${freeN}). Watch an ad for the next week. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
   const rows = [];
-  for (let n = last; n >= 0; n--) {          // only today and earlier; future dailies are never listed
+  for (let n = last; n >= 0; n--) {
     const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = r && r.id === p.id ? r : null;
     const locked = !archiveFreeUnlocked(key);
-    let badge = locked ? `<span class="ar lock">Premium 🔒</span>` : `<span class="ar">Play →</span>`;
+    let badge = locked ? `<span class="ar unlock">Watch ad ▶</span>` : `<span class="ar">Play →</span>`;
     if (!locked) {
       const mr = mine && mine.type === "rank" ? normRank(mine) : null;
       if (mr && mr.done) badge = mr.solved ? `<span class="ar done">✓ in ${mr.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`;
@@ -1567,14 +1638,11 @@ function goArchive() {
         : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
       else if (mine) badge = `<span class="ar">In progress</span>`;
     }
-    rows.push(`<li><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}" ${locked ? 'aria-disabled="true"' : ""}><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
+    rows.push(`<li><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Guess the top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
-  $$(".arch").forEach(b => b.onclick = () => {
-    if (b.dataset.locked === "1") { toast("Premium unlocks the full archive"); return; }
-    goDate(b.dataset.key);
-  });
+  $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
   window.scrollTo({ top: 0 });
 }
 // v8 floating "next" button (bottom-right), shown only once the puzzle is finished

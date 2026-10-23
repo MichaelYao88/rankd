@@ -175,7 +175,7 @@
   <!-- ======== ARCHIVE VIEW ======== -->
   <section id="archiveView" class="hidden">
     <h2 class="section-title"><span class="hl">Archive</span></h2>
-    <p class="section-sub">Free archive: last <b>7</b> days. <span class="prem-upsell">Premium unlocks the full archive + no ads.</span></p>
+    <p class="section-sub">Free archive: last <b>7</b> days free — watch an ad to unlock the next week. <span class="prem-upsell">Premium = full archive, no ads.</span></p>
     <ol class="archive-list" id="archiveList"></ol>
   </section>
 </main>
@@ -198,6 +198,21 @@
       <!-- ADSENSE: interstitial / large rectangle unit goes here -->
       <div class="inter-ph"><span>Interstitial ad placeholder<br><small>336×280 · full-screen on mobile</small></span></div>
     </div>
+  </div>
+</div>
+
+
+<!-- v12.2 LONG AD (placeholder rewarded / unlock). Archive week unlock + every 5th Practice game.
+     Replace .long-ad-fill with a real rewarded/interstitial unit later; showLongAd() is the hook. -->
+<div class="overlay hidden" id="longAd" aria-modal="true" role="dialog" aria-labelledby="longAdTitle">
+  <div class="long-ad-box">
+    <div class="long-ad-top"><span class="ad-tag">Ad</span><span class="long-ad-note" id="longAdNote">Unlock</span></div>
+    <h2 id="longAdTitle">Watching ad…</h2>
+    <p class="long-ad-copy" id="longAdCopy">This unlocks more archive days. Premium skips ads entirely.</p>
+    <div class="long-ad-timer" id="longAdTimer" aria-live="polite">20</div>
+    <div class="long-ad-fill" id="longAdFill"><div class="long-ad-ph">Long ad placeholder<br><small>Rewarded / 15–30s · wired for a real unit later</small></div></div>
+    <button type="button" class="pill-btn outline" id="longAdContinue" disabled>Continue in 20</button>
+    <p class="long-ad-prem">Want no ads? <span class="prem-upsell">Premium</span> unlocks the full archive + ad-free Practice.</p>
   </div>
 </div>
 
