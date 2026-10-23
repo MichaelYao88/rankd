@@ -818,7 +818,9 @@ function renderHero() {
   const showSub = !!(p.question && p.question !== p.headline);
   $("#question").textContent = p.question || "";
   $("#question").classList.toggle("hidden", !showSub);
-  const statLine = p.stat ? (p.stat + (p.unit ? ` (${p.unit})` : "")) : "";
+  // A stat that already starts with "%" (and whose unit is "%") would otherwise read "… (%)".
+  const unitBit = p.unit && !(p.unit === "%" && String(p.stat).trim().startsWith("%")) ? ` (${p.unit})` : "";
+  const statLine = p.stat ? p.stat + unitBit : "";
   // Near-duplicate: same story told twice (Share the Tape / Swings Both Ways). Keep series+flags
   // Q with a distinct measurement S (Single Ladies, Devil's Dice, EF EPI).
   const tokens = s => new Set(String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(w => w.length > 2 && !/^(the|and|who|say|says|that|this|with|from|for|are|was|were|very|somewhat|share|adults|identify|as)$/.test(w)));
