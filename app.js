@@ -488,6 +488,16 @@ const gTag = it => it.gRank && it.gTotal ? `<span class="grank" title="Rank amon
 const decOf = p => Math.min(2, Math.max(0, ...p.items.map(it => ((String(it.value).split(".")[1]) || "").length)));
 const isYearPuzzle = p => !p.unit && p.items.every(it => Number.isInteger(it.value) && it.value >= 1000 && it.value <= 2100);   // e.g. space-first
 const fmtP = (p, v) => v.toLocaleString("en-US", { minimumFractionDigits: decOf(p), maximumFractionDigits: decOf(p), useGrouping: !isYearPuzzle(p) });
+// Percent display: unit '%' / units starting with '%' (% of GDP, % Trump, …) / valueFormat:'percent'.
+// Number gets a '%' suffix (83%); rates per 100k, EF scores, women-per-100-men, kg, etc. stay bare.
+const isPercent = p => p.valueFormat === "percent" || p.unit === "%" || (typeof p.unit === "string" && p.unit.startsWith("%"));
+const fmtVal = (p, v) => fmtP(p, v) + (isPercent(p) ? "%" : "");
+const unitAside = p => {   // small label after fmtVal — skip bare '%'; for '% of GDP' show ' of GDP'
+  if (!p.unit) return "";
+  if (p.unit === "%" || p.valueFormat === "percent") return "";
+  if (p.unit.startsWith("%")) { const rest = p.unit.slice(1).trim(); return rest ? `<small> ${esc(rest)}</small>` : ""; }
+  return `<small>${esc(p.unit)}</small>`;
+};
 function normRank(saved) {            // upgrade v3 single-shot results (points/max) to the retry format
   if (!saved || saved.type !== "rank") return null;
   if (saved.attempts) return saved;
@@ -521,7 +531,7 @@ function renderRank(saved, keepOrder) {
   const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = !locked;
   vp.classList.toggle("hidden", !showVals); cap.classList.toggle("hidden", !showVals); board.classList.toggle("vcol", showVals);
   cap.innerHTML = `<b>The values</b>${p.unit ? ` (${esc(p.unit)})` : ""}, ${p.higherIs === "bottom" ? "lowest" : "highest"} first. Which card has which?`;
-  vp.innerHTML = `<ol class="vp-list" aria-label="The values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtP(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
+  vp.innerHTML = `<ol class="vp-list" aria-label="The values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
   const ol = $("#cards"); ol.innerHTML = "";
   state.order.forEach(i => ol.appendChild(cardEl(p, i)));
   if (!g.done) markPinned();
@@ -630,7 +640,11 @@ function revealRank(res, animate) {
   const doMove = () => { snapshot(ol); right.forEach(i => ol.appendChild(els[i])); flip(ol, 650); renumber(); };
   const fill = () => right.forEach((i, n) => setTimeout(() => {
     const li = els[i], it = p.items[i];
-    li.querySelector(".value").innerHTML = `${fmtP(p, it.value)}<small>${esc(p.unit)}${it.year ? " · " + esc(it.year) : ""}</small>`;
+    {
+      const u = unitAside(p);
+      const y = it.year ? `<small> · ${esc(it.year)}</small>` : "";
+      li.querySelector(".value").innerHTML = `${fmtVal(p, it.value)}${u}${y}`;
+    }
     const gw = li.querySelector(".gwrap"); if (gw) gw.innerHTML = gTag(it);
     li.querySelector(".yourpick").textContent = res.solved ? (res.tries === 1 ? "✓ first try" : "✓ solved") : markOf[i] === "good" ? "✓ you had it right" : `you put it #${userPos[i] + 1}`;
     li.classList.add("revealed"); if (animate) li.classList.add("pop");
@@ -817,9 +831,7 @@ function tierChipEl(p, i, ti, mark, pinned) {
   const chip = document.createElement("span");
   chip.className = "tier-chip" + (pinned || (mark === "good" && g.done) ? " good pinned" : "") + (mark === "bad" ? " bad" : "");
   chip.dataset.i = i; chip.setAttribute("role", "listitem"); chip.draggable = !(g.done || pinned);
-  const val = g.done ? `<span class="tc-val">${fmtP(p, it.value)}${p.unit && p.unit !== "%" ? "" : (p.unit === "%" ? "" : "")}</span>` : "";
-  // after solve always show % on chip
-  const valShow = g.done ? `<span class="tc-val">${fmtP(p, it.value)}${p.unit === "%" ? "%" : (p.unit ? " " + esc(p.unit) : "")}</span>` : "";
+  const valShow = g.done ? `<span class="tc-val">${fmtVal(p, it.value)}${(!isPercent(p) && p.unit) ? " " + esc(p.unit) : ""}</span>` : "";
   const nm = tierChipName(it.name);
   chip.innerHTML = `<span class="tc-flag">${esc(it.emoji || "•")}</span><span class="tc-name">${esc(nm)}</span>${valShow}`;
   if (!g.done && !pinned) {
@@ -980,9 +992,11 @@ function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 
   const found = new Set(g.guesses), show = g.done;
   // v9: ONE dashed values box on the LEFT (all top-5 values, sorted high to low, with units, one per row) and the
   // #1-#5 slots on the right; country names fill in as they're found (all of them at the end).
-  const sl = slotsOf(p), u = p.unit ? ` <small>${esc(p.unit)}</small>` : "";
+  const sl = slotsOf(p);
+  const t5v = v => isPercent(p) ? `${fmt1(v)}%` : fmt1(v);
+  const t5u = (!isPercent(p) && p.unit) ? ` <small>${esc(p.unit)}</small>` : (isPercent(p) && p.unit && p.unit !== "%" && p.unit.startsWith("%") ? ` <small>${esc(p.unit.slice(1).trim())}</small>` : "");
   $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found${g.guesses.length && !g.done ? `<button type="button" class="t5more" id="extraBtn" aria-label="Hints and guesses so far">💡 Hints</button>` : ""}<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
-    + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${fmt1(s.value)}</b>${u}</li>`).join("")}</ol></div>`
+    + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${t5v(s.value)}</b>${t5u}</li>`).join("")}</ol></div>`
     + `<div class="t5slots">` + sl.map((s, i) => {
     const f = slotFound(p, s, found), c = f || s.group[0], open = !!f || show;
     const name = f ? esc(f.name) : s.tied ? s.group.map(x => esc(x.name)).join(" = ") : esc(c.name);
@@ -992,7 +1006,7 @@ function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 
   const c = lastKey && findCountry(p, lastKey);
   lm.classList.toggle("hidden", !c);
   requestAnimationFrame(fitLayout);
-  lm.innerHTML = c ? `<span class="lm-k">Last miss</span><span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="lm-n">${esc(c.name)}</span><span class="lm-v">${fmt1(c.value)} ${esc(p.unit)}</span><span class="lm-r">#${tieRank(p, c)} of ${p.countries.length}</span>` : "";
+  lm.innerHTML = c ? `<span class="lm-k">Last miss</span><span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="lm-n">${esc(c.name)}</span><span class="lm-v">${isPercent(p) ? fmt1(c.value) + "%" : fmt1(c.value) + (p.unit ? " " + esc(p.unit) : "")}</span><span class="lm-r">#${tieRank(p, c)} of ${p.countries.length}</span>` : "";
 }
 function renderTries() {
   const p = state.puzzle, g = state.guess, h = hitsOf(p, g), m = missesOf(p, g), a = avgRank(p, g);
@@ -1002,7 +1016,7 @@ function renderTries() {
 function addGuessRow(c, animate = true) {
   const p = state.puzzle, li = document.createElement("li"), hit = inTop(p, c);
   li.className = "g-row t5row " + (hit ? "win" : ""); if (!animate) li.style.animation = "none";
-  li.innerHTML = `<span class="emoji">${esc(c.emoji || "🏳️")}</span><div><div class="gn">${esc(c.name)}</div><div class="gv">${fmt1(c.value)} ${esc(p.unit)}${c.year && c.year !== p.year ? ` (${esc(c.year)})` : ""}</div></div>
+  li.innerHTML = `<span class="emoji">${esc(c.emoji || "🏳️")}</span><div><div class="gn">${esc(c.name)}</div><div class="gv">${isPercent(p) ? fmt1(c.value) + "%" : fmt1(c.value) + (p.unit ? " " + esc(p.unit) : "")}${c.year && c.year !== p.year ? ` (${esc(c.year)})` : ""}</div></div>
     <div class="gr">${hit ? `#${slotOf(p, c).i + 1}<span class="of"> of 5</span><small>✅ In the top 5!${slotOf(p, c).tied ? " (tied #5)" : ""}</small>` : `#${tieRank(p, c)}<span class="of"> of ${p.countries.length}</span><small>⬜ Miss</small>`}</div>`;
   $("#guesses").prepend(li);
 }
