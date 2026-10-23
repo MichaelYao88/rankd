@@ -29,6 +29,12 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
   // Premium (Lemon/Supabase later). enabled:false = everyone is free.
   premium: { enabled: false },
+  // Page analytics. No vendor script until enabled and a measurement id are set.
+  ANALYTICS: {
+    enabled: false,
+    provider: null, // "ga4" | "plausible"
+    measurementId: "", // GA4 G-XXXXXXXX or Plausible domain
+  },
   freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
   longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
@@ -307,6 +313,12 @@ function applyStreamer() { document.documentElement.classList.toggle("streamer",
 function applyPremium() {
   document.documentElement.classList.toggle("premium", isPremium());
   if (typeof AdSense !== "undefined") AdSense.init();
+}
+// No-op until CONFIG.ANALYTICS.enabled and measurementId are both set. No GA4 or Plausible script is injected before that.
+function initAnalytics() {
+  const a = CONFIG.ANALYTICS;
+  if (!a || a.enabled !== true || !a.provider || !String(a.measurementId || "").trim()) return;
+  // enabled + id: the GA4 or Plausible snippet is added in a later change. Nothing loads today.
 }
 const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
@@ -1993,7 +2005,7 @@ gi.addEventListener("blur", () => setTimeout(closeSuggest, 150));
 $("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); fillGuess(sugg[+li.dataset.i]); } });   // fill only, never submit
 $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
-applyTheme(); applyStreamer(); applyPremium();
+applyTheme(); applyStreamer(); applyPremium(); initAnalytics();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
