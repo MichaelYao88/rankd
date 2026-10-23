@@ -729,10 +729,10 @@ const unitAside = p => {   // small label after fmtVal on reveal cards — skip 
 const VALUE_GLOSS_FALLBACK = {
   "Keep the Peace": "harmony first", "Open to Change": "open to change",
   "Dragon Friends": "favor China", "Friends of Beijing": "favor China",
-  "Hardest Hit": "per 100k", "Replacement Theory": "good for the USA", "Protect the Gays": "best legal protections for gays", "On the Books": "best legal protections for gays",
-  "Stars and Stripes": "favor U.S.", "Doesn't Like Israel": "unfavorable",
-  "Doesn't Like India": "unfavorable", "Black Lives Matter": "more good than bad",
-  "Israel's Image Problem": "unfavorable", "Devil's Dice": "morally wrong", "Snake Eyes": "morally wrong",
+  "Overdose Rates": "per 100k", "Declining White Share": "good for the USA", "Legal Protections": "best legal protections for gays", "On the Books": "best legal protections for gays",
+  "Stars and Stripes": "favor U.S.",
+  "Views of India": "unfavorable", "Police Videos": "say it's good",
+  "Views of Israel": "unfavorable", "Moral Views": "morally wrong", "Snake Eyes": "morally wrong",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
