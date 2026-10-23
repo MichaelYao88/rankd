@@ -228,6 +228,10 @@ const AdSense = {
     if (!Ads.allowed()) { if (this.mode === "placeholder") this.mode = "waiting"; return; }   // streamer: don't even load the script
     if (this.mode !== "placeholder" && this.mode !== "waiting") return;
     this.mode = "loading"; document.documentElement.classList.add("ads-live");
+    // Skip inject if a static <script> or prior loader already put adsbygoogle.js in the page.
+    if (document.getElementById("adsbygoogleJs") || document.querySelector('script[src*="adsbygoogle.js"]')) {
+      this.mode = "live"; this.banner(); this.bottom(); return;
+    }
     const s = document.createElement("script"); s.async = true; s.crossOrigin = "anonymous"; s.id = "adsbygoogleJs";
     s.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=" + encodeURIComponent(CONFIG.ADSENSE_CLIENT);
     s.onload = () => { if (this.mode === "loading") this.mode = "live"; };
