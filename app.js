@@ -358,6 +358,7 @@ const SHEET_COLS = {
   hint_bank: ["puzzle_id","rank","country","iso3","hint_no","auto_hint","override_hint","source"],
   top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url","headline"],
   match_puzzles: ["puzzle_id","daily_order","puzzle_emoji","headline","subtitle","item_name","country_iso","item_emoji","country_name","clue","fact","source_name","source_url","art","original_clue","flag_img"],
+  tier_puzzles: ["puzzle_id","daily_order","puzzle_emoji","headline","subtitle","stat_label","unit","source_name","source_url","fun_fact","art","tier_value","tier_label","item_name","item_emoji","country_iso","item_value","data_year","dataset","support_url","note"],
 };
 const str = v => { v = String(v ?? "").trim(); return v.endsWith(".0") ? v.slice(0, -2) : v; };
 const num = v => { const n = parseFloat(String(v ?? "").replace(/,/g, "")); return isFinite(n) ? n : null; };
@@ -366,6 +367,7 @@ const lowerKeys = r => { const o = {}; for (const k in r) o[String(k).trim().toL
 /** Guess which sheet a table is from by its headers (used for CSV uploads). */
 function sheetTypeOf(headers) {
   const h = new Set(headers.map(x => String(x).trim().toLowerCase()));
+  if (h.has("tier_value") || h.has("tier_label")) return "tier_puzzles";   // before item_name: tier rows also carry item_name
   if (h.has("clue")) return "match_puzzles";
   if (h.has("item_name")) return "puzzles";
   if (h.has("data_from") || h.has("max_misses")) return "top5_puzzles";
@@ -426,6 +428,22 @@ function parseTables(t) {
     if (str(r.item_name) && str(r.clue)) m.people.push({ name: str(r.item_name), iso3: str(r.country_iso).toUpperCase(), emoji: str(r.item_emoji), country: str(r.country_name) || str(r.country_iso), clue: str(r.clue), fact: str(r.fact), sourceName: str(r.source_name), sourceUrl: str(r.source_url), ...(str(r.flag_img) ? { flagImg: str(r.flag_img) } : {}) }); }
   Object.values(mby).forEach(m => { if (m.people.length < 4 || m.people.length > 7 || new Set(m.people.map(x => x.clue)).size !== m.people.length) return;
     m.emoji ||= "🔗"; m.question ||= m.headline || m.id; m.source = [...new Set(m.people.map(x => x.sourceName).filter(Boolean))].join("; "); m.sourceUrl = m.people[0].sourceUrl; out.push(m); });
+  const tby = {};   // v12.2 Tier it: one row per item; rows that share tier_value share a tier (same rules as the tier_puzzles sheet)
+  for (const raw of t.tier_puzzles || []) {
+    const r = lowerKeys(raw), id = str(r.puzzle_id); if (!id) continue;
+    const tp = tby[id] ||= { type: "tier", id, order: orderOf(r.daily_order, out.length + Object.keys(tby).length), emoji: "", headline: "", question: "", stat: "", unit: "", source: "", sourceUrl: "", fact: "", art: "", support: "", dataset: "", tiers: [], items: [], _ti: new Map() };
+    for (const [k, c] of [["emoji","puzzle_emoji"],["headline","headline"],["question","subtitle"],["stat","stat_label"],["unit","unit"],["source","source_name"],["sourceUrl","source_url"],["fact","fun_fact"],["art","art"],["support","support_url"],["dataset","dataset"]])
+      if (!tp[k] && str(r[c])) tp[k] = str(r[c]);
+    if (!tp.year && str(r.data_year)) tp.year = str(r.data_year);
+    const tv = num(r.tier_value), name = str(r.item_name); if (tv == null || !name) continue;
+    if (!tp._ti.has(tv)) { tp._ti.set(tv, tp.tiers.length); tp.tiers.push({ label: str(r.tier_label) || (Number.isInteger(tv) && tp.unit === "%" ? `${tv}%` : String(tv)), value: tv }); }
+    const iv = num(r.item_value);
+    const item = { name, emoji: str(r.item_emoji), value: iv == null ? tv : iv, tierIndex: tp._ti.get(tv) };
+    if (str(r.country_iso)) item.iso3 = str(r.country_iso).toUpperCase();
+    tp.items.push(item);
+  }
+  Object.values(tby).forEach(tp => { delete tp._ti; if (tp.tiers.length < 2 || tp.items.length < 3) return;
+    tp.emoji ||= "📊"; tp.question ||= tp.stat || tp.headline || tp.id; out.push(tp); });
   const res = out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
   // v11 (same as build.py apply_titles): no "(Group X)" labels. Rankers sharing a "dataset" key are titled with the plain
   // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
@@ -2237,7 +2255,7 @@ async function handleFiles(files) {
     if (!puzzles.length) { toast("No valid puzzles found. Check the sheet names / column headers."); return; }
     custom = { name: name.join(", "), puzzles, loadedAt: Date.now() }; save(LS.custom, custom); PUZZLES = puzzles;
     const t5 = puzzles.filter(p => p.type === "top5").length, conv = puzzles.filter(p => p.convertedFrom === "top5").length;
-    closeModal(); const nm = puzzles.filter(p => p.type === "match").length; toast(`Loaded ${puzzles.length} puzzles (${puzzles.length - t5 - nm} rank, ${t5} top 5${nm ? `, ${nm} match` : ""})${conv ? ` · ${conv} Top 5 → Rank it (fewer than ${MIN_TOP5_COUNTRIES} countries)` : ""}`); CONFIG.SHOW_ALL_PUZZLES ? goAll(0) : goToday();
+    closeModal(); const nm = puzzles.filter(p => p.type === "match").length, tierN = puzzles.filter(p => p.type === "tier").length; toast(`Loaded ${puzzles.length} puzzles (${puzzles.length - t5 - nm - tierN} rank, ${t5} top 5${nm ? `, ${nm} match` : ""}${tierN ? `, ${tierN} tier` : ""})${conv ? ` · ${conv} Top 5 → Rank it (fewer than ${MIN_TOP5_COUNTRIES} countries)` : ""}`); CONFIG.SHOW_ALL_PUZZLES ? goAll(0) : goToday();
   } catch (e) { console.error(e); toast("Couldn't read that file: " + e.message); }
 }
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
