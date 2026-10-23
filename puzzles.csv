@@ -578,15 +578,15 @@ ef-epi-city-b,,,,,,,,Kuala Lumpur,🇲🇾,588,,,,,27,121,cities,,,,,
 ef-epi-city-b,,,,,,,,Paris,🇫🇷,583,,,,,30,121,cities,,,,,
 ef-epi-city-b,,,,,,,,Rome,🇮🇹,538,,,,,52,121,cities,,,,,
 ef-epi-city-b,,,,,,,,Moscow,🇷🇺,537,,,,,54,121,cities,,,,,
-ef-epi-country,48,🗣️,Where is adult English strongest?,EF English Proficiency Index score,EPI score,top,yes,South Korea,🇰🇷,522,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Japan (446, Very low) sits well below South Korea (522) and Russia (521) in EF EPI 2025 — and below Brazil and Indonesia too.",48,123,,microphone,,ef-epi-country,English Proficiency,Broken English
+ef-epi-country,48,🗣️,Where is adult English strongest?,EF English Proficiency Index score,EPI score,top,yes,Kenya,🇰🇪,593,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Japan (446, Very low) sits well below Kenya (593, High) and South Korea (522) in EF EPI 2025 — Kenya outranks every other country in this set.",19,123,,microphone,,ef-epi-country,English Proficiency,Broken English
+ef-epi-country,,,,,,,,South Korea,🇰🇷,522,,,,,48,123,,,,,,
 ef-epi-country,,,,,,,,Russia,🇷🇺,521,,,,,50,123,,,,,,
 ef-epi-country,,,,,,,,Italy,🇮🇹,513,,,,,59,123,,,,,,
-ef-epi-country,,,,,,,,Brazil,🇧🇷,482,,,,,75,123,,,,,,
 ef-epi-country,,,,,,,,Indonesia,🇮🇩,471,,,,,80,123,,,,,,
 ef-epi-country,,,,,,,,Japan,🇯🇵,446,,,,,97,123,,,,,,
-ef-epi-country-b,110,🗣️,Where is adult English strongest?,EF English Proficiency Index score,EPI score,top,yes,Austria,🇦🇹,616,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Austria (616) and Portugal (612) are Very high. Nigeria (569, High) outranks France (539, Moderate) in EF EPI 2025.",3,123,,microphone,,ef-epi-country,English Proficiency,Fluent Enough
+ef-epi-country-b,110,🗣️,Where is adult English strongest?,EF English Proficiency Index score,EPI score,top,yes,Austria,🇦🇹,616,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Austria (616) and Portugal (612) are Very high. Zimbabwe (602, Very high) sits just above Poland (600) and well above France (539) in EF EPI 2025.",3,123,,microphone,,ef-epi-country,English Proficiency,Fluent Enough
 ef-epi-country-b,,,,,,,,Portugal,🇵🇹,612,,,,,6,123,,,,,,
+ef-epi-country-b,,,,,,,,Zimbabwe,🇿🇼,602,,,,,14,123,,,,,,
 ef-epi-country-b,,,,,,,,Poland,🇵🇱,600,,,,,15,123,,,,,,
-ef-epi-country-b,,,,,,,,Nigeria,🇳🇬,569,,,,,29,123,,,,,,
 ef-epi-country-b,,,,,,,,France,🇫🇷,539,,,,,38,123,,,,,,
 ef-epi-country-b,,,,,,,,Russia,🇷🇺,521,,,,,50,123,,,,,,
