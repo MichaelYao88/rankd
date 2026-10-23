@@ -817,3 +817,12 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .long-ad-box .pill-btn:disabled{opacity:.55}
 .long-ad-prem{margin:12px 0 0;font-size:12px;color:var(--muted)}
 .arch .ar.unlock{background:rgba(var(--brand-rgb),.12);color:var(--brand)}
+
+/* ---------- creator cross-promo (Where Is She). Not an .ad-slot. ---------- */
+#crossPromo{z-index:70}
+.cross-promo-box{width:min(400px,100%);text-align:center;padding:32px 22px 22px}
+.cross-promo-box h2{display:inline-block;margin:0 0 8px;font-size:28px;letter-spacing:-.035em;background:linear-gradient(transparent 62%,var(--marker) 62%)}
+.cross-promo-box p{margin:0 0 18px;color:var(--muted);font-size:15px;line-height:1.45}
+.cross-promo-actions{display:flex;flex-direction:column;gap:10px}
+.cross-promo-actions .pill-btn{width:100%;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;text-align:center}
+.cross-promo-box .close{top:10px;right:10px}

@@ -223,6 +223,19 @@
   </div>
 </div>
 
+<!-- Soft cross-promo for the creator's other game. Not an ad slot: shown on daily results to free and Premium. -->
+<div class="overlay hidden" id="crossPromo" role="dialog" aria-modal="true" aria-labelledby="crossPromoTitle" aria-describedby="crossPromoBody">
+  <div class="modal-box cross-promo-box" tabindex="-1">
+    <button class="close" id="crossPromoClose" type="button" aria-label="Close">✕</button>
+    <h2 id="crossPromoTitle">Like this game?</h2>
+    <p id="crossPromoBody">Try the creator's other game — Where Is She</p>
+    <div class="cross-promo-actions">
+      <a class="pill-btn primary" id="crossPromoCta" href="https://whereisshe.gg" target="_blank" rel="noopener noreferrer">Try Where Is She</a>
+      <button type="button" class="pill-btn ghost" id="crossPromoDismiss">Not now</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" multiple hidden>
 

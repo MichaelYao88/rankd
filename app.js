@@ -27,6 +27,17 @@ const CONFIG = {
   premium: { enabled: false },
   freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
   longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
+  // Soft cross-promo for the creator's other game. Not an AdSense unit: daily results only,
+  // free and Premium alike, and it never replaces the archive / Practice long-ad placeholders.
+  crossPromo: {
+    enabled: true,
+    minDailyWins: 5,       // lifetime completed dailies (today's puzzle — not Practice, not Archive)
+    cooldownDays: 2,       // "Not now" / close waits this many calendar days; a click-through hides it for good
+    url: "https://whereisshe.gg",
+    title: "Like this game?",
+    body: "Try the creator's other game — Where Is She",
+    ctaLabel: "Try Where Is She",
+  },
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
   ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
@@ -34,7 +45,7 @@ const CONFIG = {
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
-  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
+  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1", crossPromo: "rankd.crossPromo.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
@@ -42,6 +53,8 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.custom.v2   : an uploaded spreadsheet
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays)
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
+//   rankd.crossPromo.v1    : { dailyCompletions, lastCountedDay, clicked, dismissedOn } for the Where Is She note
+//                            (seeded once from stats.played; dismiss = cooldown, click = never again)
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The clear removes the keys above plus any
 // "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
 // michaelyao88.github.io is shared with other projects (e.g. whereisshe), so localStorage.clear() is never called.
@@ -579,6 +592,7 @@ function renderHero() {
 }
 
 function openPuzzle(p) {
+  hideCrossPromo();
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
@@ -1381,6 +1395,7 @@ function showResult(res) {
   renderCommunity(p);
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
+  scheduleCrossPromo();
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
@@ -1436,8 +1451,115 @@ function recordStats(res) {
   const win = res.type === "rank" || res.type === "match" || res.type === "tier" ? res.solved : res.won; if (win) s.wins++;
   const k = res.type === "rank" ? (res.solved ? `Rank in ${res.tries}` : "Rank ✗") : res.type === "match" ? (res.solved ? `Match in ${res.tries}` : "Match ✗") : res.type === "tier" ? (res.solved ? `Tier in ${res.tries}` : "Tier ✗") : `Top 5: ${res.hits}/5`;
   s.dist[k] = (s.dist[k] || 0) + 1; save(LS.stats, s);
+  noteDailyComplete();
 }
 function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; const dn = dayNumber(todayKey()); return (s.lastDay === dn || s.lastDay === dn - 1) ? s.streak : 0; }
+
+// ================================================================ cross-promo (Where Is She)
+// A friendly note on the daily results screen after CONFIG.crossPromo.minDailyWins lifetime dailies.
+// Practice and Archive do not count and do not show it. Not an ad slot, so Premium and streamer mode still see it.
+// rankd.crossPromo.v1:
+//   dailyCompletions — finished today's-daily puzzles (any type). First write copies rankd.stats.v2 "played".
+//   lastCountedDay   — local date already counted, so the same daily can't increment twice.
+//   dismissedOn      — local calendar date of "Not now" / X / backdrop / Escape. Shown again after cooldownDays.
+//   clicked          — opened Where Is She. Stays hidden after that.
+function crossPromoCfg() { return CONFIG.crossPromo || {}; }
+function blankCrossPromo() { return { dailyCompletions: 0, lastCountedDay: null, clicked: false, dismissedOn: null }; }
+function readCrossPromo() {
+  const raw = load(LS.crossPromo, null);
+  if (!raw || typeof raw !== "object") return null;
+  const n = Number(raw.dailyCompletions);
+  return {
+    dailyCompletions: Number.isFinite(n) && n > 0 ? Math.floor(n) : 0,
+    lastCountedDay: validKey(raw.lastCountedDay) ? raw.lastCountedDay : null,
+    clicked: raw.clicked === true,
+    dismissedOn: validKey(raw.dismissedOn) ? raw.dismissedOn : null,
+  };
+}
+function writeCrossPromo(s) { save(LS.crossPromo, s); }
+function seedCrossPromo() {
+  if (PREVIEW) return null;
+  const existing = readCrossPromo();
+  if (existing) return existing;
+  const stats = load(LS.stats, null), s = blankCrossPromo();
+  const played = stats && Number(stats.played);
+  if (Number.isFinite(played) && played > 0) {
+    s.dailyCompletions = Math.floor(played);
+    if (stats.lastDay != null && Number.isFinite(Number(stats.lastDay))) {
+      const k = keyFromDay(Number(stats.lastDay));
+      if (validKey(k)) s.lastCountedDay = k;
+    }
+  }
+  writeCrossPromo(s);
+  return s;
+}
+// Called only from recordStats, which already counted this daily. If the promo record is new, the seed
+// copied that count (including today) — don't add it again. Later days increment once.
+function noteDailyComplete() {
+  if (PREVIEW || !isToday()) return;
+  const s = seedCrossPromo(); if (!s) return;
+  const day = state.dateKey;
+  if (s.lastCountedDay === day) return;
+  s.dailyCompletions += 1; s.lastCountedDay = day; writeCrossPromo(s);
+}
+function crossPromoUrl() {
+  const u = String(crossPromoCfg().url || "").trim();
+  return /^https:\/\//i.test(u) ? u : "";
+}
+function crossPromoGap(fromKey) {
+  const today = todayKey();
+  if (!validKey(fromKey) || !validKey(today)) return Infinity;
+  return Math.round((utc(today) - utc(fromKey)) / 864e5);
+}
+function crossPromoEligible() {
+  const cfg = crossPromoCfg();
+  if (PREVIEW || cfg.enabled === false || !isToday() || !state.puzzle) return false;
+  if (!crossPromoUrl()) return false;
+  const result = $("#result"), play = $("#playView"), howto = $("#howtoOverlay");
+  if (!result || result.classList.contains("hidden") || !play || play.classList.contains("hidden")) return false;
+  if (howto && !howto.classList.contains("hidden")) return false;
+  const s = seedCrossPromo(); if (!s || s.clicked) return false;
+  const need = Number(cfg.minDailyWins), min = Number.isFinite(need) ? need : 5;
+  if (s.dailyCompletions < min) return false;
+  const cool = Number(cfg.cooldownDays), days = Number.isFinite(cool) ? cool : 2;
+  if (s.dismissedOn && crossPromoGap(s.dismissedOn) < days) return false;
+  return true;
+}
+let crossPromoTimer = 0;
+function hideCrossPromo() {
+  clearTimeout(crossPromoTimer); crossPromoTimer = 0;
+  const el = $("#crossPromo"); if (el) el.classList.add("hidden");
+}
+function dismissCrossPromo() {
+  hideCrossPromo();
+  if (PREVIEW) return;
+  const s = seedCrossPromo(); if (!s) return;
+  s.dismissedOn = todayKey(); writeCrossPromo(s);
+}
+function clickCrossPromo() {
+  hideCrossPromo();
+  if (PREVIEW) return;
+  const s = seedCrossPromo(); if (!s) return;
+  s.clicked = true; writeCrossPromo(s);
+}
+function openCrossPromo() {
+  if (!crossPromoEligible()) return;
+  const el = $("#crossPromo"); if (!el) return;
+  const cfg = crossPromoCfg();
+  $("#crossPromoTitle").textContent = cfg.title || "Like this game?";
+  $("#crossPromoBody").textContent = cfg.body || "Try the creator's other game — Where Is She";
+  const a = $("#crossPromoCta");
+  a.href = crossPromoUrl(); a.target = "_blank"; a.rel = "noopener noreferrer";
+  a.textContent = cfg.ctaLabel || "Try Where Is She";
+  el.classList.remove("hidden");
+  const box = el.querySelector(".cross-promo-box"); if (box) box.focus();
+}
+function scheduleCrossPromo() {
+  clearTimeout(crossPromoTimer);
+  if (!crossPromoEligible()) return;
+  crossPromoTimer = setTimeout(openCrossPromo, 450);
+}
+window.RankdCrossPromo = { key: LS.crossPromo, read: () => readCrossPromo() };
 
 // ================================================================ sharing
 function shareUrl() { return CONFIG.siteUrl.replace(/#.*$/, "") + linkHash(); }
@@ -1516,6 +1638,7 @@ function markHowtoSeen() { try { localStorage.setItem(HOWTO_KEY, "1"); } catch (
 function dismissHowto() {
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.add("hidden"); markHowtoSeen();
+  if ($("#result") && !$("#result").classList.contains("hidden")) scheduleCrossPromo();
 }
 function runHowtoDemo() {
   const rows = $$("#howtoOverlay .howto-card-row");
@@ -1552,7 +1675,7 @@ function maybeShowHowto() {
 
 // ================================================================ views / navigation
 function showView(v) {
-  if (v !== "play") showFab(false);
+  if (v !== "play") { showFab(false); hideCrossPromo(); }
   $("#playView").classList.toggle("hidden", v !== "play"); $("#archiveView").classList.toggle("hidden", v !== "archive");
   const tab = v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
   $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
@@ -1834,6 +1957,12 @@ $("#menuBtn").onclick = menuModal;
 $("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); setTimeout(fitLayout, 350); });
 $("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
+if ($("#crossPromo")) {
+  $("#crossPromoClose").onclick = dismissCrossPromo;
+  $("#crossPromoDismiss").onclick = dismissCrossPromo;
+  $("#crossPromo").addEventListener("click", e => { if (e.target.id === "crossPromo") dismissCrossPromo(); });
+  $("#crossPromoCta").addEventListener("click", () => clickCrossPromo());
+}
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
@@ -1844,8 +1973,12 @@ $("#newRandomTop").onclick = () => practiceNext();
 
 if (!Practice.ok()) { $$('.tab[data-view="practice"]').forEach(b => b.remove()); }
 document.addEventListener("keydown", e => {
-  if (e.key === "Escape") closeModal();
-  if (e.key === "Enter" && !e.target.closest("input, textarea, [contenteditable]") && !$("#playView").classList.contains("hidden")) {
+  if (e.key === "Escape") {
+    const promo = $("#crossPromo");
+    if (promo && !promo.classList.contains("hidden")) { e.preventDefault(); dismissCrossPromo(); return; }
+    closeModal();
+  }
+  if (e.key === "Enter" && !e.target.closest("input, textarea, [contenteditable]") && !$("#playView").classList.contains("hidden") && (!$("#crossPromo") || $("#crossPromo").classList.contains("hidden"))) {
     const p = state.puzzle; if (!p || state.busy) return;
     if (p.type === "rank" && !$("#submitBtn").parentElement.classList.contains("hidden")) { e.preventDefault(); submitRank(); }
     else if (p.type === "match" && !$("#matchSubmit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitMatch(); }
