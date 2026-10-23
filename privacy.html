@@ -36,11 +36,12 @@
 
 <p>This policy explains what information is used when you play Rankd at ranki.gg (the "site"). Rankd is a free, ad-supported daily
 puzzle game made by Michael Yao ("we", "us"). The short version: we don't have accounts, your streak and progress stay in your own browser,
-and a finished Daily or Archive puzzle also sends an anonymous score summary so community percentages can be counted. The ads on the site are provided by Google AdSense, and anonymous product analytics by PostHog, both described below.</p>
+and a finished Daily or Archive puzzle also sends an anonymous score summary so community percentages can be counted. That summary can include a coarse country (for example Taiwan or the United States) worked out from the connection. We do not store your IP address. The ads on the site are provided by Google AdSense, and anonymous product analytics by PostHog, both described below.</p>
 
 <h2>No accounts</h2>
 <p>You don't sign up or log in to play. We don't ask for your name, email address or any other personal information.</p>
-<p>When you finish a Daily or Archive puzzle, the site sends one anonymous row to our database (hosted by Supabase): the puzzle id, the puzzle's date, whether it was Daily or Archive, the puzzle type, whether you solved it, whether that clear was perfect, and a short summary of your marks or guesses. The row has no name, email or account id. Practice, Studio and Loading Zone preview (<code>?preview=</code>) plays are not sent. Your streak, settings and unfinished games stay in this browser and are not part of that row.</p>
+<p>When you finish a Daily or Archive puzzle, the site sends one anonymous row to our database (hosted by Supabase): the puzzle id, the puzzle's date, whether it was Daily or Archive, the puzzle type, whether you solved it, whether that clear was perfect, and a short summary of your marks or guesses, including what you submitted on the first try and, if you tried again, the second try. The row has no name, email or account id. Practice, Studio and Loading Zone preview (<code>?preview=</code>) plays are not sent. Your streak, settings and unfinished games stay in this browser and are not part of that row.</p>
+<p>To group those anonymous rows ("what players in your country guessed first"), our server reads the country of the connection. If the host already provides a country code, that is used. Otherwise the server asks <a href="https://ipwhois.io/privacy" target="_blank" rel="noopener">ipwho.is</a> for the country code only and then discards the IP. The database stores an ISO country code such as <code>TW</code> or <code>US</code>, not the IP address, city, or precise location. If the country can't be determined, the row is stored without one. The same lookup may run when the results panel loads, and the code is cached in this browser for a few hours (<code>rankd.country.v1</code>, in session and local storage) so the panel can pick the matching group. That cache is removed when you clear Rankd data. It is not an account, and it is not sent to the ads or product-analytics vendors as part of this feature.</p>
 <p>The site is hosted on GitHub Pages. Like any web host, GitHub may log technical information such as your IP address when your browser
 requests a page, for security and to run the service. See the
 <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
@@ -56,6 +57,7 @@ are only read by the game itself:</p>
   <li><code>rankd.stats.v2</code>: games played, solved, current and best streak, and your score distribution</li>
   <li><code>rankd.crosspromo.v1</code>: whether you dismissed the WhereIsShe suggestion, and when it was last shown</li>
   <li><code>rankd.settings.v1</code>: your settings (light or dark theme, streamer mode)</li>
+  <li><code>rankd.country.v1</code>: the coarse country code used to show community results for your country (no IP address)</li>
   <li><code>rankd.custom.v2</code>: only if you load your own puzzle spreadsheet</li>
 </ul>
 <p>You can delete all of these at any time: open the menu (⚙️), go to <b>Settings → Your data → Clear all data</b>, and confirm. This removes every

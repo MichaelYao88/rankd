@@ -52,10 +52,12 @@ There are two puzzle types, mixed into one daily rotation:
   * Theme: System (the default) / Light / Dark. It's saved in the browser, and the 🌙/☀️ button in the header toggles it too.
   * (v12.1) The show-values setting and the 👁 chip are gone: values are always shown in every mode; a saved showValues is ignored.
   * Load spreadsheet, and reset to the built-in puzzles.
-* **"What % of players got it right":** compare numbers come from the Ranki Supabase `community-stats` Edge Function
-  (`CONFIG.COMMUNITY_STATS_URL`). A finished Daily or Archive game inserts one anonymous row into `plays` from
-  `CommunityStats.submit()` near the top of `app.js`. Practice, Studio and `?preview=` are not inserted. `community-stats.json`
-  stays in the repo as the seeded fallback.
+* **"What players thought was right":** the results panel leads with first-guess consensus for the world and, when there
+  are enough plays, for the country derived from the connection. `% correct` stays underneath. Numbers come from the Ranki
+  Supabase `community-stats` Edge Function (`CONFIG.COMMUNITY_STATS_URL`). A finished Daily or Archive game is sent to the
+  `submit-play` Edge Function from `CommunityStats.submit()` near the top of `app.js` (first guess, second guess when there
+  was one, and a server-side country code — the IP is not stored). Practice, Studio and `?preview=` are not inserted.
+  `community-stats.json` stays in the repo as the seeded fallback (`?stats=local` forces it; `?cc=TW` only picks a bucket).
 * Your results, streak and stats are kept in `localStorage`.
 
 ## Editing puzzles (`puzzles.xlsx`)
