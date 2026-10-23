@@ -135,9 +135,10 @@ a{color:var(--link)}
 .tries span{margin-left:6px}
 #tries{margin:0 0 12px}
 /* v12.2: tries sit under Lock it in */
-.tries-below{justify-content:center;margin:12px 0 0;width:100%;opacity:.95}
-.card-foot.actions{justify-content:center}
-.card-foot.actions .pill-btn{width:100%;max-width:420px}
+/* v12.2: Lock left-justified (content width), tries under it also start-aligned */
+.tries-below{justify-content:flex-start;margin:12px 0 0;width:100%;opacity:.95}
+.card-foot.actions{justify-content:flex-start}
+.card-foot.actions .pill-btn{width:auto;max-width:none}
 
 /* ---------- guess game ---------- */
 .guess-form{display:block}
@@ -388,9 +389,9 @@ a{color:var(--link)}
 .vp-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
 .vchip{height:64px;display:flex;flex-direction:column;justify-content:center;padding:0 10px;line-height:1.1}
 .vchip+.vchip{position:relative}.vchip+.vchip::before{content:"";position:absolute;left:10px;right:10px;top:-4.5px;border-top:1px solid rgba(255,255,255,.22)}
-.vchip b{font-size:18px;font-weight:700;letter-spacing:-.02em}.vchip .grank{font-size:8.5px;opacity:.75;margin-top:2px}
+.vchip b{font-size:18px;font-weight:700;letter-spacing:-.02em}.vchip .vgloss{display:block;font-size:9.5px;font-weight:600;opacity:.7;margin-top:3px;letter-spacing:0;line-height:1.15;text-transform:none;color:inherit}.vchip .grank{font-size:8.5px;opacity:.75;margin-top:2px}
 .board.vcol .card{height:64px;min-height:0}
-@media (max-width:560px){.vchip{padding:0 8px}.vchip b{font-size:16px}.vchip .grank{font-size:7.8px;letter-spacing:.02em}}
+@media (max-width:560px){.vchip{padding:0 8px}.vchip b{font-size:16px}.vchip .vgloss{font-size:9px;margin-top:2px}.vchip .grank{font-size:7.8px;letter-spacing:.02em}}
 /* v8: Top 5 board + last miss live inside the blue card */
 .hero .t5board{background:rgba(255,255,255,.1);box-shadow:none;color:inherit;margin:12px 0 10px;padding:12px 14px}
 .hero .t5h span{color:inherit;opacity:.7}

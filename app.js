@@ -175,7 +175,9 @@ function parseTables(t) {
     if (pin && !others.some(o => pin.every(n => o.has(n)))) pair = p.items.filter(it => pin.includes(it.name)).sort((u, v) => u.name < v.name ? -1 : 1);
     for (let x = 0; x < c.length && !pair; x++) for (let y = x + 1; y < c.length && !pair; y++) { const A = p.items[c[x]], B = p.items[c[y]];
       if (!others.some(o => o.has(A.name) && o.has(B.name))) pair = [A, B].sort((u, v) => u.name < v.name ? -1 : u.name > v.name ? 1 : 0); }
-    if (pair) { p.question = `${p.series || p.question} ${pair[0].emoji}${pair[1].emoji}`; p.titleFlags = pair.map(it => it.name); } }); });
+    const flagOv = ({ "pew-china-favorable": "🇨🇳" })[p.dataset];
+    if (flagOv) { p.question = `${p.series || p.question} ${flagOv}`; p.titleFlags = [flagOv]; }
+    else if (pair) { p.question = `${p.series || p.question} ${pair[0].emoji}${pair[1].emoji}`; p.titleFlags = pair.map(it => it.name); } }); });
   res.forEach(p => { delete p.series; if (!p.headline) p.headline = p.question; });   // v11: fun headline, plain question = subtitle
   return res;
 }
@@ -497,12 +499,42 @@ const fmtP = (p, v) => v.toLocaleString("en-US", { minimumFractionDigits: decOf(
 // Number gets a '%' suffix (83%); rates per 100k, EF scores, women-per-100-men, kg, etc. stay bare.
 const isPercent = p => p.valueFormat === "percent" || p.unit === "%" || (typeof p.unit === "string" && p.unit.startsWith("%"));
 const fmtVal = (p, v) => fmtP(p, v) + (isPercent(p) ? "%" : "");
-const unitAside = p => {   // small label after fmtVal — skip bare '%'; for '% of GDP' show ' of GDP'
+const unitAside = p => {   // small label after fmtVal on reveal cards — skip bare '%'; for '% of GDP' show ' of GDP'
   if (!p.unit) return "";
   if (p.unit === "%" || p.valueFormat === "percent") return "";
   if (p.unit.startsWith("%")) { const rest = p.unit.slice(1).trim(); return rest ? `<small> ${esc(rest)}</small>` : ""; }
   return `<small>${esc(p.unit)}</small>`;
 };
+// v12.2: muted gloss under each values-column number (fills short 5-item boards). Prefer puzzle.valueGloss;
+// else non-% unit; else a short phrase derived from headline/stat/question for bare-% puzzles.
+const VALUE_GLOSS_FALLBACK = {
+  "Keep the Peace": "harmony first", "Open to Change": "open to change",
+  "Dragon Friends": "favor China", "Friends of Beijing": "favor China",
+  "Hardest Hit": "per 100k", "Replacement Theory": "good for society",
+  "Stars and Stripes": "favor U.S.", "Doesn't Like Israel": "unfavorable",
+  "Doesn't Like India": "unfavorable", "Black Lives Matter": "more good than bad",
+  "Israel's Image Problem": "unfavorable", "Devil's Dice": "morally wrong", "Snake Eyes": "morally wrong",
+};
+function valueGlossOf(p) {
+  if (p.valueGloss) return String(p.valueGloss);
+  const u = p.unit || "";
+  if (u && u !== "%" && p.valueFormat !== "percent") {
+    if (u.startsWith("%")) { const rest = u.slice(1).trim(); if (rest) return rest; }
+    else return u;
+  }
+  const h = p.headline || "";
+  if (VALUE_GLOSS_FALLBACK[h]) return VALUE_GLOSS_FALLBACK[h];
+  // light derive: strip leading "% who say "/"% with a " and clip
+  let s = (p.stat || p.question || "").replace(/\s+/g, " ").trim();
+  s = s.replace(/^%\s*(who say|with a|that say)\s+/i, "").replace(/\s*\([^)]*\)\s*$/, "");
+  if (/favorable/i.test(s)) return /unfavorable/i.test(s) ? "unfavorable" : (/\bChina\b/i.test(s) ? "favor China" : "favorable");
+  if (/open to change/i.test(s)) return "open to change";
+  if (/harmony/i.test(s)) return "harmony first";
+  if (/per\s*100\s*k/i.test(s) || /per\s*100,000/i.test(s)) return "per 100k";
+  if (s.length > 22) s = s.slice(0, 20).replace(/\s+\S*$/, "") + "…";
+  return s.length >= 3 && s.length <= 28 ? s.toLowerCase() : "";
+}
+const glossTag = p => { const g = valueGlossOf(p); return g ? `<small class="vgloss">${esc(g)}</small>` : ""; };
 function normRank(saved) {            // upgrade v3 single-shot results (points/max) to the retry format
   if (!saved || saved.type !== "rank") return null;
   if (saved.attempts) return saved;
@@ -536,7 +568,7 @@ function renderRank(saved, keepOrder) {
   const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = !locked;
   // v12.2: keep the values column; drop the "The values… Rank them!" caption chrome.
   vp.classList.toggle("hidden", !showVals); cap.classList.add("hidden"); cap.innerHTML = ""; board.classList.toggle("vcol", showVals);
-  vp.innerHTML = `<ol class="vp-list" aria-label="Values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
+  vp.innerHTML = `<ol class="vp-list" aria-label="Values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${glossTag(p)}${gTag(p.items[i])}</li>`).join("") + `</ol>`;
   const ol = $("#cards"); ol.innerHTML = "";
   state.order.forEach(i => ol.appendChild(cardEl(p, i)));
   if (!g.done) markPinned();
