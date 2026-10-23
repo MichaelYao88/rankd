@@ -77,8 +77,9 @@ a{color:var(--link)}
 .pill-btn:active{transform:scale(.97)}
 .pill-btn.primary{background:var(--brand);color:var(--on-brand);box-shadow:0 14px 28px -14px rgba(var(--brand-rgb),.9)}
 .pill-btn.ghost{background:transparent;box-shadow:none;border:1.5px solid var(--line);color:var(--muted)}
-.pill-btn.outline{background:transparent;color:#fff;box-shadow:none;border:1.5px solid rgba(255,255,255,.7);padding:13px 24px}
-.pill-btn.outline:hover{background:#fff;color:var(--brand)}
+.pill-btn.outline{background:#fff;color:var(--brand);box-shadow:0 10px 22px -12px rgba(0,0,0,.45);border:1.5px solid #fff;padding:13px 24px}
+.pill-btn.outline:hover{background:#F3F4FF;color:var(--brand-deep);filter:brightness(1.02)}
+/* v12.2 Lock UI: filled white Lock it in on the brand card (was ghost outline) */
 .pill-btn:disabled{opacity:.5;cursor:default}
 .card-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px}
 
