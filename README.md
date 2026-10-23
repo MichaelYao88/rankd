@@ -1,4 +1,4 @@
-# Rankd: daily stereotype-busting stats game (prototype)
+# Rankd: a daily game of surprising stats (prototype)
 
 There are two puzzle types, mixed into one daily rotation:
 
