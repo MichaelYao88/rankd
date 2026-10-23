@@ -77,9 +77,9 @@ a{color:var(--link)}
 .pill-btn:active{transform:scale(.97)}
 .pill-btn.primary{background:var(--brand);color:var(--on-brand);box-shadow:0 14px 28px -14px rgba(var(--brand-rgb),.9)}
 .pill-btn.ghost{background:transparent;box-shadow:none;border:1.5px solid var(--line);color:var(--muted)}
-.pill-btn.outline{background:#fff;color:var(--brand);box-shadow:0 12px 26px -12px rgba(0,0,0,.5);border:2.5px solid #fff;padding:16px 30px;font-size:13.5px;font-weight:800;letter-spacing:.16em}
-.pill-btn.outline:hover{background:#F3F4FF;color:var(--brand-deep);border-color:#F3F4FF;filter:brightness(1.02)}
-/* v12.2 Lock UI: filled white, bigger, bold, thicker border */
+.pill-btn.outline{background:transparent;color:#fff;box-shadow:none;border:2.5px solid rgba(255,255,255,.85);padding:16px 30px;font-size:13.5px;font-weight:800;letter-spacing:.16em}
+.pill-btn.outline:hover{background:#fff;color:var(--brand);border-color:#fff}
+/* v12.2 Lock UI: brand-blue hero outline (white text/border), bigger/bold/thicker — not white fill */
 .pill-btn:disabled{opacity:.5;cursor:default}
 .card-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:20px}
 
@@ -135,10 +135,10 @@ a{color:var(--link)}
 .tries span{margin-left:6px}
 #tries{margin:0 0 12px}
 /* v12.2: tries sit under Lock it in */
-/* v12.2: Lock left-justified (content width), tries under it also start-aligned */
-.tries-below{justify-content:flex-start;margin:12px 0 0;width:100%;opacity:.95}
-.card-foot.actions{justify-content:flex-start}
-.card-foot.actions .pill-btn{width:auto;max-width:none}
+/* v12.2: Lock + tries centered; button full-width within max */
+.tries-below{justify-content:center;margin:12px 0 0;width:100%;opacity:.95}
+.card-foot.actions{justify-content:center}
+.card-foot.actions .pill-btn{width:100%;max-width:420px}
 
 /* ---------- guess game ---------- */
 .guess-form{display:block}
