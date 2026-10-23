@@ -753,6 +753,7 @@ const SOURCE_BRAND = [
   [/our world in data|owid/i, "OUR WORLD IN DATA"],
   [/world population review/i, "WORLD POPULATION REVIEW"],
   [/ethnologue/i, "ETHNOLOGUE"],
+  [/gallup/i, "GALLUP"],
   [/wikipedia/i, "WIKIPEDIA"],
   [/equaldex/i, "EQUALDEX"],
   [/cia (world )?factbook|factbook/i, "CIA"],
@@ -900,6 +901,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Views of India": "unfavorable", "Police Videos": "say it's good",
   "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
   "Gambling Morality": "think gambling is wrong",
+  "After Dark": "feel safe at night", "Porch Light": "feel safe at night", "Walking Home": "feel safe at night",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
