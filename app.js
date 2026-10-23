@@ -874,7 +874,7 @@ function onGuessSubmit() {
 // Rank it:  solved on try 1 = "explosive", try 2 = "big", 3+ (or not solved) = none (plain result, ads as normal).
 // Top 5:    all 5 found with 0 misses = "explosive", 1-2 misses = "big", otherwise none.
 // prefers-reduced-motion: no confetti / shake / flash, just a short fade-in banner.
-// v12.2: "Racist!" flash — Rank it only, every card wrong, puzzle is countries (flag emojis) or demographics/identity groups.
+// v12.2: "Racist!" / "Xenophobe!" flash (50/50) — Rank it only, every card wrong, countries or demographics/identity groups.
 function isIdentityRank(p) {
   if (!p || p.type !== "rank" || !p.items || !p.items.length) return false;
   const flag = e => /[\u{1F1E6}-\u{1F1FF}]{2}/u.test(e || "");
@@ -899,7 +899,10 @@ const Fx = (() => {
     const red = reduced(), ev = { tier, kind, reduced: red, at: Date.now() }; api.last = ev; api.history.push(ev);
     document.querySelectorAll(".fx-layer").forEach(n => n.remove());
     const layer = document.createElement("div"); layer.className = `fx-layer fx-${tier}${red ? " fx-reduced" : ""}`; layer.setAttribute("aria-hidden", "true");
-    const banner = document.createElement("div"); banner.className = "fx-banner"; banner.textContent = TXT[kind][tier]; layer.appendChild(banner);
+    // v12.2: all-wrong identity Rank it → Racist! or Xenophobe! (same fx-racist size/outline)
+    const label = tier === "racist" ? (Math.random() < 0.5 ? "Racist!" : "Xenophobe!") : TXT[kind][tier];
+    ev.text = label;
+    const banner = document.createElement("div"); banner.className = "fx-banner"; banner.textContent = label; layer.appendChild(banner);
     document.body.appendChild(layer);
     const total = red ? 1400 : CFG[tier].dur;
     if (!red) {
