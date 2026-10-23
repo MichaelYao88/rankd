@@ -435,8 +435,22 @@ function renderHero() {
   $("#heroNo").textContent = state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
   $("#heroKind").textContent = p.type === "top5" ? `🖐️ Guess the top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = p.headline || p.question;
-  $("#question").textContent = p.question; $("#question").classList.toggle("hidden", !p.question || p.question === p.headline);
-  $("#statLabel").textContent = p.stat + (p.unit ? ` (${p.unit})` : "");
+  // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
+  // label — hide it when it only repeats the subtitle (e.g. Share the Tape had both).
+  const showSub = !!(p.question && p.question !== p.headline);
+  $("#question").textContent = p.question || "";
+  $("#question").classList.toggle("hidden", !showSub);
+  const statLine = p.stat ? (p.stat + (p.unit ? ` (${p.unit})` : "")) : "";
+  // Near-duplicate: same story told twice (Share the Tape / Swings Both Ways). Keep series+flags
+  // Q with a distinct measurement S (Single Ladies, Devil's Dice, EF EPI).
+  const tokens = s => new Set(String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(w => w.length > 2 && !/^(the|and|who|say|says|that|this|with|from|for|are|was|were|very|somewhat|share|adults|identify|as)$/.test(w)));
+  const a = tokens(p.question), b = tokens(p.stat);
+  let overlap = 0; a.forEach(t => { if (b.has(t)) overlap++; });
+  const jaccard = (a.size && b.size) ? overlap / new Set([...a, ...b]).size : 0;
+  const nSub = [...a].sort().join(" "), nStat = [...b].sort().join(" ");
+  const statDup = showSub && !!statLine && (jaccard >= 0.55 || nStat.includes(nSub) || nSub.includes(nStat));
+  $("#statLabel").textContent = statLine;
+  $("#statLabel").classList.toggle("hidden", !statLine || statDup);
   $("#caveatLine").textContent = p.caveat ? "⚠️ " + p.caveat : ""; $("#caveatLine").classList.toggle("hidden", !p.caveat);   // v11: random Practice shows its dataset caveat up front
   $("#heroDate").textContent = state.mode === "preview" ? `Studio preview · ${longDate(state.dateKey)} · doesn't count toward stats` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count toward stats` : state.mode === "all" ? `All puzzles (pre-launch) · ${p.order != null && p.order < 10000 ? `daily #${pad3(Math.round(p.order))} · ${longDate(keyFromDay(Math.round(p.order) - 1))} · ` : ""}doesn't count toward stats`
     : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
