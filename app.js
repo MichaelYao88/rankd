@@ -456,6 +456,9 @@ function parseTables(t) {
     "meat-lovers": ["Israel", "United States"],
     "meat-meatiest": ["Argentina", "Japan"],
     "meat-side-salad": ["India", "South Korea"],
+    // Macau + India, and United States + Indonesia, are the pairs that don't both appear on the other board.
+    "mcdonalds-per-million-density": ["Macau", "India"],
+    "mcdonalds-per-million-arch": ["United States", "Indonesia"],
   };
   // Safe-walking variants share a dataset but the headlines already tell them apart, so the question stays the plain stem (no flag pair).
   const NO_TITLE_FLAGS = new Set(["gallup-safe-night"]);
@@ -784,6 +787,7 @@ const SOURCE_BRAND = [
   [/ethnologue/i, "ETHNOLOGUE"],
   [/gallup/i, "GALLUP"],
   [/\bubs\b/i, "UBS"],
+  [/visual capitalist/i, "VISUAL CAPITALIST"],
   [/wikipedia/i, "WIKIPEDIA"],
   [/equaldex/i, "EQUALDEX"],
   [/cia (world )?factbook|factbook/i, "CIA"],
