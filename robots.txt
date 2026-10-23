@@ -1,2 +1,8 @@
 User-agent: *
 Allow: /
+
+Disallow: /studio.html
+Disallow: /studio.js
+Disallow: /studio.css
+
+Sitemap: https://ranki.gg/sitemap.xml
