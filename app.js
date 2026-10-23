@@ -589,6 +589,7 @@ const SOURCE_BRAND = [
   [/world bank/i, "WORLD BANK"],
   [/our world in data|owid/i, "OUR WORLD IN DATA"],
   [/world population review/i, "WORLD POPULATION REVIEW"],
+  [/ethnologue/i, "ETHNOLOGUE"],
   [/wikipedia/i, "WIKIPEDIA"],
   [/equaldex/i, "EQUALDEX"],
   [/cia (world )?factbook|factbook/i, "CIA"],
