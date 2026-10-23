@@ -449,13 +449,16 @@ function parseTables(t) {
   // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
   const TITLE_PIN = {
     alcohol: ["India", "Italy"],
-    "work-hours": ["Indonesia", "Germany"],   // Grindset Nations: Asia hours vs Germany, not the default famous pair
+    "work-hours": ["Germany", "Indonesia"],   // Grindset Nations: Asia hours vs Germany, not the default famous pair
     "wealth-gini-nordic": ["Sweden", "United States"],
     "wealth-gini-top-heavy": ["Brazil", "Singapore"],
     "wealth-gini-level-field": ["Israel", "Slovakia"],
     "meat-lovers": ["Israel", "United States"],
     "meat-meatiest": ["Argentina", "Japan"],
     "meat-side-salad": ["India", "South Korea"],
+    // KFC outlet boards: top country, then bottom country.
+    "kfc-outlets-finger-lickin": ["South Africa", "Nigeria"],
+    "kfc-outlets-bucket-list": ["China", "Ghana"],
     // Macau + India, and United States + Indonesia, are the pairs that don't both appear on the other board.
     "mcdonalds-per-million-density": ["Macau", "India"],
     "mcdonalds-per-million-arch": ["United States", "Indonesia"],
@@ -468,7 +471,7 @@ function parseTables(t) {
     const fam = n => { const k = FAMOUS.indexOf(n); return k < 0 ? FAMOUS.length : k; };
     const c = p.items.map((it, i) => i).sort((a, b) => (seen.has(p.items[a].name) - seen.has(p.items[b].name)) || (fam(p.items[a].name) - fam(p.items[b].name)) || a - b);
     let pair = null; const pin = TITLE_PIN[p.id];   // v12: same as build.py TITLE_PIN (published past titles stay stable)
-    if (pin && !others.some(o => pin.every(n => o.has(n)))) pair = p.items.filter(it => pin.includes(it.name)).sort((u, v) => u.name < v.name ? -1 : 1);
+    if (pin && !others.some(o => pin.every(n => o.has(n)))) pair = pin.map(n => p.items.find(it => it.name === n));
     for (let x = 0; x < c.length && !pair; x++) for (let y = x + 1; y < c.length && !pair; y++) { const A = p.items[c[x]], B = p.items[c[y]];
       if (!others.some(o => o.has(A.name) && o.has(B.name))) pair = [A, B].sort((u, v) => u.name < v.name ? -1 : u.name > v.name ? 1 : 0); }
     const flagOv = ({ "pew-china-favorable": "🇨🇳" })[p.dataset];
