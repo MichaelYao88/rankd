@@ -430,8 +430,10 @@ function parseTables(t) {
   // v11 (same as build.py apply_titles): no "(Group X)" labels. Rankers sharing a "dataset" key are titled with the plain
   // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
   const TITLE_PIN = { alcohol: ["India", "Italy"] };
+  // Safe-walking variants share a dataset but the headlines already tell them apart, so the question stays the plain stem (no flag pair).
+  const NO_TITLE_FLAGS = new Set(["gallup-safe-night"]);
   const byDs = {}; res.forEach(p => { p.question = p.question.replace(/\s*\(Group [A-Z]\)\s*$/, ""); if (p.type === "rank" && p.dataset) (byDs[p.dataset] ||= []).push(p); });
-  Object.values(byDs).forEach(ps => { if (ps.length < 2) return; ps.forEach(p => {
+  Object.values(byDs).forEach(ps => { if (ps.length < 2 || NO_TITLE_FLAGS.has(ps[0].dataset)) return; ps.forEach(p => {
     const others = ps.filter(q => q !== p).map(q => new Set(q.items.map(it => it.name))), seen = new Set(others.flatMap(o => [...o]));
     const fam = n => { const k = FAMOUS.indexOf(n); return k < 0 ? FAMOUS.length : k; };
     const c = p.items.map((it, i) => i).sort((a, b) => (seen.has(p.items[a].name) - seen.has(p.items[b].name)) || (fam(p.items[a].name) - fam(p.items[b].name)) || a - b);
@@ -901,7 +903,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Views of India": "unfavorable", "Police Videos": "say it's good",
   "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
   "Gambling Morality": "think gambling is wrong",
-  "After Dark": "feel safe at night", "Porch Light": "feel safe at night", "Walking Home": "feel safe at night",
+  "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
   "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
 };
 function valueGlossOf(p) {
