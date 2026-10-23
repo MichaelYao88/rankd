@@ -90,6 +90,11 @@ There are two puzzle types, mixed into one daily rotation:
 * **On the Books** (`equaldex-legal-b`, #073, sensitive): same Legal Index — Mongolia 60, Ukraine 59, Japan 57, Palestine 28, Indonesia 12, Nigeria 7. Shares 0 with Protect the Gays.
 * **Why are you gay?** (`equaldex-opinion`, #110, sensitive): Equaldex Public Opinion Index — Norway 87, Thailand 67, China 66, US 56, Israel 51, Uganda 18. Practice dataset `equaldex-opinion` (171).
 * **Asking for a Friend** (`equaldex-opinion-b`, #114, sensitive): same Opinion Index — India 53, South Korea 39, Pakistan 31, Russia 19, Uganda 18, Afghanistan 2. Shares only Uganda with Why are you gay? (max-1). Scraped live from equaldex.com/equality-index on 2026-10-23 (Equaldex updates automatically).
+* **God is Meaningful** (`pew-meaning-religion`, Tier it, #104): Pew Spring 2021 Global Attitudes Q36 — % who mentioned spirituality/faith/religion as a source of meaning. USA 15, Australia 4, UK/Italy/Germany 2, Japan 0 (tiers 15% / 4% / 2% / 0%). Full 17-public table in `data/pew-meaning-religion.json` + Practice dataset (`kind: "tier"`).
+* **What Matters Most** (`match-pew-meaning`, Match it, #046, 5 pairs): same Pew report — UK hobbies highest, South Korea material well-being #1, Taiwan society #1, Spain health #1, Italy occupation highest. Clues avoid own-country names.
+* **Devil's Dice** (`gambling-immoral`, #035): Pew Spring 2025 — % who say gambling is morally wrong: Indonesia 89, South Korea 78, Israel 55, Mexico 49, Germany 32, US 29.
+* **Snake Eyes** (`gambling-immoral-b`, #106): same dataset — India 83, South Korea 78, Brazil 61, Kenya 61, Poland 41, Canada 27. Shares only South Korea. Title "Gambling Immoral" + 2 flags. (Brazil/Kenya tie at 61: Rank it scores by value, so either order on the tied slots counts.)
+* **Tier it** (new mode): drag/tap items onto labeled tier rows; multiple per tier; Lock-in green/red like Rank it; win ads / Racist! on all-wrong country tiers.
 * **Match it now takes 4 to 7 pairs** (was 6 or 7; app.js + build.py validation).
 * **Foreign Relations** (4): Stubb and Edi Rama removed; shorter clues. **Before the History Books** (5): Idi Amin and Xi removed; shorter clues.
 * **Hard Line** (5): Israel removed; compact clues (Netherlands "Up to 15 years or a fine (child under 12)", India "20+ years to death",
@@ -111,7 +116,7 @@ There are two puzzle types, mixed into one daily rotation:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
   The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
-  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 120 puzzles (109 Rank it, 7 Top 5, 4 Match it), ends Feb 2 2027.
+  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 124 puzzles (111 Rank it, 7 Top 5, 5 Match it, 1 Tier it), ends Feb 6 2027.
 * **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;
   `tools/v122_practice_patch.py` + a runtime check). Top banner + a new **bottom banner** (`#adBottom`, Practice only; on phones it is pinned to the
   bottom and the card shrinks so Guess / Lock it in stays above it). **Interstitial on "next"**: pressing 🎲 New (or the Practice tab) on an unfinished

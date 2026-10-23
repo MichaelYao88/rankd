@@ -475,6 +475,44 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   .gear-btn{width:34px;height:34px}
   .ad-banner{margin:6px 10px 0}
 }
+
+/* ---------- v12.2 Tier it ---------- */
+#tierGame{margin-top:22px;clear:both}
+.tier-board{display:flex;flex-direction:column;gap:8px;min-height:0}
+.tier-pool{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:6px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
+.tier-pool:empty{display:none}
+.tier-rows{display:flex;flex-direction:column;gap:6px}
+.tier-row{display:grid;grid-template-columns:54px 1fr;gap:8px;align-items:stretch;min-height:44px;padding:6px;border-radius:12px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18)}
+.tier-row.drag-over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
+.tier-row.sel{border-color:#FFD84D;box-shadow:0 0 0 2px rgba(255,216,77,.35)}
+.tier-label{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;letter-spacing:-.02em;border-radius:9px;background:rgba(0,0,0,.22)}
+.tier-slots{display:flex;flex-wrap:wrap;gap:5px;align-items:center;min-height:32px}
+.tier-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);cursor:grab;user-select:none;font-size:13px;font-weight:650;line-height:1.15;touch-action:none}
+.tier-chip .tc-flag{font-size:15px;line-height:1}
+.tier-chip .tc-val{opacity:.85;font-weight:700;font-size:11.5px;margin-left:2px}
+.tier-chip.sel{border-color:#FFD84D;background:rgba(255,216,77,.22)}
+.tier-chip.good{background:var(--good);border-color:rgba(255,255,255,.35);cursor:default}
+.tier-chip.bad{background:var(--bad);border-color:rgba(255,255,255,.35)}
+.tier-chip.pinned{cursor:default}
+.tier-chip.dragging{opacity:.35}
+.tier-chip.pop{animation:pop .45s ease}
+.tier-chip.shake{animation:shake .45s ease}
+#tierGame.locked .tier-chip{cursor:default}
+#tierGame.locked .tier-pool{display:none}
+@media (max-width:560px){
+  body.fit #tierGame{margin-top:8px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+  body.fit #tierGame.hidden{display:none!important}
+  body.fit .tier-board{flex:1 1 auto;min-height:0;gap:5px}
+  body.fit .tier-pool{gap:4px;padding:4px;min-height:28px}
+  body.fit .tier-rows{flex:1 1 auto;min-height:0;gap:4px;display:flex;flex-direction:column}
+  body.fit .tier-row{grid-template-columns:44px 1fr;gap:6px;min-height:0;flex:1 1 0;padding:4px 5px;border-radius:10px}
+  body.fit .tier-label{font-size:13px;border-radius:8px}
+  body.fit .tier-chip{padding:3px 7px;font-size:11.5px;gap:3px}
+  body.fit .tier-chip .tc-flag{font-size:13px}
+  body.fit .tier-chip .tc-val{font-size:10.5px}
+  body.fit #tierHint{display:none!important}
+}
+
 /* ---------- v11: phone fit while playing (body.fit = phone + a puzzle in play; see fitLayout() in app.js) ---------- */
 @media (max-width:560px){
   body.fit{min-height:0}

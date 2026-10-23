@@ -85,6 +85,22 @@
         </div>
       </section>
 
+      <!-- v12.2 TIER IT: drag/tap countries onto labeled tier rows (tied-stat buckets) -->
+      <section id="tierGame" class="hidden">
+        <div class="game-bar">
+          <span class="direction" id="tierDir">Drop into a tier</span>
+          <span class="tries" id="tierTries"></span>
+        </div>
+        <div class="tier-board" id="tierBoard">
+          <div class="tier-pool" id="tierPool" role="list" aria-label="Unassigned"></div>
+          <div class="tier-rows" id="tierRows"></div>
+        </div>
+        <p class="hint" id="tierHint"></p>
+        <div class="card-foot actions">
+          <button class="pill-btn outline" id="tierSubmit">Lock it in ↵</button>
+        </div>
+      </section>
+
       <!-- GUESS THE TOP 5 -->
       <section id="guessGame" class="hidden">
         <div class="tries" id="tries"></div>

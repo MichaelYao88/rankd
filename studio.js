@@ -13,6 +13,7 @@ const num = v => typeof v === "number" ? v.toLocaleString("en-US", { maximumFrac
 const P = S.puzzles, today = S.todayKey(), tn = S.dayNumber(today);
 
 const modeOf = p => p.type === "match" ? ["Match it", `${p.people.length} pairs`] : p.type === "top5" ? ["Guess the top 5", `${p.countries.length} countries`]
+  : p.type === "tier" ? ["Tier it", `${p.tiers.length} tiers · ${p.items.length} items`]
   : ["Rank it", `${p.items.length} ${p.items.every(x => /^(\p{RI}\p{RI}|\u{1F3F4}[\u{E0020}-\u{E007F}]+)$/u.test(x.emoji || "")) ? "countries" : "groups"}`];
 const days = P.map((p, n) => ({ p, n, key: S.keyFromDay(n) }));
 $("#pvNote").textContent = `${P.length} days, ${fmtDate(days[0].key)} (#001) to ${fmtDate(days[days.length - 1].key)} (#${pad3(P.length)}). Play opens a sandboxed preview: it never touches real stats or streaks.`;
