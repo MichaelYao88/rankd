@@ -530,7 +530,7 @@ function renderRank(saved, keepOrder) {
   // so no value looks attached to a draggable card. After the reveal each card shows its own value instead.
   const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = !locked;
   vp.classList.toggle("hidden", !showVals); cap.classList.toggle("hidden", !showVals); board.classList.toggle("vcol", showVals);
-  cap.innerHTML = `<b>The values</b>${p.unit ? ` (${esc(p.unit)})` : ""}, ${p.higherIs === "bottom" ? "lowest" : "highest"} first. Which card has which?`;
+  cap.innerHTML = `<b>The values</b>${p.unit ? ` (${esc(p.unit)})` : ""}, ${p.higherIs === "bottom" ? "lowest" : "highest"} first. Rank them!`;
   vp.innerHTML = `<ol class="vp-list" aria-label="The values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
   const ol = $("#cards"); ol.innerHTML = "";
   state.order.forEach(i => ol.appendChild(cardEl(p, i)));
