@@ -567,7 +567,7 @@ function renderHero() {
     const src = sourceBrand(p);
     const yr = dataYear(p);
     const srcBit = src ? ` · ${src}` : "";
-    const yrBit = yr ? ` · ${yr}` : "";
+    const yrBit = yr ? ` ${yr}` : "";   // no middle-dot between source brand and year
     // Practice already prefixes "YYYY data ·" — don't also append year after the source.
     $("#heroDate").textContent = state.mode === "preview" ? `Loading Zone preview · ${longDate(state.dateKey)} · doesn't count${srcBit}${yrBit}` : state.mode === "practice" ? `Random practice · ${yr ? yr + " data · " : ""}doesn't count${srcBit}`
       : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}${srcBit}${yrBit}`;
