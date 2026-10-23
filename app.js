@@ -510,6 +510,32 @@ function sourceBrand(p) {
   if (s.length > 28) s = s.slice(0, 26).replace(/\s+\S*$/, "") + "…";
   return s ? s.toUpperCase() : "";
 }
+/** Data year for the hero source line: p.year → item years → trailing year in stat. Omit if none. */
+function dataYear(p) {
+  if (!p) return "";
+  const cands = [];
+  if (p.year != null && String(p.year).trim()) cands.push(String(p.year).trim());
+  for (const it of (p.items || p.people || [])) {
+    const y = it && (it.year != null ? it.year : it.data_year);
+    if (y != null && String(y).trim()) cands.push(String(y).trim());
+  }
+  const sm = String(p.stat || "").match(/,\s*((?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:19|20)\d{2})?)\s*$/i);
+  if (sm) cands.push(sm[1].replace(/\s+/g, " ").trim());
+  for (const raw of cands) {
+    const s = raw.replace(/\s+/g, " ").trim();
+    if (!s) continue;
+    // clean year / FY / range
+    if (/^(?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:(?:19|20)?\d{2}))?$/i.test(s))
+      return s.replace(/\s+/g, "").replace(/FY/i, "FY");
+    // "Oct 2021–Oct 2026" style windows
+    if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}\s*[–\-]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}$/i.test(s))
+      return s.replace(/\s*[–\-]\s*/, "–");
+    // pull a year out of noisy labels ("Equaldex live (scraped 2026-10-23)", "Factbook / Wikipedia 2026")
+    const m = s.match(/\b(?:FY\s*)?((?:19|20)\d{2})\b/i);
+    if (m) return /\bFY\s*\d{4}\b/i.test(s) ? "FY" + m[1] : m[1];
+  }
+  return "";
+}
 function renderHero() {
   const p = state.puzzle, n = dayNumber(state.dateKey) + 1;
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
@@ -539,9 +565,12 @@ function renderHero() {
   else {
     $("#heroDate").classList.remove("hidden");
     const src = sourceBrand(p);
+    const yr = dataYear(p);
     const srcBit = src ? ` · ${src}` : "";
-    $("#heroDate").textContent = state.mode === "preview" ? `Loading Zone preview · ${longDate(state.dateKey)} · doesn't count${srcBit}` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count${srcBit}`
-      : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}${srcBit}`;
+    const yrBit = yr ? ` · ${yr}` : "";
+    // Practice already prefixes "YYYY data ·" — don't also append year after the source.
+    $("#heroDate").textContent = state.mode === "preview" ? `Loading Zone preview · ${longDate(state.dateKey)} · doesn't count${srcBit}${yrBit}` : state.mode === "practice" ? `Random practice · ${yr ? yr + " data · " : ""}doesn't count${srcBit}`
+      : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}${srcBit}${yrBit}`;
   }
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
   $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
