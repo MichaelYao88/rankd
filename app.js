@@ -23,7 +23,7 @@ const CONFIG = {
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
-  ADSENSE_SLOTS: { banner: "", interstitial: "", bottom: "" },   // v12.2: bottom = Practice bottom banner (blank = slot collapses)
+  ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
 };
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
@@ -240,7 +240,10 @@ const AdSense = {
     this.banner(); this.bottom();
   },
   push() { try { (window.adsbygoogle = window.adsbygoogle || []).push({}); return true; } catch (e) { return false; } },
-  unit(slot, cls) { return `<ins class="adsbygoogle ${cls}" data-ad-client="${esc(CONFIG.ADSENSE_CLIENT)}" data-ad-slot="${esc(slot)}"></ins>`; },
+  unit(slot, cls, responsive) {   // banners: auto + full-width-responsive (AdSense Display snippet); interstitial omits until its own unit
+    const fmt = responsive ? ` style="display:block" data-ad-format="auto" data-full-width-responsive="true"` : "";
+    return `<ins class="adsbygoogle ${cls}"${fmt} data-ad-client="${esc(CONFIG.ADSENSE_CLIENT)}" data-ad-slot="${esc(slot)}"></ins>`;
+  },
   watch(ins, onUnfilled, onFilled) {   // AdSense sets data-ad-status="filled" | "unfilled" on the <ins>
     const chk = () => { const st = ins.getAttribute("data-ad-status"); if (st === "unfilled") { mo.disconnect(); onUnfilled(); } else if (st === "filled") { mo.disconnect(); onFilled?.(); } };
     const mo = new MutationObserver(chk); mo.observe(ins, { attributes: true, attributeFilter: ["data-ad-status"] }); chk();
@@ -256,7 +259,7 @@ const AdSense = {
   },
   fill(box, slot) {
     if (!slot || this.mode === "blocked") { this.collapse(box); return; }
-    box.querySelector(".ad-fill").innerHTML = this.unit(slot, "rk-ad-banner"); const ins = box.querySelector("ins");
+    box.querySelector(".ad-fill").innerHTML = this.unit(slot, "rk-ad-banner", true); const ins = box.querySelector("ins");
     if (!this.push()) { this.collapse(box); return; }
     this.watch(ins, () => this.collapse(box), () => box.classList.add("ad-filled"));
   },
@@ -264,7 +267,7 @@ const AdSense = {
   interstitialOk() { return this.mode === "placeholder" || ((this.mode === "live" || this.mode === "loading") && !!CONFIG.ADSENSE_SLOTS.interstitial); },
   interstitial(onUnfilled) {
     if (this.mode === "placeholder") return;
-    const fill = $("#interstitial .inter-fill"); fill.innerHTML = this.unit(CONFIG.ADSENSE_SLOTS.interstitial, "rk-ad-inter"); const ins = fill.querySelector("ins");
+    const fill = $("#interstitial .inter-fill"); fill.innerHTML = this.unit(CONFIG.ADSENSE_SLOTS.interstitial, "rk-ad-inter", false); const ins = fill.querySelector("ins");
     if (!this.push()) { onUnfilled(); return; }
     this.watch(ins, onUnfilled);
   },
