@@ -625,7 +625,8 @@ const Practice = {
     const rows = ds.rows.map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], pop: C[r[0]][2], value: r[1], year: r.length > 2 ? String(r[2]) : String(ds.year || "") }));
     rows.forEach(r => { r.rank = 1 + rows.filter(x => x.value > r.value).length; });
     const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
-      source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null };
+      source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null,
+      ...(ds.valueGloss ? { valueGloss: String(ds.valueGloss) } : {}) };
     if (rows.length >= PR.minTop5 && ds.hints && +rows[0].value !== 100 && R() < 0.5)   // v12.2: no Top 5 when #1 is 100% (ties at the cap)
       return { ...base, type: "top5", maxMisses: 10, countries: rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) })) };
     const k = R() < ru.sixShare ? 6 : 5, N = rows.length, gapR = ru.rankGap(N, k), gapV = (rows[0].value - rows[N - 1].value) * ru.minGapShare;
@@ -817,7 +818,9 @@ function renderHero() {
   const showSub = !!(p.question && p.question !== p.headline);
   $("#question").textContent = p.question || "";
   $("#question").classList.toggle("hidden", !showSub);
-  const statLine = p.stat ? (p.stat + (p.unit ? ` (${p.unit})` : "")) : "";
+  // A stat that already starts with "%" (and whose unit is "%") would otherwise read "… (%)".
+  const unitBit = p.unit && !(p.unit === "%" && String(p.stat).trim().startsWith("%")) ? ` (${p.unit})` : "";
+  const statLine = p.stat ? p.stat + unitBit : "";
   // Near-duplicate: same story told twice (Share the Tape / Swings Both Ways). Keep series+flags
   // Q with a distinct measurement S (Single Ladies, Devil's Dice, EF EPI).
   const tokens = s => new Set(String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().split(/\s+/).filter(w => w.length > 2 && !/^(the|and|who|say|says|that|this|with|from|for|are|was|were|very|somewhat|share|adults|identify|as)$/.test(w)));
@@ -895,7 +898,8 @@ const VALUE_GLOSS_FALLBACK = {
   "Overdose Rates": "per 100k", "Declining White Share": "good for the USA", "Legal Protections": "best legal protections for gays", "On the Books": "best legal protections for gays",
   "Stars and Stripes": "favor U.S.",
   "Views of India": "unfavorable", "Police Videos": "say it's good",
-  "Views of Israel": "unfavorable", "Moral Views": "morally wrong", "Snake Eyes": "morally wrong",
+  "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
+  "Gambling Morality": "think gambling is wrong",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
