@@ -452,8 +452,13 @@ function renderHero() {
   $("#statLabel").textContent = statLine;
   $("#statLabel").classList.toggle("hidden", !statLine || statDup);
   $("#caveatLine").textContent = p.caveat ? "⚠️ " + p.caveat : ""; $("#caveatLine").classList.toggle("hidden", !p.caveat);   // v11: random Practice shows its dataset caveat up front
-  $("#heroDate").textContent = state.mode === "preview" ? `Studio preview · ${longDate(state.dateKey)} · doesn't count toward stats` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count toward stats` : state.mode === "all" ? `All puzzles (pre-launch) · ${p.order != null && p.order < 10000 ? `daily #${pad3(Math.round(p.order))} · ${longDate(keyFromDay(Math.round(p.order) - 1))} · ` : ""}doesn't count toward stats`
-    : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
+  // v12.2: drop the "All puzzles (pre-launch)… doesn't count toward stats" chrome line entirely.
+  if (state.mode === "all") { $("#heroDate").textContent = ""; $("#heroDate").classList.add("hidden"); }
+  else {
+    $("#heroDate").classList.remove("hidden");
+    $("#heroDate").textContent = state.mode === "preview" ? `Studio preview · ${longDate(state.dateKey)} · doesn't count toward stats` : state.mode === "practice" ? `Random practice · ${p.year ? p.year + " data · " : ""}doesn't count toward stats`
+      : `${CONFIG.brand} #${pad3(n)} · ${longDate(state.dateKey)}${isToday() ? "" : " · Archive"}`;
+  }
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
   $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
   document.body.classList.toggle("mode-practice", state.mode === "practice"); AdSense.bottom();   // v12.2: Practice bottom banner
@@ -529,14 +534,15 @@ function renderRank(saved, keepOrder) {
   // v8.1: ONE separate column box to the left of the cards, one value per row (sorted, aligned with the card rows),
   // so no value looks attached to a draggable card. After the reveal each card shows its own value instead.
   const vp = $("#valuesPanel"), cap = $("#valuesCap"), showVals = !locked;
-  vp.classList.toggle("hidden", !showVals); cap.classList.toggle("hidden", !showVals); board.classList.toggle("vcol", showVals);
-  cap.innerHTML = `<b>The values</b>${p.unit ? ` (${esc(p.unit)})` : ""}, ${p.higherIs === "bottom" ? "lowest" : "highest"} first. Rank them!`;
-  vp.innerHTML = `<ol class="vp-list" aria-label="The values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
+  // v12.2: keep the values column; drop the "The values… Rank them!" caption chrome.
+  vp.classList.toggle("hidden", !showVals); cap.classList.add("hidden"); cap.innerHTML = ""; board.classList.toggle("vcol", showVals);
+  vp.innerHTML = `<ol class="vp-list" aria-label="Values">` + correctOrder(p).map(i => `<li class="vchip"><b>${fmtVal(p, p.items[i].value)}</b>${gTag(p.items[i])}</li>`).join("") + `</ol>`;
   const ol = $("#cards"); ol.innerHTML = "";
   state.order.forEach(i => ol.appendChild(cardEl(p, i)));
   if (!g.done) markPinned();
-  renumber(); renderTryDots(); updateRankHint();
-  $("#hint").classList.toggle("hidden", locked); $("#submitBtn").parentElement.classList.toggle("hidden", locked);
+  renumber(); renderTryDots();
+  $("#submitBtn").parentElement.classList.toggle("hidden", locked);
+  if (locked) $("#hint").classList.add("hidden"); else updateRankHint();
   if (state.sortable) state.sortable.destroy();
   state.sortable = window.Sortable ? Sortable.create(ol, { animation: 220, easing: "cubic-bezier(.2,.8,.2,1)", ghostClass: "sortable-ghost", chosenClass: "sortable-chosen",
     dragClass: "sortable-drag", forceFallback: true, fallbackTolerance: 3, disabled: locked, filter: ".pinned", preventOnFilter: false,
@@ -587,8 +593,10 @@ function renderTryDots() {
 }
 function updateRankHint() {
   const p = state.puzzle, g = state.rank;
-  if (!g.attempts.length) { $("#hint").textContent = "Put the cards in order: the values column tells you the numbers, not which country has which."; return; }
+  // v12.2: drop the "Put the cards in order…" footnote; only show progress after a try.
+  if (!g.attempts.length) { $("#hint").textContent = ""; $("#hint").classList.add("hidden"); return; }
   const n = g.pinned.length, tot = p.items.length;
+  $("#hint").classList.remove("hidden");
   $("#hint").innerHTML = `<b>${n} of ${tot}</b> in the right spot. Green cards are locked in. Move the others and try again.`;
 }
 function scoreAttempt(p, order) {
