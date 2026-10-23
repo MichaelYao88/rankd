@@ -165,6 +165,15 @@
         <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
         <button class="pill-btn" id="shareChallengeBtn">Share today's puzzle</button>
       </div>
+      <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
+      <aside class="crosspromo hidden" id="crossPromo" aria-label="Like Ranki?">
+        <p class="crosspromo-title">Like Ranki?</p>
+        <p class="crosspromo-body">Try the creator’s other game — WhereIsShe: guess where she is from a photo.</p>
+        <div class="crosspromo-actions">
+          <a class="crosspromo-cta" id="crossPromoCta" href="https://whereisshe.gg" target="_blank" rel="noopener">Play WhereIsShe →</a>
+          <button type="button" class="crosspromo-dismiss" id="crossPromoDismiss">Not now</button>
+        </div>
+      </aside>
       <div class="actions"><button class="pill-btn ghost" id="nextBtn">More puzzles →</button></div>
     </section>
     <!-- v12.2 AD SLOT: bottom banner, Practice only (body.mode-practice). On phones it sits right under the card and

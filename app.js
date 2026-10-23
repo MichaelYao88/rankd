@@ -42,7 +42,9 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.custom.v2   : an uploaded spreadsheet
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays)
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
-// Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The clear removes the keys above plus any
+//   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
+// Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
+// The clear removes the keys above plus any
 // "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
 // michaelyao88.github.io is shared with other projects (e.g. whereisshe), so localStorage.clear() is never called.
 // v12 Rankd Studio preview: index.html?preview=YYYY-MM-DD opens that scheduled day (past OR future). In preview the
@@ -582,6 +584,7 @@ function openPuzzle(p) {
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
+  const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
   const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
   $("#t5board").classList.toggle("hidden", !g); $("#hints").classList.toggle("hidden", !g);
   setHash(linkHash());
@@ -1379,6 +1382,7 @@ function showResult(res) {
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderCommunity(p);
+  maybeShowCrossPromo();
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
 }
@@ -1438,6 +1442,60 @@ function recordStats(res) {
   s.dist[k] = (s.dist[k] || 0) + 1; save(LS.stats, s);
 }
 function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; const dn = dayNumber(todayKey()); return (s.lastDay === dn || s.lastDay === dn - 1) ? s.streak : 0; }
+
+// ================================================================ sister game (WhereIsShe)
+// Small card inside #result, after the share row. Daily finishes only (the result panel is already past any
+// interstitial). Never Studio, ?preview=, practice, or All puzzles. Not Premium-gated.
+// Once per page session (memory). "Not now" and the CTA both suppress it for 7 days via rankd.crosspromo.v1.
+// That key is not on LS, so preview cannot remap it onto rankd.preview.*.
+const CROSSPROMO_KEY = "rankd.crosspromo.v1";
+const CROSSPROMO_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+let crossPromoShownThisSession = false;
+function crossPromoRead() {
+  try { const v = JSON.parse(localStorage.getItem(CROSSPROMO_KEY)); return v && typeof v === "object" ? v : null; }
+  catch { return null; }
+}
+function crossPromoDismissActive(dismissedAt, now) {
+  if (dismissedAt == null || dismissedAt === "") return false;
+  const t = typeof dismissedAt === "number" ? dismissedAt : Date.parse(dismissedAt);
+  return Number.isFinite(t) && (now - t) < CROSSPROMO_DISMISS_MS;
+}
+function crossPromoShouldShow(o) {
+  if (o.studio || o.preview) return false;
+  if (o.mode !== "daily") return false;
+  if (o.shownThisSession) return false;
+  if (crossPromoDismissActive(o.dismissedAt, o.now)) return false;
+  return (Number(o.played) || 0) >= 5 || (Number(o.streak) || 0) >= 3;
+}
+function crossPromoWrite(patch) {
+  if (PREVIEW || window.RANKD_STUDIO) return;
+  if (CROSSPROMO_KEY.indexOf("rankd.preview.") === 0) return;
+  const next = Object.assign({}, crossPromoRead() || {}, patch);
+  try { localStorage.setItem(CROSSPROMO_KEY, JSON.stringify(next)); } catch {}
+}
+function dismissCrossPromo() {
+  crossPromoShownThisSession = true;
+  const prev = crossPromoRead();
+  crossPromoWrite({ dismissedAt: new Date().toISOString(), lastShown: (prev && prev.lastShown) || new Date().toISOString() });
+  const el = $("#crossPromo"); if (el) el.classList.add("hidden");
+}
+function maybeShowCrossPromo() {
+  const el = $("#crossPromo"); if (!el) return;
+  // Already offered once this page session. Leave it alone if it's still up; don't open it again after they leave.
+  if (crossPromoShownThisSession) return;
+  const stats = load(LS.stats, null);
+  const rec = crossPromoRead();
+  const show = crossPromoShouldShow({
+    studio: !!window.RANKD_STUDIO, preview: !!PREVIEW, mode: state.mode,
+    shownThisSession: crossPromoShownThisSession,
+    dismissedAt: rec ? rec.dismissedAt : null,
+    played: stats && stats.played, streak: currentStreak(), now: Date.now(),
+  });
+  if (!show) { el.classList.add("hidden"); return; }
+  crossPromoShownThisSession = true;
+  crossPromoWrite({ lastShown: new Date().toISOString() });
+  el.classList.remove("hidden");
+}
 
 // ================================================================ sharing
 function shareUrl() { return CONFIG.siteUrl.replace(/#.*$/, "") + linkHash(); }
@@ -1828,6 +1886,8 @@ window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Obje
 
 // ================================================================ wire up
 $("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
+if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
+if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
 $("#menuBtn").onclick = menuModal;
