@@ -21,6 +21,8 @@ const CONFIG = {
   // v12.1 GOOGLE ADSENSE. The loader is only added on the real site (https, not localhost/file://), never in studio.html,
   // Studio preview (?preview=) or streamer mode. ?ads=live forces it on (tests), ?ads=placeholder forces the placeholders.
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
+  // Community compare snapshots (static JSON now; swap URL for Supabase/hourly later).
+  COMMUNITY_STATS_URL: "community-stats.json",
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
   ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
@@ -49,19 +51,32 @@ const RankdData = {
 window.RankdData = RankdData;
 
 // ================================================================
-// COMMUNITY STATS: BACKEND PLUG-IN POINT
+// COMMUNITY STATS: periodic snapshot (static JSON now; swap URL later)
 // ----------------------------------------------------------------
-// The prototype has NO backend, so no real player percentages exist.
-// Implement these two against Supabase or a Cloudflare Worker + D1/KV:
-//   submit: await supabase.from('results').insert({ puzzle_id, day, type, score, max, tries, payload })
-//   fetch:  await supabase.rpc('puzzle_stats', { puzzle_id, day })
-//           -> { players, pctPerfect, perItemCorrect: { [item name]: pct } }          (rank)
-//           -> { players, avgFound, avgRank, firstGuess: [{name, pct}] }             (top5)
-// Return null from fetch() to show the "coming soon" placeholder.
+// Shape (per puzzle id):
+//   rank/tier/match: { players, pctPerfect, perItemCorrect: { [name]: pct 0–100 }, seeded? }
+//   top5:            { players, avgFound, avgRank, firstGuess: [{name, pct}], seeded? }
+// submit stays a no-op until a write backend exists (no per-play PR spam).
 // ================================================================
 const CommunityStats = {
-  async submit(result) { /* TODO backend */ return false; },
-  async fetch(puzzleId, dayKey) { /* TODO backend */ return null; },
+  _cache: null, _url: null,
+  async load() {
+    const url = CONFIG.COMMUNITY_STATS_URL || "community-stats.json";
+    if (this._cache && this._url === url) return this._cache;
+    this._url = url;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("community-stats " + res.status);
+      this._cache = await res.json();
+    } catch (e) { this._cache = { puzzles: {} }; }
+    return this._cache;
+  },
+  async submit(/* result */) { return false; },   // v1: snapshot-only; no live writes
+  async fetch(puzzleId, /* dayKey */) {
+    const doc = await this.load();
+    const row = doc && doc.puzzles && doc.puzzles[puzzleId];
+    return row || null;
+  },
 };
 
 // ================================================================ helpers
@@ -1278,14 +1293,50 @@ function showResult(res) {
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
 }
+function communityCrow(label, pct, emoji) {
+  const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  return `<div class="crow"><span class="cn">${emoji ? esc(emoji) + " " : ""}${esc(label)}</span><span class="cb" aria-hidden="true"><i style="width:${v}%"></i></span><span class="cp">${v}%</span></div>`;
+}
 async function renderCommunity(p) {
-  const body = $("#communityBody"), badge = $("#communityBadge");
+  const wrap = document.querySelector(".community"), body = $("#communityBody"), badge = $("#communityBadge");
+  const headLabel = wrap && wrap.querySelector(".community-head > span:first-child");
+  // Practice doesn't count toward community compare
+  if (state.mode === "practice") {
+    if (wrap) wrap.classList.add("hidden");
+    return;
+  }
+  if (wrap) wrap.classList.remove("hidden");
   let data = null; try { data = await CommunityStats.fetch(p.id, state.dateKey); } catch {}
-  if (data) { badge.textContent = `${data.players.toLocaleString()} players`; body.textContent = JSON.stringify(data); return; } // TODO: render real stats
-  badge.textContent = "Coming soon";
-  const rows = p.type === "rank" || p.type === "tier" ? p.items : p.type === "match" ? p.people : (p.countries || []).slice(0, 3);
-  body.innerHTML = `No player data yet. This prototype has no backend; once one is connected this shows how everyone did.` +
-    rows.slice(0, 6).map(it => `<div class="crow" aria-hidden="true"><span class="cn">${esc(it.emoji)} ${esc(it.name)}</span><span class="cb"><i style="width:0"></i></span><span class="cp">–%</span></div>`).join("");
+  if (!data) {
+    badge.textContent = "Coming soon";
+    if (headLabel) headLabel.textContent = "What % of players got it right?";
+    body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
+    return;
+  }
+  const n = Number(data.players) || 0;
+  badge.textContent = data.seeded ? `Early data · ${n.toLocaleString()} players` : `${n.toLocaleString()} players`;
+  badge.title = data.seeded ? "Seeded snapshot until live aggregates exist" : "";
+  let html = "";
+  if (data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier")) {
+    if (headLabel) headLabel.textContent = p.type === "match" ? "What % matched each person?" : p.type === "tier" ? "What % put each in the right tier?" : "What % of players got each right?";
+    html += `<div class="community-summary"><b>${Math.round(data.pctPerfect)}%</b> solved perfectly${p.type === "rank" || p.type === "tier" || p.type === "match" ? " (first-try / full clear)" : ""}</div>`;
+  }
+  if (data.perItemCorrect && typeof data.perItemCorrect === "object") {
+    const order = (p.type === "match" ? (p.people || []).map(x => x.name)
+      : (p.items || []).map(x => x.name));
+    const emojiOf = name => {
+      if (p.type === "match") return (p.people || []).find(x => x.name === name)?.emoji || "";
+      return (p.items || []).find(x => x.name === name)?.emoji || "";
+    };
+    const names = order.length ? order.filter(n => n in data.perItemCorrect) : Object.keys(data.perItemCorrect);
+    html += names.map(n => communityCrow(n, data.perItemCorrect[n], emojiOf(n))).join("");
+  } else if (p.type === "top5" || data.firstGuess) {
+    if (headLabel) headLabel.textContent = "What did players guess first?";
+    html += `<div class="community-summary">Avg found <b>${esc(data.avgFound)}</b>/5 · avg world rank <b>#${esc(data.avgRank)}</b></div>`;
+    const guesses = data.firstGuess || [];
+    html += guesses.map(g => communityCrow(g.name, g.pct, g.emoji)).join("");
+  }
+  body.innerHTML = html || `<p class="community-empty">No breakdown for this puzzle yet.</p>`;
 }
 
 // ================================================================ stats (today's daily only)
