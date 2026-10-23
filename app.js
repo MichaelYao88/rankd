@@ -1446,10 +1446,10 @@ function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; con
 // ================================================================ sister game (WhereIsShe)
 // Small card inside #result, after the share row. Daily finishes only (the result panel is already past any
 // interstitial). Never Studio, ?preview=, practice, or All puzzles. Not Premium-gated.
-// Once per page session (memory). "Not now" and the CTA both suppress it for 7 days via rankd.crosspromo.v1.
+// Once per page session (memory). "Not now" and the CTA both suppress it for 2 days via rankd.crosspromo.v1.
 // That key is not on LS, so preview cannot remap it onto rankd.preview.*.
 const CROSSPROMO_KEY = "rankd.crosspromo.v1";
-const CROSSPROMO_DISMISS_MS = 7 * 24 * 60 * 60 * 1000;
+const CROSSPROMO_DISMISS_MS = 2 * 24 * 60 * 60 * 1000;
 let crossPromoShownThisSession = false;
 function crossPromoRead() {
   try { const v = JSON.parse(localStorage.getItem(CROSSPROMO_KEY)); return v && typeof v === "object" ? v : null; }
