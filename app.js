@@ -29,11 +29,14 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
   // Premium (Lemon/Supabase later). enabled:false = everyone is free.
   premium: { enabled: false },
-  // Page analytics. No vendor script until enabled and a measurement id are set.
+  // PostHog product analytics (same project as WhereIsShe; events are split with site:"ranki").
+  // The loader, posthog.init and register({ site: "ranki" }) live in the index.html <head> snippet.
+  // phc_ is the public client token, not a service secret. Studio and ?preview= do not capture.
   ANALYTICS: {
-    enabled: false,
-    provider: null, // "ga4" | "plausible"
-    measurementId: "", // GA4 G-XXXXXXXX or Plausible domain
+    enabled: true,
+    provider: "posthog",
+    apiHost: "https://us.i.posthog.com",
+    token: "phc_BFzhf5CAX9wKcoGBVXnX3uPb4T2LAjeD3ZfBGiHWvFxc",
   },
   freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
   longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
@@ -314,11 +317,31 @@ function applyPremium() {
   document.documentElement.classList.toggle("premium", isPremium());
   if (typeof AdSense !== "undefined") AdSense.init();
 }
-// No-op until CONFIG.ANALYTICS.enabled and measurementId are both set. No GA4 or Plausible script is injected before that.
-function initAnalytics() {
-  const a = CONFIG.ANALYTICS;
-  if (!a || a.enabled !== true || !a.provider || !String(a.measurementId || "").trim()) return;
-  // enabled + id: the GA4 or Plausible snippet is added in a later change. Nothing loads today.
+// Capture helper. No-ops when PostHog was not loaded (snippet missing, Studio, or ?preview= sandbox).
+// Props stay free of typed text, names and puzzle copy.
+function track(event, props) {
+  try {
+    if (window.RANKD_STUDIO || PREVIEW) return;
+    const a = CONFIG.ANALYTICS;
+    if (!a || a.enabled !== true || a.provider !== "posthog") return;
+    const ph = window.posthog;
+    if (!ph || typeof ph.capture !== "function") return;
+    if (props) ph.capture(event, props); else ph.capture(event);
+  } catch (e) {}
+}
+function freshRound(saved) {
+  if (!saved) return true;
+  if (isDone(saved)) return false;
+  if (Array.isArray(saved.attempts) && saved.attempts.length) return false;
+  if (Array.isArray(saved.guesses) && saved.guesses.length) return false;
+  return true;
+}
+function trackGameCompleted(res) {
+  const type = (state.puzzle && state.puzzle.type) || res.type;
+  const guesses = type === "top5"
+    ? (Array.isArray(res.guesses) ? res.guesses.length : Number(res.tries) || 0)
+    : (Number(res.tries) || (Array.isArray(res.attempts) ? res.attempts.length : 0));
+  track("game_completed", { won: type === "top5" ? !!res.won : !!res.solved, guesses, mode: state.mode, puzzle_type: type });
 }
 const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
@@ -670,6 +693,7 @@ function openPuzzle(p) {
   $("#t5board").classList.toggle("hidden", !g); $("#hints").classList.toggle("hidden", !g);
   setHash(linkHash());
   const saved = getResult();
+  if (freshRound(saved)) track("game_started", { mode: state.mode, puzzle_type: p.type });
   p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop5(saved);
   window.scrollTo({ top: 0 }); syncPlaying();
 }
@@ -846,6 +870,7 @@ function submitRank() {
     Object.assign(g, { marks, order: [...state.order], points: marks.filter(m => m === "good").length, max: marks.length, values: true });
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    trackGameCompleted(g);
     $("#board").classList.add("locked"); state.sortable?.option("disabled", true);
     $("#submitBtn").parentElement.classList.add("hidden"); $("#hint").classList.add("hidden"); renderTryDots();
     feedback(marks, true);
@@ -966,6 +991,7 @@ function submitMatch() {
     g.done = true; g.solved = solved; Object.assign(g, { marks, points: marks.filter(m => m === "good").length, max: marks.length });
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    trackGameCompleted(g);
     $("#matchGame").classList.add("locked"); paintMatch(); $$("#mClues .m-clue").forEach(li => { const k = +li.dataset.c; li.classList.toggle("good", marks[k] === "good"); li.classList.toggle("bad", marks[k] !== "good"); });
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "rank");
     setTimeout(() => afterSubmit(() => revealMatch(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
@@ -1133,6 +1159,7 @@ function submitTier() {
     Object.assign(g, { marks, assign: [...g.cur], points: marks.filter(m => m === "good").length, max: marks.length });
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    trackGameCompleted(g);
     $("#tierGame").classList.add("locked");
     $("#tierSubmit").parentElement.classList.add("hidden"); $("#tierHint").classList.add("hidden"); renderTierTries();
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "rank");
@@ -1296,6 +1323,7 @@ function submitGuess(c) {
     g.marks = g.guesses.map(k => inTop(p, findCountry(p, k)) ? "good" : "miss");
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    trackGameCompleted(g);
     $("#guessForm").classList.add("hidden");
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "top5");
     afterSubmit(() => showResult(g), tier);
@@ -1480,6 +1508,7 @@ async function renderCommunity(p) {
     return;
   }
   if (wrap) wrap.classList.remove("hidden");
+  if (wrap) track("compare_viewed", { mode: state.mode, puzzle_type: p && p.type });
   let data = null; try { data = await CommunityStats.fetch(p.id, state.dateKey); } catch {}
   if (!data) {
     badge.textContent = "Coming soon";
@@ -1602,7 +1631,9 @@ function resultText() {
   return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${shareUrl()}`;
 }
 async function doShare(text) {
-  if (!text) return; window.__lastShare = text;
+  if (!text) return;
+  track("share_clicked", { mode: state.mode, puzzle_type: state.puzzle && state.puzzle.type });
+  window.__lastShare = text;
   if (navigator.share && matchMedia("(pointer:coarse)").matches) { try { await navigator.share({ text }); return; } catch (e) { if (e.name === "AbortError") return; } }
   try { await navigator.clipboard.writeText(text); toast("Copied to clipboard!"); }
   catch { const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
@@ -2005,7 +2036,7 @@ gi.addEventListener("blur", () => setTimeout(closeSuggest, 150));
 $("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); fillGuess(sugg[+li.dataset.i]); } });   // fill only, never submit
 $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
-applyTheme(); applyStreamer(); applyPremium(); initAnalytics();
+applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);

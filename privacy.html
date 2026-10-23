@@ -22,7 +22,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Privacy · Rankd · ranki.gg</title>
-<meta name="description" content="Rankd's privacy policy: what is stored in your browser, Google AdSense cookies and personalised ads, consent, children and contact.">
+<meta name="description" content="Rankd's privacy policy: what is stored in your browser, Google AdSense cookies and personalised ads, anonymous PostHog product analytics, consent, children and contact.">
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="styles.css">
 <script src="site-config.js"></script>
@@ -36,7 +36,7 @@
 
 <p>This policy explains what information is used when you play Rankd at ranki.gg (the "site"). Rankd is a free, ad-supported daily
 puzzle game made by Michael Yao ("we", "us"). The short version: we don't have accounts, your streak and progress stay in your own browser,
-and a finished Daily or Archive puzzle also sends an anonymous score summary so community percentages can be counted. The ads on the site are provided by Google AdSense, which uses cookies as described below.</p>
+and a finished Daily or Archive puzzle also sends an anonymous score summary so community percentages can be counted. The ads on the site are provided by Google AdSense, and anonymous product analytics by PostHog, both described below.</p>
 
 <h2>No accounts</h2>
 <p>You don't sign up or log in to play. We don't ask for your name, email address or any other personal information.</p>
@@ -44,6 +44,9 @@ and a finished Daily or Archive puzzle also sends an anonymous score summary so 
 <p>The site is hosted on GitHub Pages. Like any web host, GitHub may log technical information such as your IP address when your browser
 requests a page, for security and to run the service. See the
 <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
+
+<h2>Product analytics (PostHog)</h2>
+<p>Rankd uses <a href="https://posthog.com/privacy" target="_blank" rel="noopener">PostHog</a> for anonymous product analytics. We record that a round started, that a round finished (whether you solved it, and how many guesses it took), that you opened the comparison with other players, or that you clicked a share button. An event can include the mode (daily, archive or practice) and the puzzle type. It does not include your name, email, or anything you type, including your guesses. PostHog may store a random identifier in your browser so those events can be counted; that identifier is not an account. Studio and Loading Zone preview (<code>?preview=</code>) are not tracked.</p>
 
 <h2>What is stored in your browser (localStorage)</h2>
 <p>To remember your progress, Rankd saves a few items in your browser's local storage on your device. They never leave your device and
@@ -85,7 +88,7 @@ asked for consent through a Google-certified consent management platform before 
 refuse, and you can change or withdraw your choice at any time through the privacy and cookie settings link offered by the consent message.
 Where you don't consent, only non-personalised (or limited) ads are shown. Under the GDPR and UK GDPR you have rights to access,
 correct, delete and object to the use of your personal data. Requests about advertising data are best directed to Google via the links above.
-For the anonymous play row described above, or anything else, you can contact us.</p>
+For the anonymous play row or the product-analytics events described above, or anything else, you can contact us.</p>
 
 <h2>Children</h2>
 <p>Rankd is a general-audience game and is not directed at children under 13 (or under 16 in the EEA and UK). We don't knowingly collect
