@@ -7,7 +7,7 @@
 
 // ================================================================ config
 const CONFIG = {
-  brand: "Rankd",
+  brand: "Ranki.gg",  // v12.2 visible wordmark; localStorage keys stay rankd.*
   // Public URL used in share links. From file:// we can't share a local path, so a placeholder is used.
   siteUrl: (location.protocol.startsWith("http") ? location.origin + location.pathname : "https://rankd.example/"),
   // Daily No. 1 date. Set this to your launch date. (Prototype: set 2 weeks back so the Archive has content.)
@@ -1329,6 +1329,48 @@ function extraSheet() {
 }
 window.RankdFit = { sync: syncPlaying, layout: fitLayout };
 
+
+// ================================================================ v12.2 first-visit howto
+const HOWTO_KEY = "rankd.howto.seen.v1";
+function howtoSeen() { try { return localStorage.getItem(HOWTO_KEY) === "1"; } catch (e) { return true; } }
+function markHowtoSeen() { try { localStorage.setItem(HOWTO_KEY, "1"); } catch (e) {} }
+function dismissHowto() {
+  const el = $("#howtoOverlay"); if (!el) return;
+  el.classList.add("hidden"); markHowtoSeen();
+}
+function runHowtoDemo() {
+  const rows = $$("#howtoOverlay .howto-card-row");
+  const step = $("#howtoStep"); const lock = $("#howtoLockDemo");
+  if (!rows.length) return;
+  // DOM order: Sweden, Israel, Hungary. Correct high→low: Israel 83, Hungary 60, Sweden 19.
+  const h = rows[0].offsetHeight + 6;
+  const targetPos = { 1: 0, 2: 1, 0: 2 }; // item index → sorted slot
+  rows.forEach((li) => { li.style.transform = "translateY(0)"; li.classList.remove("good"); });
+  step.textContent = "Watch the cards slide into order…";
+  lock.disabled = true; lock.textContent = "Lock it in ↵"; lock.classList.remove("pulse");
+  setTimeout(() => {
+    rows.forEach((li, n) => { li.style.transform = `translateY(${(targetPos[n] - n) * h}px)`; });
+    step.textContent = "Highest value at the top — then Lock it in.";
+    setTimeout(() => { lock.disabled = false; }, 650);
+  }, 700);
+  lock.onclick = () => {
+    if (lock.disabled) return;
+    rows.forEach(li => li.classList.add("good"));
+    step.textContent = "Green = right spot. Wrong cards stay red so you can fix them.";
+    lock.textContent = "Nice!";
+    lock.disabled = true;
+    setTimeout(dismissHowto, 1100);
+  };
+}
+function maybeShowHowto() {
+  if (howtoSeen()) return;
+  const el = $("#howtoOverlay"); if (!el) return;
+  el.classList.remove("hidden");
+  runHowtoDemo();
+  $("#howtoSkip").onclick = dismissHowto;
+  el.addEventListener("click", (e) => { if (e.target === el) dismissHowto(); });
+}
+
 // ================================================================ views / navigation
 function showView(v) {
   if (v !== "play") showFab(false);
@@ -1576,4 +1618,5 @@ function route() {
 }
 window.addEventListener("hashchange", () => { if (!PREVIEW && (location.hash !== linkHash() || $("#playView").classList.contains("hidden"))) route(); });
 route();
+maybeShowHowto();
 })();
