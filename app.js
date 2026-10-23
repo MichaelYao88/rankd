@@ -1471,7 +1471,7 @@ function showResult(res) {
   } else if (res.type === "rank" || res.type === "tier") {
     const max = CONFIG.rankMaxTries;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
-    $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : res.tries <= 2 ? `Sharp! Solved in ${res.tries} tries` : `Solved in ${res.tries} tries`) : "Stereotypes got you 😅";
+    $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : res.tries <= 2 ? `Sharp! Solved in ${res.tries} tries` : `Solved in ${res.tries} tries`) : "Tricky one 😅";
     $("#answerBox").classList.add("hidden");
   } else {
     const h = hitsOf(p, res), m = missesOf(p, res), avg = avgRank(p, res);
