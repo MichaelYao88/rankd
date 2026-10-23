@@ -447,7 +447,12 @@ function parseTables(t) {
   const res = out.filter(p => p.type !== "rank" || p.items.length >= 2).map(p => ({ ...p, question: p.question || p.stat || p.id })).sort((a, b) => a.order - b.order);
   // v11 (same as build.py apply_titles): no "(Group X)" labels. Rankers sharing a "dataset" key are titled with the plain
   // stat name (series_title) + 2 flags from their own countries that never both appear in another variant of that dataset.
-  const TITLE_PIN = { alcohol: ["India", "Italy"] };
+  const TITLE_PIN = {
+    alcohol: ["India", "Italy"],
+    "wealth-gini-nordic": ["Sweden", "United States"],
+    "wealth-gini-top-heavy": ["Brazil", "Singapore"],
+    "wealth-gini-level-field": ["Israel", "Slovakia"],
+  };
   // Safe-walking variants share a dataset but the headlines already tell them apart, so the question stays the plain stem (no flag pair).
   const NO_TITLE_FLAGS = new Set(["gallup-safe-night"]);
   const byDs = {}; res.forEach(p => { p.question = p.question.replace(/\s*\(Group [A-Z]\)\s*$/, ""); if (p.type === "rank" && p.dataset) (byDs[p.dataset] ||= []).push(p); });
@@ -774,6 +779,7 @@ const SOURCE_BRAND = [
   [/world population review/i, "WORLD POPULATION REVIEW"],
   [/ethnologue/i, "ETHNOLOGUE"],
   [/gallup/i, "GALLUP"],
+  [/\bubs\b/i, "UBS"],
   [/wikipedia/i, "WIKIPEDIA"],
   [/equaldex/i, "EQUALDEX"],
   [/cia (world )?factbook|factbook/i, "CIA"],
@@ -923,6 +929,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Gambling Morality": "think gambling is wrong",
   "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
   "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
+  "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
 };
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
