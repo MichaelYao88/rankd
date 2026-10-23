@@ -1282,31 +1282,30 @@ function addGuessRow(c, animate = true) {
     <div class="gr">${hit ? `#${slotOf(p, c).i + 1}<span class="of"> of 5</span><small>✅ In the top 5!${slotOf(p, c).tied ? " (tied #5)" : ""}</small>` : `#${tieRank(p, c)}<span class="of"> of ${p.countries.length}</span><small>⬜ Miss</small>`}</div>`;
   $("#guesses").prepend(li);
 }
-// --- hints (v8): after misses 2, 4, 6, 8, 9 one hint = ONE trait about ONE still-unfound top-5 country. The highest-ranked
-// unfound country gets its next unused hint from the puzzle's hint bank (5 per country, vague -> specific; from the
-// hint_bank sheet, built by build.py from country_info). Found it? Later hints move to the next unfound country.
-// Everything is derived from the guess sequence, so a reload shows exactly the same hints.
-const HINT_AT = [2, 4, 6, 8, 9];
+// --- hints: every incorrect guess reveals the next unused hint for ONE still-unfound top-5 country.
+// The highest-ranked unfound country gets its next unused hint from the puzzle's hint bank (5 per country,
+// vague -> specific; from the hint_bank sheet, built by build.py from country_info). Hits, duplicates and
+// empty submits do not spend a hint. Found it? Later hints move to the next unfound country. When no unfound
+// country has a hint left, later misses add nothing. Derived from the guess sequence, so a reload matches.
 const bankOf = c => (c.hints && c.hints.length ? c.hints : [`Its name starts with “${c.name.normalize("NFD")[0].toUpperCase()}”.`]);
 function hintPlan(p, g) {
   const sl = slotsOf(p), found = new Set(), used = {}, given = []; let misses = 0;   // found = slot indexes
-  const at = HINT_AT.filter(m => m < p.maxMisses);
   g.guesses.forEach(k => { const c = findCountry(p, k); if (!c) return;
-    const s = slotOf(p, c); if (s) { found.add(s.i); return; }
-    misses++; if (!at.includes(misses)) return;
+    const s = slotOf(p, c); if (s) { found.add(s.i); return; }   // hit: free
+    misses++;
     const ts = sl.find(x => !found.has(x.i) && (used[x.i] || 0) < bankOf(x.group[0]).length);   // tied slot: hints describe its first country
-    if (!ts) { given.push(null); return; }
-    const n = used[ts.i] = (used[ts.i] || 0) + 1, t = ts.group[0];
-    given.push({ target: t, slot: ts.i + 1, n, text: bankOf(t)[n - 1] }); });
-  return at.map((m, i) => ({ at: m, unlocked: misses >= m, ...(given[i] || {}) }));
+    if (!ts) return;   // banks exhausted: no blank card
+    const n = used[ts.i] = (used[ts.i] || 0) + 1, t = ts.group[0], text = bankOf(t)[n - 1];
+    if (!text) return;
+    given.push({ at: misses, target: t, slot: ts.i + 1, n, text }); });
+  return given;
 }
 function renderHints() {
   const p = state.puzzle, plan = hintPlan(p, state.guess), keys = new Set(state.guess.guesses);
   const found = { has: k => { const c = findCountry(p, k), s = slotOf(p, c); return !!(s && slotFound(p, s, keys)); } };   // slot filled by either tied country
-  $("#hints").innerHTML = plan.map((h, i) => !h.unlocked
-    ? `<div class="hint-card">🔒 Hint ${i + 1} unlocks after ${plural(h.at, "miss")}</div>`
-    : h.target ? `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>` : "").join("");
-  const cur = [...plan].reverse().find(h => h.unlocked && h.target && !found.has(cKey(h.target))), lh = $("#lastHint");   // newest still-useful hint, in the blue card
+  $("#hints").innerHTML = plan.filter(h => h.text).map(h =>
+    `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>`).join("");
+  const cur = [...plan].reverse().find(h => h.text && h.target && !found.has(cKey(h.target))), lh = $("#lastHint");   // newest still-useful hint, in the blue card
   lh.classList.toggle("hidden", !cur || state.guess.done);
   lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : ""; requestAnimationFrame(fitLayout);
 }
@@ -1317,7 +1316,7 @@ function submitGuess(c) {
   const h = hitsOf(p, g); g.hits = h; g.misses = missesOf(p, g); g.won = h >= 5; g.avgRank = avgRank(p, g);   // "won" = found all 5 (stats only)
   if (g.won || g.misses >= p.maxMisses) { g.done = true; g.tries = g.guesses.length; }
   setResult(g); renderTries(); renderHints(); renderTop5Board();
-  if (!inTop(p, c) && HINT_AT.includes(g.misses) && g.misses < p.maxMisses && !g.done) toast("💡 New hint unlocked");
+  if (!inTop(p, c) && !g.done && hintPlan(p, g).some(h => h.at === g.misses)) toast("💡 New hint unlocked");
   $("#guessInput").value = ""; closeSuggest();
   if (g.done) {
     g.marks = g.guesses.map(k => inTop(p, findCountry(p, k)) ? "good" : "miss");
@@ -1956,7 +1955,7 @@ function howModal() {
    <p><b>🖐️ Guess the top 5:</b> name as many of the top 5 countries as you can. Correct guesses are free; you can miss 10 times. Type a country, pick it from the list, then press <i>Guess</i> (or Enter). Each guess shows its real world rank and value: ✅ a hit, ⬜ a miss.</p>
    <p><b>🔗 Match it:</b> match each clue (4 to 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
-   <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). After misses ${HINT_AT.join(", ")} you get a hint: one fact about one top-5 country you haven't found yet (the highest-ranked one), getting more specific each time: continent, then population, then GDP per person, then its capital, then its first letter.</p>
+   <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). Every miss reveals a hint: one fact about the highest-ranked top-5 country you haven't found yet, getting more specific each time (continent, then population, then GDP per person, then its capital, then its first letter). A correct guess doesn't spend a hint.</p>
    <p>🎉 Solve a Rank it or Match it on the 1st or 2nd try (or find all 5 with at most 2 misses) for a celebration. First try = the big one.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
