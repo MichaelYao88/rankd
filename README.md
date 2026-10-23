@@ -82,10 +82,14 @@ There are two puzzle types, mixed into one daily rotation:
    (`v6`–`v12_puzzles`, `v7_top5_puzzles`, `v12_match_puzzles`, `country_lists`, `country_info`) and applies `SCHEDULE`. It **overwrites your edits**.
 
 ## v12.2 (Oct 23, 2026)
-* **Single Ladies!** (`sex-ratio-15-64`, #046): females per male ages 15–64 (1 ÷ CIA World Factbook males-per-female via Wikipedia oldid 1372609821): Hong Kong 1.23, Russia 1.05, Thailand 1.04, US 1.00, India 0.93, Qatar 0.23.
-* **Dating Odds** (`sex-ratio-15-64-b`, #072): same dataset — Puerto Rico 1.09, Ireland 1.02, UK 0.98, China 0.94, South Korea 0.93, Saudi Arabia 0.70. Title uses 2 flags. Shares 0 countries with Single Ladies!.
-* **No Country for Old Men** (`sex-ratio-65`, #100): females per male ages 65+ — Ukraine 1.89, Cambodia 1.82, North Korea 1.69, Portugal 1.52, US 1.23, UAE 0.31. Shares only the US with Single Ladies!. (Former aged-65 headline renamed **Silver Wave**.)
-* Puerto Rico is listed separately on the Wikipedia table (`Puerto Rico (US)`). Practice datasets `cia-sex-ratio-15-64` and `cia-sex-ratio-65` (199 ISO-mapped places).
+* **Single Ladies!** (`sex-ratio-15-64`, #046): women per 100 men ages 15–64 (100 ÷ CIA World Factbook males-per-female via Wikipedia oldid 1372609821): Hong Kong 123, Russia 105, Thailand 104, US 100, India 93, Qatar 23.
+* **Dating Odds** (`sex-ratio-15-64-b`, #074): same dataset — Puerto Rico 109, Ireland 102, UK 98, China 94, South Korea 93, Saudi Arabia 70. Title uses 2 flags. Shares 0 countries with Single Ladies!.
+* **No Country for Old Men** (`sex-ratio-65`, #102): women per 100 men ages 65+ — Ukraine 189, Cambodia 182, North Korea 169, Portugal 152, US 123, UAE 31. Shares only the US with Single Ladies!. (Former aged-65 headline renamed **Silver Wave**.)
+* Puerto Rico is listed separately on the Wikipedia table (`Puerto Rico (US)`). Practice datasets `cia-sex-ratio-15-64` and `cia-sex-ratio-65` (199 ISO-mapped places, unit women per 100 men).
+* **Protect the Gays** (`equaldex-legal`, #047, sensitive): Equaldex Legal Index — France 90, Taiwan 69, Moldova 65, South Korea 48, Russia 35, Afghanistan 0. Practice dataset `equaldex-legal` (171).
+* **On the Books** (`equaldex-legal-b`, #073, sensitive): same Legal Index — Mongolia 60, Ukraine 59, Japan 57, Palestine 28, Indonesia 12, Nigeria 7. Shares 0 with Protect the Gays.
+* **Why are you gay?** (`equaldex-opinion`, #110, sensitive): Equaldex Public Opinion Index — Norway 87, Thailand 67, China 66, US 56, Israel 51, Uganda 18. Practice dataset `equaldex-opinion` (171).
+* **Asking for a Friend** (`equaldex-opinion-b`, #114, sensitive): same Opinion Index — India 53, South Korea 39, Pakistan 31, Russia 19, Uganda 18, Afghanistan 2. Shares only Uganda with Why are you gay? (max-1). Scraped live from equaldex.com/equality-index on 2026-10-23 (Equaldex updates automatically).
 * **Match it now takes 4 to 7 pairs** (was 6 or 7; app.js + build.py validation).
 * **Foreign Relations** (4): Stubb and Edi Rama removed; shorter clues. **Before the History Books** (5): Idi Amin and Xi removed; shorter clues.
 * **Hard Line** (5): Israel removed; compact clues (Netherlands "Up to 15 years or a fine (child under 12)", India "20+ years to death",
@@ -107,7 +111,7 @@ There are two puzzle types, mixed into one daily rotation:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
   The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
-  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 113 puzzles (102 Rank it, 7 Top 5, 4 Match it), ends Jan 26 2027.
+  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 120 puzzles (109 Rank it, 7 Top 5, 4 Match it), ends Feb 2 2027.
 * **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;
   `tools/v122_practice_patch.py` + a runtime check). Top banner + a new **bottom banner** (`#adBottom`, Practice only; on phones it is pinned to the
   bottom and the card shrinks so Guess / Lock it in stays above it). **Interstitial on "next"**: pressing 🎲 New (or the Practice tab) on an unfinished
