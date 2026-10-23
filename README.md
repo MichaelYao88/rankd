@@ -92,6 +92,7 @@ There are two puzzle types, mixed into one daily rotation:
 * **Asking for a Friend** (`equaldex-opinion-b`, #114, sensitive): same Opinion Index — India 53, South Korea 39, Pakistan 31, Russia 19, Uganda 18, Afghanistan 2. Shares only Uganda with Why are you gay? (max-1). Scraped live from equaldex.com/equality-index on 2026-10-23 (Equaldex updates automatically).
 * **God is Meaningful** (`pew-meaning-religion`, Tier it, #104): Pew Spring 2021 Global Attitudes Q36 — % who mentioned spirituality/faith/religion as a source of meaning. USA 15, Australia 4, UK/Italy/Germany 2, Japan 0 (tiers 15% / 4% / 2% / 0%). Full 17-public table in `data/pew-meaning-religion.json` + Practice dataset (`kind: "tier"`).
 * **What Matters Most** (`match-pew-meaning`, Match it, #046, 5 pairs): same Pew report — UK hobbies highest, South Korea material well-being #1, Taiwan society #1, Spain health #1, Italy occupation highest. Clues avoid own-country names.
+* **Share the Tape** (`pew-police-videos-good`, #037, sensitive): Pew ATP Apr 10–16 2023 — % saying videos of police violence against Black people being widely shared is a good thing: Dem 68, Black 65, Asian 50, Latino/Hispanic 48, White 41, Rep 24. Asian = English speakers only.
 * **Lost in Translation** (`ef-epi-city`, #030) / **Speak Easy** (`ef-epi-city-b`, #107): EF EPI 2025 city scores — Seoul 550, Rome 538, Hanoi 532, Beijing 514, Jerusalem 498, Tokyo 480; and Copenhagen 644, Warsaw 591, Kuala Lumpur 588, Paris 583, Rome 538, Moscow 537 (share Rome only). Jerusalem is in the 2025 city table.
 * **Broken English** (`ef-epi-country`, #048) / **Fluent Enough** (`ef-epi-country-b`, #110): EF EPI 2025 country scores — KE 593, KR 522, RU 521, IT 513, ID 471, JP 446; and AT 616, PT 612, ZW 602, PL 600, FR 539, RU 521 (share Russia only). Edition: EF EPI 2025 (tests 2024, published Nov 2025).
 * **Devil's Dice** (`gambling-immoral`, #035): Pew Spring 2025 — % who say gambling is morally wrong: Indonesia 89, South Korea 78, Israel 55, Mexico 49, Germany 32, US 29.
@@ -118,7 +119,7 @@ There are two puzzle types, mixed into one daily rotation:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
   The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
-  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 128 puzzles (115 Rank it, 7 Top 5, 5 Match it, 1 Tier it), ends Feb 10 2027.
+  `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 129 puzzles (116 Rank it, 7 Top 5, 5 Match it, 1 Tier it), ends Feb 11 2027.
 * **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;
   `tools/v122_practice_patch.py` + a runtime check). Top banner + a new **bottom banner** (`#adBottom`, Practice only; on phones it is pinned to the
   bottom and the card shrinks so Guess / Lock it in stays above it). **Interstitial on "next"**: pressing 🎲 New (or the Practice tab) on an unfinished
