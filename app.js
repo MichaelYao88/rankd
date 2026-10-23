@@ -55,6 +55,7 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.custom.v2   : an uploaded spreadsheet
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays)
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
+//   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
 // The clear removes the keys above plus any
@@ -76,17 +77,86 @@ window.RankdData = RankdData;
 // COMMUNITY STATS: snapshot from the Ranki Supabase Edge Function.
 // Finished Daily / Archive games insert one row into public.plays.
 // ----------------------------------------------------------------
-// Shape (per puzzle id), served by COMMUNITY_STATS_URL:
-//   rank/tier/match: { players, pctPerfect, perItemCorrect: { [name]: pct 0–100 }, seeded? }
-//   top5:            { players, avgFound, avgRank, firstGuess: [{name, pct}], seeded? }
+// Shape (per puzzle id), served by COMMUNITY_STATS_URL (the doc is returned as stored):
+//   shared: players, pctPerfect, seeded?
+//   rank/tier/match: perItemCorrect: { [name]: pct 0–100 }   // final attempt, kept
+//   top5: avgFound, avgRank, firstGuess: [{name, emoji, pct}] // world, kept
+//   all:  firstGuessWorld: { players, bars: [...] }
+//         firstGuessByCountry: { "TW": { players, bars }, "US": {...} }
+//   bars: rank {slot, name, pct}; tier {name, tier, pct}; match {name, matchedTo, label, pct}; top5 {name, pct}
 // pctPerfect is "solved perfectly (first-try / full clear)".
+// A country bucket under COMMUNITY_MIN_COUNTRY plays is an empty state, not invented stats.
 // Practice hides compare and is not inserted. Studio never starts the game.
 // ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
 // card already skip it) so those finishes are not inserted either. Streamer mode
 // only hides ads — a Daily or Archive finish there still counts.
+// ?stats=local forces the repo seed. ?cc=TW only changes which bucket the panel reads.
 // Writes are fire-and-forget. Failures never surface in the UI.
+// Country is not sent by the client. submit-play derives an ISO code and drops the IP.
 // ================================================================
 const COMMUNITY_STATS_FALLBACK = "community-stats.json";
+const COMMUNITY_MIN_COUNTRY = 20;
+const GEO_LS = "rankd.country.v1";
+const GEO_TTL_MS = 12 * 60 * 60 * 1000;
+const GEO_NEG_TTL_MS = 10 * 60 * 1000;
+function clipCommunityName(value) {
+  const text = String(value ?? "").trim();
+  return text ? text.slice(0, 80) : "";
+}
+function namedPiece(it) {
+  const name = clipCommunityName(it && it.name);
+  if (!name) return null;
+  const piece = { name };
+  const emoji = it.emoji ? String(it.emoji).slice(0, 16) : "";
+  if (emoji) piece.emoji = emoji;
+  return piece;
+}
+function attemptGuess(type, attempt, p) {
+  if (!attempt || !p) return null;
+  if (type === "rank" && Array.isArray(attempt.order) && p.items) {
+    const order = [];
+    for (const idx of attempt.order) {
+      const piece = namedPiece(p.items[idx]);
+      if (piece) order.push(piece);
+    }
+    return order.length ? { kind: "rank", order } : null;
+  }
+  if (type === "tier" && Array.isArray(attempt.assign) && p.items) {
+    const assign = [];
+    attempt.assign.forEach((ti, i) => {
+      const piece = namedPiece(p.items[i]);
+      if (!piece) return;
+      const tier = p.tiers && p.tiers[ti];
+      if (tier && tier.label) piece.tier = clipCommunityName(tier.label).slice(0, 40);
+      if (Number.isInteger(ti)) piece.tierIndex = ti;
+      assign.push(piece);
+    });
+    return assign.length ? { kind: "tier", assign } : null;
+  }
+  if (type === "match" && Array.isArray(attempt.assign) && p.people) {
+    const pairs = [];
+    attempt.assign.forEach((personIdx, clueIdx) => {
+      const clueFor = p.people[clueIdx], person = p.people[personIdx];
+      const clueName = clipCommunityName(clueFor && clueFor.name);
+      const personName = clipCommunityName(person && person.name);
+      if (!clueName || !personName) return;
+      const pair = { clueFor: clueName, person: personName };
+      if (person.emoji) pair.personEmoji = String(person.emoji).slice(0, 16);
+      pairs.push(pair);
+    });
+    return pairs.length ? { kind: "match", pairs } : null;
+  }
+  return null;
+}
+function top5Piece(p, key) {
+  if (key == null || key === "") return null;
+  const c = p && p.countries && p.countries.find(x => (x.iso3 && x.iso3 === key) || x.name === key);
+  if (!c || !c.name) return { kind: "top5", key: clipCommunityName(key) };
+  const piece = { kind: "top5", name: clipCommunityName(c.name) };
+  if (c.emoji) piece.emoji = String(c.emoji).slice(0, 16);
+  try { piece.hit = inTop(p, c); piece.rank = tieRank(p, c); } catch { /* catalog not ready */ }
+  return piece;
+}
 function communityPlayRow(result) {
   if (!result || window.RANKD_STUDIO || PREVIEW) return null;
   const mode = result.mode;
@@ -98,6 +168,7 @@ function communityPlayRow(result) {
   const tries = result.tries ?? null;
   let solved = false, perfect = false;
   const payload = { tries };
+  let first = null, second = null;
   if (type === "rank" || type === "tier" || type === "match") {
     solved = !!result.solved;
     perfect = solved && tries === 1;   // first-try / full clear (pctPerfect)
@@ -106,11 +177,17 @@ function communityPlayRow(result) {
     else if (type === "rank" && p && p.items && result.order) payload.items = result.order.map((idx, n) => ({ name: p.items[idx] ? p.items[idx].name : null, mark: marks[n] || null }));
     else if (type === "tier" && p && p.items) payload.items = p.items.map((it, i) => ({ name: it.name, mark: marks[i] || null }));
     else payload.marks = marks;
+    // attempts[0] is the first lock-in. The final order is payload.items and is not reused as
+    // the first guess when the player tried more than once.
+    const attempts = Array.isArray(result.attempts) ? result.attempts : [];
+    first = attemptGuess(type, attempts[0], p);
+    second = attempts.length > 1 ? attemptGuess(type, attempts[1], p) : null;
   } else if (type === "top5") {
     solved = !!result.won;   // found all 5
     const misses = result.misses ?? null;
     perfect = solved && misses === 0;   // flawless full clear (same bar as FLAWLESS)
-    const guesses = (result.guesses || []).map(k => {
+    const keys = result.guesses || [];
+    const guesses = keys.map(k => {
       const c = p && p.countries && p.countries.find(x => (x.iso3 && x.iso3 === k) || x.name === k);
       return c ? { name: c.name, emoji: c.emoji || "", hit: inTop(p, c), rank: tieRank(p, c) } : { key: k };
     });
@@ -118,18 +195,89 @@ function communityPlayRow(result) {
     payload.hits = result.hits ?? null;
     payload.misses = misses;
     payload.avgRank = result.avgRank ?? null;
-    const first = guesses[0];
-    payload.firstGuess = first && first.name ? { name: first.name, emoji: first.emoji || "" } : null;
+    first = top5Piece(p, keys[0]);
+    second = keys.length > 1 ? top5Piece(p, keys[1]) : null;
   } else {
     solved = !!(result.solved || result.won);
     perfect = solved && tries === 1;
   }
-  return { puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload };
+  payload.firstGuess = first;
+  payload.secondGuess = second;
+  return {
+    puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload,
+    first_guess: first, second_guess: second,
+  };
 }
+function regionName(code) {
+  const c = String(code || "").toUpperCase();
+  if (!/^[A-Z]{2}$/.test(c)) return "";
+  try {
+    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(c);
+    return name && name !== c ? name : c;
+  } catch { return c; }
+}
+const ViewerGeo = {
+  _memo: undefined,
+  async country() {
+    let override = "";
+    try { override = new URLSearchParams(location.search).get("cc") || ""; } catch { override = ""; }
+    if (/^[A-Za-z]{2}$/.test(override)) return override.toUpperCase();
+    if (this._memo !== undefined) return this._memo;
+    const cached = this._read();
+    if (cached !== undefined) { this._memo = cached; return cached; }
+    const code = await this._fetch();
+    this._write(code);
+    this._memo = code;
+    return code;
+  },
+  _stores() {
+    const stores = [];
+    try { stores.push(sessionStorage); } catch { /* private mode */ }
+    try { stores.push(localStorage); } catch { /* private mode */ }
+    return stores;
+  },
+  _read() {
+    for (const store of this._stores()) {
+      try {
+        const v = JSON.parse(store.getItem(GEO_LS) || "null");
+        if (!v || typeof v.at !== "number") continue;
+        const ttl = v.code ? GEO_TTL_MS : GEO_NEG_TTL_MS;
+        if (Date.now() - v.at > ttl) continue;
+        const code = String(v.code || "").toUpperCase();
+        return /^[A-Z]{2}$/.test(code) ? code : null;
+      } catch { /* next store */ }
+    }
+    return undefined;
+  },
+  _write(code) {
+    const v = JSON.stringify({ code: code || null, at: Date.now() });
+    for (const store of this._stores()) { try { store.setItem(GEO_LS, v); } catch { /* ignore */ } }
+  },
+  async _fetch() {
+    const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
+    const key = CONFIG.SUPABASE_ANON_KEY;
+    if (!base || !key) return null;
+    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 2500) : null;
+    try {
+      const res = await fetch(base + "/functions/v1/submit-play", {
+        method: "GET", cache: "no-store", signal: ctrl ? ctrl.signal : undefined,
+        headers: { apikey: key, Authorization: "Bearer " + key },
+      });
+      if (!res.ok) return null;
+      const body = await res.json();
+      const code = String((body && body.countryCode) || "").toUpperCase();
+      return /^[A-Z]{2}$/.test(code) && code !== "XX" && code !== "T1" ? code : null;
+    } catch { return null; }
+    finally { if (timer) clearTimeout(timer); }
+  },
+};
 const CommunityStats = {
   _cache: null, _url: null,
   async load() {
-    const url = CONFIG.COMMUNITY_STATS_URL || COMMUNITY_STATS_FALLBACK;
+    let local = false;
+    try { local = new URLSearchParams(location.search).get("stats") === "local"; } catch { local = false; }
+    const url = local ? COMMUNITY_STATS_FALLBACK : (CONFIG.COMMUNITY_STATS_URL || COMMUNITY_STATS_FALLBACK);
     if (this._cache && this._url === url) return this._cache;
     this._url = url;
     const pull = async (u) => {
@@ -150,12 +298,26 @@ const CommunityStats = {
       const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
       const key = CONFIG.SUPABASE_ANON_KEY;
       if (!row || !base || !key) return false;
-      // return=minimal: anon can INSERT but not SELECT, so PostgREST must not echo the row.
-      fetch(base + "/rest/v1/plays", {
-        method: "POST", keepalive: true,
-        headers: { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key, Prefer: "return=minimal" },
-        body: JSON.stringify(row),
-      }).catch(() => {});
+      const headers = { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key };
+      // Legacy insert omits country_code and the new columns. Guesses still ride in payload.
+      const legacy = {
+        puzzle_id: row.puzzle_id, day_key: row.day_key, mode: row.mode, puzzle_type: row.puzzle_type,
+        solved: row.solved, perfect: row.perfect, payload: row.payload,
+      };
+      const legacyInsert = () => {
+        fetch(base + "/rest/v1/plays", {
+          method: "POST", keepalive: true,
+          headers: { ...headers, Prefer: "return=minimal" },
+          body: JSON.stringify(legacy),
+        }).catch(() => {});
+      };
+      // 422 = rejected row (no insert). Anything else (missing function, 500) falls back.
+      fetch(base + "/functions/v1/submit-play", {
+        method: "POST", keepalive: true, headers, body: JSON.stringify(row),
+      }).then(res => {
+        if (res.ok || res.status === 422) return;
+        legacyInsert();
+      }, legacyInsert);
       return true;
     } catch { return false; }
   },
@@ -1497,7 +1659,65 @@ function showResult(res) {
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
-  return `<div class="crow"><span class="cn">${emoji ? esc(emoji) + " " : ""}${esc(label)}</span><span class="cb" aria-hidden="true"><i style="width:${v}%"></i></span><span class="cp">${v}%</span></div>`;
+  const text = `${emoji ? emoji + " " : ""}${label || ""}`;
+  return `<div class="crow"><span class="cn" title="${esc(text)}">${emoji ? esc(emoji) + " " : ""}${esc(label)}</span><span class="cb" aria-hidden="true"><i style="width:${v}%"></i></span><span class="cp">${v}%</span></div>`;
+}
+function communityBars(block) {
+  if (!block) return [];
+  const list = Array.isArray(block) ? block : (Array.isArray(block.bars) ? block.bars : (Array.isArray(block.firstGuess) ? block.firstGuess : []));
+  return list.filter(bar => bar && (bar.name || bar.label));
+}
+function communityBarLabel(p, bar) {
+  if (bar.label) return String(bar.label);
+  if (bar.slot && bar.name) return `#${bar.slot} ${bar.name}`;
+  if (p.type === "tier" && bar.tier && bar.name) return `${bar.name} → ${bar.tier}`;
+  if (p.type === "match" && bar.matchedTo && bar.name) return `${bar.name} → ${bar.matchedTo}`;
+  return bar.name || "";
+}
+function firstGuessCaption(type) {
+  if (type === "top5") return "The first country they named";
+  if (type === "tier") return "The tier they picked most often";
+  if (type === "match") return "Who they matched on the first try";
+  return "Most common card in each spot";
+}
+function communityEmojiOf(p, name) {
+  const pools = [].concat(p.items || [], p.people || [], p.countries || []);
+  const hit = pools.find(x => x && x.name === name);
+  return (hit && hit.emoji) || "";
+}
+function communityGuessSection(title, note, bars, p) {
+  let html = `<h3 class="community-sec">${esc(title)}</h3>`;
+  if (note) html += `<p class="community-note">${esc(note)}</p>`;
+  html += bars.map(bar => communityCrow(communityBarLabel(p, bar), bar.pct, bar.emoji || communityEmojiOf(p, bar.name))).join("");
+  return html;
+}
+function communityCorrectSection(data, p, withSub) {
+  const hasCorrect = data.perItemCorrect && typeof data.perItemCorrect === "object";
+  const hasTopMeta = p.type === "top5" && (data.avgFound != null || data.avgRank != null);
+  const hasPerfect = data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier");
+  if (!hasCorrect && !hasTopMeta && !hasPerfect) return "";
+  let html = "";
+  if (withSub) html += `<div class="community-sub">${p.type === "top5" ? "How they scored" : "Who got it right"}</div>`;
+  if (hasPerfect) html += `<div class="community-summary"><b>${Math.round(data.pctPerfect)}%</b> solved perfectly (first-try / full clear)</div>`;
+  if (hasTopMeta) html += `<div class="community-summary">Avg found <b>${esc(data.avgFound)}</b>/5 · avg world rank <b>#${esc(data.avgRank)}</b></div>`;
+  if (hasCorrect) {
+    const order = (p.type === "match" ? (p.people || []).map(x => x.name) : (p.items || []).map(x => x.name));
+    const names = order.length ? order.filter(n => n in data.perItemCorrect) : Object.keys(data.perItemCorrect);
+    html += names.map(n => communityCrow(n, data.perItemCorrect[n], communityEmojiOf(p, n))).join("");
+  }
+  return html;
+}
+function communityCountrySection(data, code, p) {
+  if (!code) return "";
+  const friendly = regionName(code);
+  const title = `What people in ${friendly} thought was right (first guess)`;
+  const bucket = data.firstGuessByCountry && data.firstGuessByCountry[code];
+  const players = bucket ? Number(bucket.players) || 0 : 0;
+  const bars = players >= COMMUNITY_MIN_COUNTRY ? communityBars(bucket) : [];
+  if (!bars.length) {
+    return `<h3 class="community-sec">${esc(title)}</h3><p class="community-empty">Not enough first guesses from ${esc(friendly)} yet.</p>`;
+  }
+  return communityGuessSection(title, firstGuessCaption(p.type), bars, p);
 }
 async function renderCommunity(p) {
   const wrap = document.querySelector(".community"), body = $("#communityBody"), badge = $("#communityBadge");
@@ -1509,38 +1729,54 @@ async function renderCommunity(p) {
   }
   if (wrap) wrap.classList.remove("hidden");
   if (wrap) track("compare_viewed", { mode: state.mode, puzzle_type: p && p.type });
-  let data = null; try { data = await CommunityStats.fetch(p.id, state.dateKey); } catch {}
+  let data = null, countryCode = null;
+  try {
+    [data, countryCode] = await Promise.all([
+      CommunityStats.fetch(p.id, state.dateKey).catch(() => null),
+      ViewerGeo.country().catch(() => null),
+    ]);
+  } catch { data = null; countryCode = null; }
   if (!data) {
     badge.textContent = "Coming soon";
-    if (headLabel) headLabel.textContent = "What % of players got it right?";
+    if (headLabel) headLabel.textContent = "What players thought was right";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
     return;
   }
   const n = Number(data.players) || 0;
   badge.textContent = data.seeded ? `Early data · ${n.toLocaleString()} players` : `${n.toLocaleString()} players`;
   badge.title = data.seeded ? "Seeded snapshot until live aggregates exist" : "";
+  const worldBlock = data.firstGuessWorld || (p.type === "top5" && data.firstGuess ? { bars: data.firstGuess, players: n } : null);
+  const worldBars = communityBars(worldBlock);
   let html = "";
-  if (data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier")) {
-    if (headLabel) headLabel.textContent = p.type === "match" ? "What % matched each person?" : p.type === "tier" ? "What % put each in the right tier?" : "What % of players got each right?";
-    html += `<div class="community-summary"><b>${Math.round(data.pctPerfect)}%</b> solved perfectly${p.type === "rank" || p.type === "tier" || p.type === "match" ? " (first-try / full clear)" : ""}</div>`;
-  }
-  if (data.perItemCorrect && typeof data.perItemCorrect === "object") {
-    const order = (p.type === "match" ? (p.people || []).map(x => x.name)
-      : (p.items || []).map(x => x.name));
-    const emojiOf = name => {
-      if (p.type === "match") return (p.people || []).find(x => x.name === name)?.emoji || "";
-      return (p.items || []).find(x => x.name === name)?.emoji || "";
-    };
-    const names = order.length ? order.filter(n => n in data.perItemCorrect) : Object.keys(data.perItemCorrect);
-    html += names.map(n => communityCrow(n, data.perItemCorrect[n], emojiOf(n))).join("");
-  } else if (p.type === "top5" || data.firstGuess) {
-    if (headLabel) headLabel.textContent = "What did players guess first?";
-    html += `<div class="community-summary">Avg found <b>${esc(data.avgFound)}</b>/5 · avg world rank <b>#${esc(data.avgRank)}</b></div>`;
-    const guesses = data.firstGuess || [];
-    html += guesses.map(g => communityCrow(g.name, g.pct, g.emoji)).join("");
+  if (worldBars.length) {
+    if (headLabel) headLabel.textContent = "What players thought was right";
+    html += communityGuessSection("What the world thought was right (first guess)", firstGuessCaption(p.type), worldBars, p);
+    html += communityCountrySection(data, countryCode, p);
+    html += communityCorrectSection(data, p, true);
+  } else {
+    if (data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier")) {
+      if (headLabel) headLabel.textContent = p.type === "match" ? "What % matched each person?" : p.type === "tier" ? "What % put each in the right tier?" : "What % of players got each right?";
+    } else if (headLabel) headLabel.textContent = "What % of players got it right?";
+    html += communityCorrectSection(data, p, false);
   }
   body.innerHTML = html || `<p class="community-empty">No breakdown for this puzzle yet.</p>`;
 }
+window.RankdCommunity = {
+  row: communityPlayRow,
+  country: () => ViewerGeo.country(),
+  minCountryPlayers: COMMUNITY_MIN_COUNTRY,
+  async preview(puzzleId, mode) {
+    const p = (typeof PUZZLES !== "undefined" ? PUZZLES : []).find(x => x.id === puzzleId);
+    if (!p) return null;
+    if (mode) state.mode = mode;
+    state.puzzle = p;
+    if (!state.dateKey) state.dateKey = todayKey();
+    const res = { type: p.type, solved: false, tries: 2, won: false, hits: 0, misses: 0, avgRank: null, guesses: [], marks: [], attempts: [] };
+    if (p.type === "match" && p.people) res.attempts = [{ assign: p.people.map((_, i) => i), marks: p.people.map(() => "bad") }];
+    showResult(res);
+    return true;
+  },
+};
 
 // ================================================================ stats (today's daily only)
 function recordStats(res) {
