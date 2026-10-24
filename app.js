@@ -485,9 +485,9 @@ function parseTables(t) {
     "meat-lovers": ["Israel", "United States"],
     "meat-meatiest": ["Argentina", "Japan"],
     "meat-side-salad": ["India", "South Korea"],
-    // KFC outlet boards: top country, then bottom country.
-    "kfc-outlets-finger-lickin": ["South Africa", "Nigeria"],
-    "kfc-outlets-bucket-list": ["China", "Ghana"],
+    // KFC per-million boards: top country, then bottom country.
+    "kfc-outlets-finger-lickin": ["Barbados", "Nigeria"],
+    "kfc-outlets-bucket-list": ["New Zealand", "Ghana"],
     // Macau + India, and United States + Indonesia, are the pairs that don't both appear on the other board.
     "mcdonalds-per-million-density": ["Macau", "India"],
     "mcdonalds-per-million-arch": ["United States", "Indonesia"],
