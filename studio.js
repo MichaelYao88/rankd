@@ -24,6 +24,30 @@ $("#days").innerHTML = days.map(({ p, n, key }) => { const [m, c] = modeOf(p), w
       <div class="tags"><span class="tag mode-${p.type}">${m}</span><span class="tag cnt">${c}</span>${p.sensitive ? `<span class="tag sens">sensitive</span>` : ""}</div></div>
     <a class="play" href="index.html?preview=${key}">Play</a></li>`; }).join("");
 
+// Search hides days only. Play links, dates, and the sandboxed preview are unchanged.
+const glossOf = p => S.valueGlossOf ? S.valueGlossOf(p) : (p.valueGloss || "");
+const dayById = new Map(days.map(d => [d.p.id, d.p]));
+const applyDayFilter = () => {
+  const q = $("#daySearch").value;
+  let n = 0;
+  document.querySelectorAll("#days .day").forEach(li => {
+    const p = dayById.get(li.dataset.id);
+    const show = window.RankdSearch.matches(p, q, { gloss: glossOf(p) });
+    li.classList.toggle("hidden", !show);
+    if (show) n++;
+  });
+  $("#dayCount").textContent = window.RankdSearch.countLabel(n);
+  const empty = $("#dayEmpty");
+  empty.textContent = window.RankdSearch.emptyCopy(q);
+  empty.classList.toggle("hidden", n !== 0);
+  $("#days").classList.toggle("hidden", n === 0);
+};
+window.RankdSearch.bindSearch($("#daySearch"), $("#daySearchClear"), applyDayFilter);
+const lzHead = document.querySelector("header.top");
+const stickSearch = () => { if (lzHead) document.documentElement.style.setProperty("--lz-stick", Math.ceil(lzHead.getBoundingClientRect().height) + "px"); };
+stickSearch();
+if (window.ResizeObserver && lzHead) new ResizeObserver(stickSearch).observe(lzHead);
+
 const D = (S.practice && S.practice.datasets) || [], C = (S.practice && S.practice.countries) || {};
 // times used in the daily schedule: rankers carry p.dataset; Top 5 dailies use the list "top-x" as puzzle "top5-x"; group datasets share the puzzle id
 const used = id => P.filter(p => p.dataset === id || p.id === id || p.id === id.replace(/^top-/, "top5-")).length;

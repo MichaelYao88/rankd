@@ -281,7 +281,8 @@ a{color:var(--link)}
 .hl{background:linear-gradient(transparent 58%,var(--marker) 58%);padding:0 6px}
 .section-sub{text-align:center;color:var(--muted);font-size:14px;margin:0 0 18px}
 .archive-list{list-style:none;padding:0;margin:0;background:var(--surface2);border-radius:20px;box-shadow:var(--shadow-soft);overflow:hidden}
-.archive-list li+li{border-top:1px solid var(--line)}
+.archive-list li.hidden{display:none !important}
+.archive-list li:not(.hidden)~li:not(.hidden){border-top:1px solid var(--line)}
 .arch{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 18px;border:0;background:transparent;position:relative}
 .arch:hover{background:rgba(var(--ink-rgb),.03)}
 .arch .an{font-weight:700;font-size:13px;color:var(--link);min-width:52px}
@@ -326,7 +327,8 @@ a{color:var(--link)}
 .seg button.on{background:var(--surface2);color:var(--ink);box-shadow:var(--shadow-soft)}
 .plist{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
 .plist button{display:flex;justify-content:space-between;gap:8px;text-align:left;padding:12px 14px;border:0;background:transparent;font-size:14px;font-weight:700}
-.plist button+button{border-top:1px solid var(--line)}
+.plist button.hidden{display:none !important}
+.plist button:not(.hidden)~button:not(.hidden){border-top:1px solid var(--line)}
 .plist .done{color:var(--good);font-weight:700;white-space:nowrap}
 .src-list{font-size:13px;line-height:1.5;padding-left:18px;color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:var(--bg);font-weight:700;padding:12px 20px;border-radius:999px;opacity:0;pointer-events:none;transition:.25s;z-index:60;max-width:90vw;text-align:center;font-size:13.5px}
@@ -700,11 +702,20 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 .plist-note{font-size:12.5px;opacity:.75;margin:0 2px 8px}
 .plist-filter{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
 .plist-filter button small{opacity:.6;font-size:11px}
-.plist-search{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:10px;border:1px solid var(--line,#ccc);background:transparent;color:inherit;font:inherit;margin-bottom:8px}
+.plist-search-wrap{position:relative;margin:0 0 8px}
+.plist-search{width:100%;box-sizing:border-box;padding:10px 44px 10px 14px;border-radius:14px;border:1px solid var(--line,#ccc);background:var(--surface2,#fff);color:inherit;font:inherit;font-size:16px;min-height:44px;margin:0;appearance:none;-webkit-appearance:none;box-shadow:var(--shadow-soft)}
+.plist-search::placeholder{color:var(--muted)}
+.plist-search:focus{outline:2px solid var(--brand);outline-offset:2px}
+.plist-search::-webkit-search-cancel-button,.plist-search::-webkit-search-decoration{appearance:none;-webkit-appearance:none}
+.plist-search-clear{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:22px;line-height:1;display:grid;place-items:center;padding:0}
+.plist-search-clear[hidden]{display:none !important}
+.plist-search-clear:hover{background:rgba(var(--ink-rgb),.06);color:var(--ink)}
+.plist-count{margin:0 4px 8px;font-size:13px;font-weight:700;color:var(--muted)}
+.plist-empty{margin:0 0 8px;padding:22px 16px;text-align:center;color:var(--muted);background:var(--surface2);border-radius:20px;box-shadow:var(--shadow-soft);font-size:14px;line-height:1.45}
+#archiveView .section-sub{margin-bottom:12px}
 .plist .pl-main{display:flex;flex-direction:column;align-items:flex-start;text-align:left;gap:1px}
 .plist .pl-sub{font-size:12.5px;opacity:.85}
 .plist .pl-meta{font-size:11px;opacity:.6}
-.plist button.hidden{display:none}
 .hero-new{flex:none;border:0;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;font-weight:700;background:rgba(255,255,255,.22);color:inherit;cursor:pointer;white-space:nowrap}
 .hero-new:hover{background:rgba(255,255,255,.35)}
 @media (max-width:380px){.topbar .tab{padding:7px 8px;letter-spacing:.07em}}

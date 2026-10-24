@@ -837,9 +837,24 @@ const Practice = {
 window.RankdPractice = { generate: s => Practice.generate(s), rules: Practice.rules, data: PR, ok: Practice.ok, popular: POPULAR_COUNTRIES };
 // v12: Rankd Studio (studio.html) loads this file with window.RANKD_STUDIO = true to reuse the game's rules and data
 // helpers; the game UI below is not started there.
+// valueGlossOf is a function declaration (hoisted). The fallback map has to be initialized before this
+// return, or Loading Zone calls it while the const is still in the temporal dead zone.
+const VALUE_GLOSS_FALLBACK = {
+  "Keep the Peace": "harmony first", "Open to Change": "open to change",
+  "Dragon Friends": "favor China", "Friends of Beijing": "favor China",
+  "Overdose Rates": "per 100k", "Declining White Share": "good for the USA", "Legal Protections": "best legal protections for gays", "On the Books": "best legal protections for gays",
+  "Stars and Stripes": "favor U.S.",
+  "Flavor Haters": "unfavorable", "Police Videos": "say it's good",
+  "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
+  "Gambling Morality": "think gambling is wrong",
+  "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
+  "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
+  "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
+  "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
+};
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
-    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR };
+    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf };
   return;
 }
 function goPractice(seed) {
@@ -1079,19 +1094,7 @@ const unitAside = p => {   // small label after fmtVal on reveal cards — skip 
 };
 // v12.2: muted gloss under each values-column number (fills short 5-item boards). Prefer puzzle.valueGloss;
 // else non-% unit; else a short phrase derived from headline/stat/question for bare-% puzzles.
-const VALUE_GLOSS_FALLBACK = {
-  "Keep the Peace": "harmony first", "Open to Change": "open to change",
-  "Dragon Friends": "favor China", "Friends of Beijing": "favor China",
-  "Overdose Rates": "per 100k", "Declining White Share": "good for the USA", "Legal Protections": "best legal protections for gays", "On the Books": "best legal protections for gays",
-  "Stars and Stripes": "favor U.S.",
-  "Views of India": "unfavorable", "Police Videos": "say it's good",
-  "Views of Israel": "unfavorable", "Moral Views": "think gambling is wrong", "Snake Eyes": "think gambling is wrong",
-  "Gambling Morality": "think gambling is wrong",
-  "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
-  "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
-  "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
-  "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
-};
+// VALUE_GLOSS_FALLBACK is initialized above the Studio early-return so Loading Zone can call this.
 function valueGlossOf(p) {
   if (p.valueGloss) return String(p.valueGloss);
   const u = p.unit || "";
@@ -2412,12 +2415,39 @@ function goArchive() {
         : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
       else if (mine) badge = `<span class="ar">In progress</span>`;
     }
-    rows.push(`<li><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
+    rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Guess the top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
   $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
+  wireArchiveSearch();
+  if (runArchiveSearch) runArchiveSearch();
   window.scrollTo({ top: 0 });
+}
+// Search only hides rows. Locked rows keep data-locked and still go through goDate (the ad unlock).
+let runArchiveSearch = null;
+function applyArchiveFilter() {
+  const input = $("#archiveSearch");
+  if (!input || !window.RankdSearch) return;
+  const q = input.value;
+  let nShown = 0;
+  $$("#archiveList li").forEach(li => {
+    const p = puzzleForDay(+li.dataset.day);
+    const show = window.RankdSearch.matches(p, q, { gloss: valueGlossOf(p) });
+    li.classList.toggle("hidden", !show);
+    if (show) nShown++;
+  });
+  const count = $("#archiveCount");
+  if (count) count.textContent = window.RankdSearch.countLabel(nShown);
+  const empty = $("#archiveEmpty");
+  if (empty) { empty.textContent = window.RankdSearch.emptyCopy(q); empty.classList.toggle("hidden", nShown !== 0); }
+  const list = $("#archiveList");
+  if (list) list.classList.toggle("hidden", nShown === 0);
+}
+function wireArchiveSearch() {
+  const input = $("#archiveSearch");
+  if (!input || runArchiveSearch || !window.RankdSearch) return;
+  runArchiveSearch = window.RankdSearch.bindSearch(input, $("#archiveSearchClear"), applyArchiveFilter);
 }
 // v8 floating "next" button (bottom-right), shown only once the puzzle is finished
 const isDone = r => !!r && (r.type === "rank" ? !!(normRank(r) || {}).done : !!r.done);  // tier/match/top5 use .done
@@ -2511,18 +2541,36 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
   const count = k => PUZZLES.filter(p => k === "any" || kind(p) === k).length;
   openModal(`<h2>All puzzles (${PUZZLES.length})</h2><p class="plist-note">Pre-launch list: every puzzle, past and future. Plays here never count toward stats or streaks.</p>
     <div class="seg plist-filter">${KINDS.map(([k, l]) => `<button data-k="${k}" class="${k === "any" ? "on" : ""}">${l} <small>${count(k)}</small></button>`).join("")}</div>
-    <input class="plist-search" id="plistSearch" type="search" placeholder="Search headline or stat…" autocomplete="off">
+    <div class="plist-search-wrap">
+      <input class="plist-search" id="plistSearch" type="search" placeholder="Search countries, headlines, sources…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search all puzzles">
+      <button type="button" class="plist-search-clear" id="plistSearchClear" aria-label="Clear search" hidden>×</button>
+    </div>
+    <p class="plist-count" id="plistCount" aria-live="polite"></p>
+    <p class="plist-empty hidden" id="plistEmpty" role="status"></p>
     <div class="plist">${PUZZLES.map((p, i) => { const r = all["p:" + p.id];
     const rr = r && r.type === "rank" ? normRank(r) : r, o = Math.round(p.order);
     const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
     const when = o < 10000 ? `#${pad3(o)} · ${prettyDate(keyFromDay(o - 1)).replace(/, \d{4}$/, "")}${o > today ? " · future" : o === today ? " · today" : ""}` : "";
     const k = kind(p), kl = { rank: "Rank it", rank6: "Rank it · 6 countries", top5: "Guess the top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
-    return `<button data-i="${i}" data-k="${k}" data-s="${esc((p.headline + " " + p.question + " " + p.stat).toLowerCase())}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
+    return `<button data-i="${i}" data-k="${k}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
   let kf = "any";
-  const apply = () => { const q = $("#plistSearch").value.trim().toLowerCase();
-    $$(".plist button").forEach(b => b.classList.toggle("hidden", !((kf === "any" || b.dataset.k === kf) && (!q || b.dataset.s.includes(q))))); };
+  const apply = () => {
+    const q = $("#plistSearch").value;
+    let n = 0;
+    $$(".plist button").forEach(b => {
+      const p = PUZZLES[+b.dataset.i];
+      const show = (kf === "any" || b.dataset.k === kf) && window.RankdSearch.matches(p, q, { gloss: valueGlossOf(p) });
+      b.classList.toggle("hidden", !show);
+      if (show) n++;
+    });
+    $("#plistCount").textContent = window.RankdSearch.countLabel(n);
+    const empty = $("#plistEmpty");
+    empty.textContent = q.trim() ? window.RankdSearch.emptyCopy(q) : "No puzzles in this group.";
+    empty.classList.toggle("hidden", n !== 0);
+    $(".plist").classList.toggle("hidden", n === 0);
+  };
   $$(".plist-filter button").forEach(b => b.onclick = () => { kf = b.dataset.k; $$(".plist-filter button").forEach(x => x.classList.toggle("on", x === b)); apply(); });
-  $("#plistSearch").oninput = apply;
+  window.RankdSearch.bindSearch($("#plistSearch"), $("#plistSearchClear"), apply);
   $$(".plist button").forEach(b => b.onclick = () => { closeModal(); goAll(+b.dataset.i); });
 }
 function howModal() {
