@@ -884,6 +884,9 @@ html.ads-live .ad-banner .ad-tag,html.ads-live .ad-banner .ad-fill:empty{display
 html.ads-live .ad-banner{background:transparent}
 .ad-banner .ad-fill{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 .ad-banner.ad-collapsed,#adTop.ad-collapsed{display:none!important}
+/* Top banner is Practice only. display:none (not visibility/height:0) so Daily and Archive keep no empty gap. */
+#adTop{display:none}
+#adTop.ad-on{display:flex}
 ins.rk-ad-banner{display:block;width:100%;height:50px;max-width:728px;margin:0 auto}
 @media (min-width:760px){ins.rk-ad-banner{height:90px}}
 ins.rk-ad-inter{display:block;width:100%;min-height:250px}

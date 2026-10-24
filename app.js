@@ -733,7 +733,10 @@ const AdSense = {
   },
   collapse(box) { if (!box) return; box.classList.add("ad-collapsed"); window.RankdFit?.layout(); },
   banner() {
-    if (this.bannerDone) return; this.bannerDone = true; this.fill($("#adTop"), CONFIG.ADSENSE_SLOTS.banner);
+    // Practice play view only. Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
+    if (this.bannerDone || this.mode === "placeholder" || this.mode === "waiting" || this.mode === "blocked") return;
+    if ($("#playView").classList.contains("hidden") || state.mode !== "practice") return;
+    this.bannerDone = true; this.fill($("#adTop"), CONFIG.ADSENSE_SLOTS.banner);
   },
   // v12.2: Practice bottom banner, requested the first time it is actually visible (AdSense can't size a hidden slot)
   bottom() {
@@ -2599,11 +2602,18 @@ function maybeShowHowto() {
 }
 
 // ================================================================ views / navigation
+function syncTopBanner() {
+  const box = $("#adTop"); if (!box) return;
+  const on = !$("#playView").classList.contains("hidden") && state.mode === "practice";
+  box.classList.toggle("ad-on", on);
+  if (on) AdSense.banner();
+}
 function showView(v) {
   if (v !== "play") showFab(false);
   $("#playView").classList.toggle("hidden", v !== "play"); $("#archiveView").classList.toggle("hidden", v !== "archive");
   const tab = v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
   $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
+  syncTopBanner();
   syncPlaying();
 }
 function goToday() { state.mode = "daily"; state.dateKey = todayKey(); openPuzzle(puzzleForDay(dayNumber(state.dateKey))); }

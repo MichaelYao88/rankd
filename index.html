@@ -63,9 +63,10 @@
   </button>
 </header>
 
-<!-- ===== AD SLOT: single top banner. Placeholder locally; on the live site app.js (AdSense) puts the ad unit in .ad-fill,
-     keeping the reserved 50px / 90px height, and collapses the slot if there's no ad-unit ID, no fill or the script is blocked. -->
-<!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) hides them all. -->
+<!-- ===== AD SLOT: top banner, Practice play view only. CSS hides #adTop (no reserved gap) until app.js
+     adds .ad-on from showView. Placeholder locally; on the live site AdSense fills .ad-fill the first time
+     Practice is actually visible, and collapses the slot if there's no ad-unit ID, no fill or the script is blocked. -->
+<!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) and Premium (html.premium) hide them all. -->
 <div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
 
 
