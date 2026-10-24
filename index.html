@@ -197,6 +197,12 @@
   <section id="archiveView" class="hidden">
     <h2 class="section-title"><span class="hl">Archive</span></h2>
     <p class="section-sub">Free archive: the latest <b>7</b> days are free. Watch an ad to open the next week. <span class="prem-upsell">Premium = full archive, no ads.</span></p>
+    <div class="plist-search-wrap">
+      <input class="plist-search" id="archiveSearch" type="search" placeholder="Search countries, headlines, sources…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search the archive" aria-controls="archiveList">
+      <button type="button" class="plist-search-clear" id="archiveSearchClear" aria-label="Clear search" hidden>×</button>
+    </div>
+    <p class="plist-count" id="archiveCount" aria-live="polite"></p>
+    <p class="plist-empty hidden" id="archiveEmpty" role="status"></p>
     <ol class="archive-list" id="archiveList"></ol>
   </section>
 </main>
@@ -274,6 +280,7 @@
 <script src="puzzles-data.js"></script>
 <script src="practice-data.js"></script>
 <script src="community-seed.js"></script>
+<script src="puzzle-search.js"></script>
 <script src="app.js"></script>
 
 </body>

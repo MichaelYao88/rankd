@@ -10,6 +10,16 @@ body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-app
 main{max-width:860px;margin:0 auto;padding:10px 12px 40px}
 .hidden{display:none!important}
 .note{color:var(--muted);font-size:13px;margin:4px 2px 10px}
+.lz-tools{position:sticky;top:var(--lz-stick,56px);z-index:4;background:var(--bg);padding:6px 0 2px}
+.lz-search{position:relative;margin:0 0 6px}
+.lz-search input{width:100%;padding:10px 44px 10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:16px;min-height:44px;appearance:none;-webkit-appearance:none}
+.lz-search input::placeholder{color:var(--muted)}
+.lz-search input:focus{outline:2px solid var(--brand);outline-offset:1px}
+.lz-search-clear{position:absolute;right:2px;top:50%;transform:translateY(-50%);width:40px;height:40px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;display:grid;place-items:center;padding:0}
+.lz-search-clear[hidden]{display:none !important}
+.lz-search-clear:hover{background:var(--bg);color:var(--ink)}
+.lz-count{margin:0 2px 8px;font-size:12px;font-weight:700;letter-spacing:.04em;color:var(--muted)}
+.lz-empty{margin:0 0 8px;padding:18px 14px;text-align:center;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:12px;font-size:14px;line-height:1.45}
 .days,.sets{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
 .day{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 10px}
 .day.today{outline:2px solid var(--today)}
@@ -18,7 +28,7 @@ main{max-width:860px;margin:0 auto;padding:10px 12px 40px}
 .d-when b{display:block;color:var(--ink);font-size:13px}
 .d-main{flex:1;min-width:0}
 .d-main h2{margin:0;font-size:15px;line-height:1.25}
-.d-main p{margin:1px 0 0;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.d-main p{margin:1px 0 0;font-size:13px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
 .tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
 .tag{font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;background:var(--bg);border:1px solid var(--line);color:var(--muted)}
 .tag.sens{color:var(--sens);border-color:currentColor}

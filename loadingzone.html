@@ -29,6 +29,14 @@
 <main>
   <section id="previewView">
     <p class="note" id="pvNote"></p>
+    <div class="lz-tools">
+      <div class="lz-search">
+        <input id="daySearch" type="search" placeholder="Search countries, headlines, sources…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search puzzles" aria-controls="days">
+        <button type="button" id="daySearchClear" class="lz-search-clear" aria-label="Clear search" hidden>×</button>
+      </div>
+      <p class="lz-count" id="dayCount" aria-live="polite"></p>
+    </div>
+    <p class="lz-empty hidden" id="dayEmpty" role="status"></p>
     <ol class="days" id="days"></ol>
   </section>
   <section id="dataView" class="hidden">
@@ -39,6 +47,7 @@
 <script>window.RANKD_STUDIO = true;</script>
 <script src="puzzles-data.js"></script>
 <script src="practice-data.js"></script>
+<script src="puzzle-search.js"></script>
 <script src="app.js"></script>
 <script src="studio.js"></script>
 </body>
