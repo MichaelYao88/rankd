@@ -2562,35 +2562,89 @@ window.RankdFit = { sync: syncPlaying, layout: fitLayout };
 
 // ================================================================ v12.2 first-visit howto
 const HOWTO_KEY = "rankd.howto.seen.v1";
+// Nicest People sample — InterNations Expat Insider 2024, share of expats who rate
+// locals as friendly towards foreign residents (global average 61%):
+// Costa Rica 90%, Qatar 67%, Germany 39%. High → low in the values column.
+// https://www.internations.org/expat-insider/2024/ease-of-settling-in-index-40452
+const HOWTO_SUCCESS = "All green = perfect! Wrong cards turn red so you can fix them.";
+let howtoRun = 0, howtoTimers = [];
 function howtoSeen() { try { return localStorage.getItem(HOWTO_KEY) === "1"; } catch (e) { return true; } }
 function markHowtoSeen() { try { localStorage.setItem(HOWTO_KEY, "1"); } catch (e) {} }
+function clearHowtoTimers() { howtoTimers.forEach(clearTimeout); howtoTimers = []; }
 function dismissHowto() {
+  howtoRun++; clearHowtoTimers();
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.add("hidden"); markHowtoSeen();
 }
 function runHowtoDemo() {
   const rows = $$("#howtoOverlay .howto-card-row");
-  const step = $("#howtoStep"); const lock = $("#howtoLockDemo");
-  if (!rows.length) return;
-  // DOM order: Sweden, Israel, Hungary. Correct high→low: Israel 83, Hungary 60, Sweden 19.
-  const h = rows[0].offsetHeight + 6;
-  const targetPos = { 1: 0, 2: 1, 0: 2 }; // item index → sorted slot
-  rows.forEach((li) => { li.style.transform = "translateY(0)"; li.classList.remove("good"); });
-  step.textContent = "Watch the cards slide into order…";
-  lock.disabled = true; lock.textContent = "Lock it in ↵"; lock.classList.remove("pulse");
-  setTimeout(() => {
-    rows.forEach((li, n) => { li.style.transform = `translateY(${(targetPos[n] - n) * h}px)`; });
-    step.textContent = "Highest value at the top — then Lock it in.";
-    setTimeout(() => { lock.disabled = false; }, 650);
-  }, 700);
-  lock.onclick = () => {
-    if (lock.disabled) return;
-    rows.forEach(li => li.classList.add("good"));
-    step.textContent = "Green = right spot. Wrong cards stay red so you can fix them.";
-    lock.textContent = "Nice!";
-    lock.disabled = true;
-    setTimeout(dismissHowto, 1100);
+  const step = $("#howtoStep"), lock = $("#howtoLockDemo"), pointer = $("#howtoPointer");
+  const card = $("#howtoOverlay .howto-card");
+  if (!rows.length || !step || !lock) return;
+  const run = ++howtoRun;
+  clearHowtoTimers();
+  const prefersReduce = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const alive = () => howtoRun === run && !$("#howtoOverlay").classList.contains("hidden");
+  const later = (fn, ms) => { const id = setTimeout(() => { if (alive()) fn(); }, ms); howtoTimers.push(id); };
+  const setY = (li, y, snap) => {
+    li.style.setProperty("--ty", y + "px");
+    if (snap) li.style.transition = "none";
+    li.style.transform = `translateY(${y}px)`;
+    if (snap) { li.offsetHeight; li.style.transition = ""; }
   };
+  // data-slot is the correct high→low row. DOM order starts scrambled.
+  const layout = (sorted, snap) => {
+    const h = rows[0].offsetHeight + 6;
+    rows.forEach((li, n) => setY(li, sorted ? (+li.dataset.slot - n) * h : 0, snap));
+  };
+  const paint = (green) => rows.forEach(li => li.classList.toggle("good", green));
+  const hidePointer = () => { if (pointer) pointer.classList.remove("on", "tap"); };
+  const showFinal = () => {
+    layout(true, true); paint(true); hidePointer();
+    lock.classList.remove("pressing"); lock.disabled = false;
+    step.textContent = HOWTO_SUCCESS;
+  };
+  lock.onclick = (e) => e.preventDefault();
+  if (prefersReduce()) { showFinal(); return; }
+  const pointAt = (rect, dy) => {
+    const cr = card.getBoundingClientRect();
+    pointer.style.left = (rect.left + rect.width / 2 - cr.left) + "px";
+    pointer.style.top = (rect.top + dy - cr.top) + "px";
+  };
+  const cycle = () => {
+    if (prefersReduce()) { showFinal(); return; }
+    layout(false, true); paint(false); hidePointer();
+    lock.classList.remove("pressing"); lock.disabled = true; lock.textContent = "Lock it in ↵";
+    step.textContent = "Watch the cards slide into order…";
+    later(() => {
+      layout(true, false);
+      step.textContent = "Highest value at the top — then Lock it in.";
+      later(() => {
+        lock.disabled = false;
+        if (pointer && card) {
+          pointer.classList.remove("on", "tap");
+          pointer.style.transition = "none";
+          pointAt(rows[1].getBoundingClientRect(), 8);
+          pointer.offsetHeight;
+          pointer.style.transition = "";
+          pointer.classList.add("on");
+          requestAnimationFrame(() => requestAnimationFrame(() => pointAt(lock.getBoundingClientRect(), 14)));
+        }
+        later(() => {
+          if (pointer) pointer.classList.add("tap");
+          lock.classList.add("pressing");
+          later(() => {
+            lock.classList.remove("pressing");
+            paint(true);
+            step.textContent = HOWTO_SUCCESS;
+            later(hidePointer, 640);
+            later(cycle, 2700);
+          }, 340);
+        }, 720);
+      }, 640);
+    }, 780);
+  };
+  cycle();
 }
 function maybeShowHowto() {
   if (howtoSeen()) return;
