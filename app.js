@@ -83,15 +83,18 @@ window.RankdData = RankdData;
 //   top5: avgFound, avgRank, firstGuess: [{name, emoji, pct}] // world, kept
 //   all:  firstGuessWorld: { players, bars: [...] }
 //         firstGuessByCountry: { "TW": { players, bars }, "US": {...} }
-//         countryBoard: [{ code, players, solveRate, avgTries }]
-//         score: { avg: 0–1, n, hist: [20 bins], seeded? }
+//         countryBoard: [{ code, players, avgTries }]
+//         standing: { avgTries, avgFirst, firstOf, avgAccuracy, byTries, n, seeded? }
 //   bars: rank {slot, name, pct}; tier {name, tier, pct}; match {name, matchedTo, label, pct}; top5 {name, pct}
 // pctPerfect is "solved perfectly (first-try / full clear)". The results panel does not draw those
-// percents: it shows the consensus ordering, a country solve-rate board, and one placement score.
-// A country under COMMUNITY_MIN_COUNTRY plays is skipped, not shown as a one-off rate.
-// score.hist is correct placements / placements across every guess. When the snapshot has no
-// countryBoard or score yet, RankdSeed fills a distribution that sits a little under a typical clear.
-// Real plays replace that puzzle once tools/rebuild_community_snapshot.py sees enough of them.
+// percents: it shows the consensus ordering, a country board ranked by fewest tries, and the player's
+// tries, first-guess hits, and accuracy beside the puzzle averages.
+// A country under COMMUNITY_MIN_COUNTRY plays is skipped.
+// Accuracy is mean absolute rank distance on the first guess (Top 5: average closeness of every guess),
+// scaled to 0–100. "Better than X%" counts players who used more tries, then a worse accuracy on a tie.
+// When the snapshot has no countryBoard or standing yet, RankdSeed fills a distribution that sits a
+// little under a typical clear. Real plays replace that puzzle once rebuild_community_snapshot.py
+// sees enough of them.
 // Practice hides compare and is not inserted. Studio never starts the game.
 // ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
 // card already skip it) so those finishes are not inserted either. Streamer mode
@@ -163,8 +166,105 @@ function top5Piece(p, key) {
   try { piece.hit = inTop(p, c); piece.rank = tieRank(p, c); } catch { /* catalog not ready */ }
   return piece;
 }
+// Mean absolute rank distance, scaled so a perfect placement is 100 and a full reversal is 0.
+// Ties share a slot: an item on any slot with its value is distance 0.
+function orderAccuracy(positions, correctPos) {
+  const n = positions.length;
+  if (!n || correctPos.length !== n) return null;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const at = correctPos[positions[i]];
+    if (at == null || Number.isNaN(at)) return null;
+    sum += Math.abs(i - at);
+  }
+  const max = Math.floor(n * n / 2);
+  if (!max) return 100;
+  return Math.max(0, Math.min(100, Math.round(100 * (1 - sum / max))));
+}
+function nearestRankSlots(p) {
+  const correct = correctOrder(p);
+  const need = correct.map(i => p.items[i].value);
+  const slots = new Map();
+  need.forEach((v, slot) => {
+    const key = String(v);
+    if (!slots.has(key)) slots.set(key, []);
+    slots.get(key).push(slot);
+  });
+  const pos = [];
+  p.items.forEach((it, item) => {
+    const options = slots.get(String(it.value)) || [];
+    pos[item] = options.length ? options[0] : correct.indexOf(item);
+  });
+  return { pos, slots };
+}
+function rankAccuracy(p, order) {
+  if (!order || order.length !== p.items.length) return null;
+  const { slots } = nearestRankSlots(p);
+  const n = order.length;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const it = p.items[order[i]];
+    if (!it) return null;
+    const options = slots.get(String(it.value)) || [];
+    if (!options.length) return null;
+    let best = n;
+    options.forEach(slot => { best = Math.min(best, Math.abs(i - slot)); });
+    sum += best;
+  }
+  const max = Math.floor(n * n / 2);
+  if (!max) return 100;
+  return Math.max(0, Math.min(100, Math.round(100 * (1 - sum / max))));
+}
+// Plain results for the score card, plus the accuracy used as a tie-break.
+// Rank, tier, and match use the first guess only: later tries have the right cards locked,
+// so distance on those tries is not a fresh ranking. Top 5 has no full ordering; accuracy
+// is how close every guess was to the top of the list.
+function resultCard(p, result) {
+  if (!p || !result) return null;
+  const type = result.type || p.type;
+  if (type === "top5") {
+    const keys = result.guesses || [];
+    if (!keys.length) return null;
+    const ranks = keys.map(k => findCountry(p, k)).filter(Boolean).map(c => tieRank(p, c));
+    if (!ranks.length || p.countries.length < 2) return null;
+    const avg = ranks.reduce((a, b) => a + b, 0) / ranks.length;
+    const accuracy = Math.max(0, Math.min(100, Math.round(100 * (1 - (avg - 1) / (p.countries.length - 1)))));
+    const first = findCountry(p, keys[0]);
+    return {
+      tries: result.tries || keys.length,
+      firstCorrect: first && inTop(p, first) ? 1 : 0,
+      firstOf: 1,
+      accuracy,
+      kind: "top5",
+      tip: "Accuracy is how close your guesses were to the top of the list, averaged across every guess. 100 means every guess was rank #1.",
+    };
+  }
+  const attempt = (result.attempts || [])[0];
+  if (!attempt) return null;
+  const marks = attempt.marks || [];
+  const firstCorrect = marks.filter(m => m === "good").length;
+  const firstOf = marks.length;
+  let accuracy = null;
+  let tip = "On your first guess, accuracy is how far each item was from its correct rank, on average. 100 means every item was already in the right place.";
+  if (type === "rank" && attempt.order) accuracy = rankAccuracy(p, attempt.order);
+  else if (type === "tier" && attempt.assign && p.tiers) {
+    const right = correctTierAssign(p);
+    const span = Math.max(1, (p.tiers.length - 1) * right.length);
+    let sum = 0;
+    for (let i = 0; i < right.length; i++) sum += Math.abs((attempt.assign[i] ?? right[i]) - right[i]);
+    accuracy = Math.max(0, Math.min(100, Math.round(100 * (1 - sum / span))));
+    tip = "On your first guess, accuracy is how far each item was from its correct tier, on average. 100 means every item was already in the right tier.";
+  } else if (type === "match" && attempt.assign) {
+    const n = attempt.assign.length;
+    const correctPos = attempt.assign.map((_, i) => i);
+    accuracy = orderAccuracy(attempt.assign, correctPos);
+    tip = "On your first guess, accuracy is how far each clue was from the right person, on average. 100 means every pair was already matched.";
+  }
+  if (!firstOf || result.tries == null || accuracy == null) return null;
+  return { tries: result.tries, firstCorrect, firstOf, accuracy, kind: "order", tip };
+}
 // One number for the whole game: correct placements divided by placements submitted.
-// Each lock-in (or each Top 5 guess) counts, so using more tries pulls the score down.
+// Kept on the play payload so older snapshots can still read it.
 function placementScore(result) {
   if (!result) return null;
   const type = result.type;
@@ -232,6 +332,12 @@ function communityPlayRow(result) {
   payload.secondGuess = second;
   const score = placementScore(result);
   if (score != null) payload.score = Math.round(score * 10000) / 10000;
+  const card = p ? resultCard(p, result) : null;
+  if (card) {
+    payload.accuracy = card.accuracy;
+    payload.firstCorrect = card.firstCorrect;
+    payload.firstOf = card.firstOf;
+  }
   return {
     puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload,
     first_guess: first, second_guess: second,
@@ -1783,9 +1889,21 @@ function fillCommunitySeed(data, p) {
   // Only puzzles still on the seed get synthetic standings. A live puzzle
   // (seeded: false) keeps whatever the snapshot computed, including an empty board.
   if (!data || !p || !seed || data.seeded === false) return data;
-  if (!Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, p.type || data.type || "rank");
-  if (!data.score || !Array.isArray(data.score.hist) || !data.score.hist.length) data.score = seed.scoreBlock(p.id, Number(data.players) || 0);
+  const type = p.type || data.type || "rank";
+  if (!Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, type);
+  const standing = data.standing;
+  if (!standing || !standing.byTries || standing.avgTries == null) {
+    const firstOf = type === "top5" ? 1 : (p.items || p.people || []).length;
+    data.standing = seed.standingBlock(p.id, Number(data.players) || 0, type, firstOf);
+  }
   return data;
+}
+function triesLabel(n, top5, digits) {
+  const num = Number(n);
+  const text = digits ? num.toFixed(digits) : String(Math.round(num));
+  const one = Math.abs(Number(text) - 1) < 0.05;
+  const unit = top5 ? (one ? "guess" : "guesses") : (one ? "try" : "tries");
+  return `${text} ${unit}`;
 }
 function communityCountrySection(data, code, p) {
   if (!code) return "";
@@ -1798,29 +1916,58 @@ function communityCountrySection(data, code, p) {
 function communityLeaderboard(data, p) {
   const seed = window.RankdSeed;
   const rows = seed ? seed.topCountries(data.countryBoard, COMMUNITY_MIN_COUNTRY, 5) : [];
+  const top5 = p.type === "top5";
+  const note = top5 ? "Fewest guesses on this puzzle" : "Fewest tries on this puzzle";
   if (!rows.length) return `<h3 class="community-sec">Top countries</h3><p class="community-empty">Not enough plays from any one country yet.</p>`;
-  const unit = p.type === "top5" ? "guesses" : "tries";
   const items = rows.map(row => {
-    const avg = row.avgTries == null || Number.isNaN(Number(row.avgTries)) ? "" : ` · ${Number(row.avgTries).toFixed(1)} ${unit}`;
-    return `<li><span class="fl">${esc(flagEmoji(row.code))}</span><span class="nm">${esc(regionName(row.code))}</span><span class="meta">${Math.round(Number(row.solveRate))}% solved${avg}</span></li>`;
+    return `<li><span class="fl">${esc(flagEmoji(row.code))}</span><span class="nm">${esc(regionName(row.code))}</span><span class="meta">${esc(triesLabel(row.avgTries, top5, 1))}</span></li>`;
   }).join("");
-  return `<h3 class="community-sec">Top countries</h3><p class="community-note">Highest solve rate on this puzzle</p><ol class="country-board">${items}</ol>`;
+  return `<h3 class="community-sec">Top countries</h3><p class="community-note">${esc(note)}</p><ol class="country-board">${items}</ol>`;
 }
 function renderYouVs(p, data, res) {
   const el = $("#youVs");
   if (!el) return;
-  const mine = placementScore(res);
-  const block = data && data.score;
-  const hist = block && block.hist;
-  if (mine == null || !hist || !hist.length || block.avg == null) { el.classList.add("hidden"); el.innerHTML = ""; return; }
-  const avg = Number(block.avg);
-  const better = window.RankdSeed ? window.RankdSeed.betterThan(hist, mine) : null;
-  const under = mine < avg - 0.005;
-  const line = under || better == null
-    ? (under ? "A bit under the average on this one." : "Above the average on this one.")
-    : `You did better than ${better}% of players`;
+  const mine = resultCard(p, res);
+  const block = data && data.standing;
+  if (!mine || !block || block.avgTries == null) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+  const top5 = mine.kind === "top5";
+  const better = block.byTries && window.RankdSeed ? window.RankdSeed.betterThan(block, mine.tries, mine.accuracy) : null;
+  const under = Number(mine.tries) > Number(block.avgTries) + 0.05;
+  const line = under
+    ? "A bit under the average on this one."
+    : (better == null ? "Above the average on this one." : `You did better than ${better}% of players`);
+  const yoursFirst = top5
+    ? (mine.firstCorrect ? "First guess in the top 5" : "First guess missed")
+    : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
+  const avgFirst = top5
+    ? `${Math.round(Number(block.avgFirst) * 100)}% hit first`
+    : `avg ${Number(block.avgFirst).toFixed(1)}/${block.firstOf || mine.firstOf}`;
   el.classList.remove("hidden");
-  el.innerHTML = `<div class="you-vs-row"><div><b>${Math.round(mine * 100)}</b><span>Your score</span></div><div><b>${Math.round(avg * 100)}</b><span>Average</span></div></div><p class="you-vs-line">${esc(line)}</p><p class="you-vs-note">Correct placements across your guesses</p>`;
+  el.innerHTML = `<div class="you-vs-pair"><b>${esc(triesLabel(mine.tries, top5))}</b><span class="avg">${esc("avg " + triesLabel(block.avgTries, top5, 1))}</span></div>`
+    + `<div class="you-vs-pair"><b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span></div>`
+    + `<div class="you-vs-acc"><div class="you-vs-pair"><b>${mine.accuracy}</b><span class="acc-name">Accuracy <span class="tip-wrap"><button type="button" class="tip-btn" aria-expanded="false" aria-label="How accuracy is calculated">?</button></span></span><span class="avg">avg ${Math.round(Number(block.avgAccuracy))}</span></div>`
+    + `<p class="tip-pop" role="tooltip">${esc(mine.tip)}</p></div>`
+    + `<p class="you-vs-line">${esc(line)}</p>`;
+  const acc = el.querySelector(".you-vs-acc");
+  const btn = el.querySelector(".tip-btn");
+  if (btn && acc) btn.addEventListener("click", ev => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const open = acc.classList.toggle("open");
+    btn.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+}
+if (!document.documentElement.dataset.accTip) {
+  document.documentElement.dataset.accTip = "1";
+  document.addEventListener("click", e => {
+    document.querySelectorAll(".you-vs-acc.open").forEach(block => {
+      if (!block.contains(e.target)) {
+        block.classList.remove("open");
+        const btn = block.querySelector(".tip-btn");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+      }
+    });
+  });
 }
 async function renderCommunity(p, res) {
   const wrap = document.querySelector(".community"), body = $("#communityBody"), badge = $("#communityBadge");

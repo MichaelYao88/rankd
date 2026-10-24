@@ -214,12 +214,20 @@ a{color:var(--link)}
 .country-board .fl{flex:none;font-size:18px;width:1.4em;text-align:center}
 .country-board .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .country-board .meta{flex:none;color:var(--muted);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
-.you-vs{margin-top:14px;padding:16px 20px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
-.you-vs-row{display:flex;gap:22px}
-.you-vs-row b{display:block;font-size:32px;letter-spacing:-.04em;line-height:1;color:var(--ink)}
-.you-vs-row span{display:block;margin-top:4px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.you-vs-line{margin:12px 0 0;font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
-.you-vs-note{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.you-vs{margin-top:14px;padding:14px 18px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
+.you-vs-pair{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
+.you-vs-pair:first-child{border-top:0;padding-top:2px}
+.you-vs-pair b{font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.25;color:var(--ink)}
+.you-vs-pair .avg{flex:none;color:var(--muted);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.you-vs-acc{border-top:1px solid var(--line);margin-top:2px;padding-top:2px}
+.you-vs-acc .you-vs-pair{border-top:0}
+.you-vs-acc b{font-size:28px;letter-spacing:-.04em}
+.acc-name{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);vertical-align:middle}
+.tip-btn{width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:12px;font-weight:800;line-height:1;cursor:pointer}
+.tip-btn:hover,.tip-btn:focus-visible{color:var(--ink);border-color:var(--muted)}
+.tip-pop{display:none;margin:2px 0 4px;padding:10px 12px;border-radius:12px;background:var(--ink);color:var(--bg);font-size:12.5px;font-weight:600;line-height:1.45}
+.you-vs-acc:hover .tip-pop,.you-vs-acc:focus-within .tip-pop,.you-vs-acc.open .tip-pop{display:block}
+.you-vs-line{margin:10px 0 0;font-size:15px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}

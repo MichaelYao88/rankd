@@ -65,23 +65,40 @@ def check(doc: dict) -> list[str]:
         if not isinstance(board, list) or len(board) < 6:
             errors.append(f"{pid}: countryBoard missing")
         else:
-            shown = [r for r in board if int(r.get("players") or 0) >= cs.MIN_COUNTRY_PLAYERS]
+            shown = [r for r in board if int(r.get("players") or 0) >= cs.MIN_COUNTRY_PLAYERS and r.get("avgTries") is not None]
             thin = [r for r in board if int(r.get("players") or 0) < cs.MIN_COUNTRY_PLAYERS]
             if len(shown) < 5:
                 errors.append(f"{pid}: fewer than 5 countries above the play threshold")
             if not thin:
                 errors.append(f"{pid}: expected a country under the play threshold")
+            if any("solveRate" in r for r in board):
+                errors.append(f"{pid}: country board still carries a solve rate")
+            fastest_thin = min(float(r["avgTries"]) for r in thin)
+            fastest_shown = min(float(r["avgTries"]) for r in shown)
+            if fastest_thin >= fastest_shown:
+                errors.append(f"{pid}: a small country should be faster than the leader so the threshold matters")
             for r in shown:
-                rate = int(r.get("solveRate") or 0)
-                if rate < 30 or rate > 80:
-                    errors.append(f"{pid}: implausible solve rate {rate} for {r.get('code')}")
-        score = row.get("score") or {}
-        hist = score.get("hist") or []
-        if len(hist) != 20 or sum(hist) != int(row.get("players") or 0):
-            errors.append(f"{pid}: score histogram does not match players")
-        avg = float(score.get("avg") or 0)
-        if not 0.45 <= avg <= 0.65:
-            errors.append(f"{pid}: score avg {avg} is outside the seeded band")
+                avg_tries = float(r["avgTries"])
+                lo, hi = (7, 15) if row.get("type") == "top5" else (2.1, 4.3)
+                if not lo <= avg_tries <= hi:
+                    errors.append(f"{pid}: implausible avg tries {avg_tries} for {r.get('code')}")
+        standing = row.get("standing") or {}
+        buckets = standing.get("byTries") or {}
+        counted = sum(sum(hist) for hist in buckets.values() if isinstance(hist, list))
+        if counted != int(row.get("players") or 0):
+            errors.append(f"{pid}: standing histogram does not match players")
+        avg_tries = float(standing.get("avgTries") or 0)
+        acc = float(standing.get("avgAccuracy") or 0)
+        if row.get("type") == "top5":
+            if not 8.5 <= avg_tries <= 13:
+                errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
+            if not 60 <= acc <= 90:
+                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        else:
+            if not 2.8 <= avg_tries <= 3.6:
+                errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
+            if not 45 <= acc <= 68:
+                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
     return errors
 
 
