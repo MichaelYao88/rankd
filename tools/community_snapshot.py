@@ -14,12 +14,15 @@ when players < MIN_COUNTRY_PLAYERS (the client shows an empty state instead).
 second_guess is logged on plays but not aggregated here. Bias-vs-region
 scores are out of scope; this module only counts what was submitted.
 
-countryBoard is every country that submitted, with solve rate and average
-tries (or guesses, for top 5). The client drops countries under
-MIN_COUNTRY_PLAYERS and shows the top 5. score is the 0–1 placement score
-stored on payload.score (correct marks / marks across guesses). It is only
-attached once that many plays actually carried a score, so a thin sample
-does not replace the seed distribution.
+countryBoard is every country that submitted, with average tries (or
+guesses, for top 5) and a solve rate kept for older readers. The client
+drops countries under MIN_COUNTRY_PLAYERS and ranks the rest by fewest tries.
+
+standing is the results-card comparison: average tries, items correct on the
+first guess, and accuracy (0–100). byTries is a 10-bin accuracy histogram per
+try count so the client can say "better than X%", with fewer tries winning
+and accuracy breaking ties. It is only attached once that many plays carried
+both a try count and an accuracy, so a thin sample does not replace the seed.
 """
 from __future__ import annotations
 
@@ -390,7 +393,7 @@ def aggregate_plays(rows: list[dict]) -> dict:
         snap.update(_standings(plays))
         puzzles[pid] = snap
     return {
-        "version": 3,
+        "version": 4,
         "source": "live",
         "puzzles": puzzles,
         "secondGuessRows": second_n,
@@ -421,21 +424,43 @@ def play_tries(row: dict) -> float | None:
     return None
 
 
-def play_score(row: dict) -> float | None:
-    raw = _number(_payload(row).get("score"))
+def _accuracy(row: dict) -> float | None:
+    raw = _number(_payload(row).get("accuracy"))
     if raw is None:
         return None
-    return max(0.0, min(1.0, raw))
+    return max(0.0, min(100.0, raw))
+
+
+def _acc_bin(value: float) -> int:
+    if value >= 100:
+        return 9
+    if value <= 0:
+        return 0
+    return min(9, int(value // 10))
 
 
 def _standings(plays: list[dict]) -> dict[str, Any]:
-    """Country solve rates plus a score histogram, from rows already filtered to one puzzle."""
+    """Country average tries plus the tries/accuracy comparison, from one puzzle."""
     buckets: dict[str, dict[str, Any]] = {}
-    scores: list[float] = []
+    tries_vals: list[float] = []
+    first_vals: list[float] = []
+    first_of: list[int] = []
+    acc_pairs: list[tuple[int, float]] = []
+    top5 = any(play.get("puzzle_type") == "top5" for play in plays)
     for play in plays:
-        scored = play_score(play)
-        if scored is not None:
-            scores.append(scored)
+        tries = play_tries(play)
+        if tries is not None:
+            tries_vals.append(tries)
+        payload = _payload(play)
+        first = _number(payload.get("firstCorrect"))
+        if first is not None:
+            first_vals.append(first)
+        width = _number(payload.get("firstOf"))
+        if width is not None and width > 0:
+            first_of.append(int(width))
+        accuracy = _accuracy(play)
+        if tries is not None and accuracy is not None:
+            acc_pairs.append((int(round(tries)), accuracy))
         code = _country(play.get("country_code"))
         if not code:
             continue
@@ -443,7 +468,6 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
         slot["players"] += 1
         if play.get("solved"):
             slot["solved"] += 1
-        tries = play_tries(play)
         if tries is not None:
             slot["tries"].append(tries)
     board = []
@@ -458,16 +482,21 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             entry["avgTries"] = round(sum(slot["tries"]) / len(slot["tries"]), 1)
         board.append(entry)
     out: dict[str, Any] = {"countryBoard": board}
-    if len(scores) >= MIN_COUNTRY_PLAYERS:
-        hist = [0] * 20
-        for value in scores:
-            idx = 19 if value >= 1 else min(19, int(value * 20))
-            hist[idx] += 1
-        out["score"] = {
-            "avg": round(sum(scores) / len(scores), 4),
-            "n": len(scores),
-            "hist": hist,
+    if len(tries_vals) >= MIN_COUNTRY_PLAYERS and len(acc_pairs) >= MIN_COUNTRY_PLAYERS:
+        by_tries: dict[str, list[int]] = {}
+        for tries, accuracy in acc_pairs:
+            hist = by_tries.setdefault(str(tries), [0] * 10)
+            hist[_acc_bin(accuracy)] += 1
+        of = Counter(first_of).most_common(1)[0][0] if first_of else (1 if top5 else 0)
+        out["standing"] = {
+            "n": len(acc_pairs),
             "seeded": False,
+            "kind": "top5" if top5 else "order",
+            "avgTries": round(sum(tries_vals) / len(tries_vals), 2),
+            "avgFirst": round(sum(first_vals) / len(first_vals), 2) if first_vals else None,
+            "firstOf": of,
+            "avgAccuracy": round(sum(acc for _tries, acc in acc_pairs) / len(acc_pairs)),
+            "byTries": by_tries,
         }
     return out
 
@@ -587,7 +616,7 @@ def overlay_seed(seed_doc: dict, live_doc: dict, min_players: int = MIN_COUNTRY_
             fresh["seeded"] = False
             out.setdefault("puzzles", {})[pid] = fresh
             replaced.append(pid)
-    out["version"] = 3
+    out["version"] = 4
     if replaced and len(replaced) == len(out.get("puzzles") or {}):
         out["source"] = "live"
     elif replaced:
@@ -616,6 +645,9 @@ def _self_test() -> None:
             "payload": {
                 "tries": 1 if perfect else 3,
                 "score": 1.0 if perfect else 0.55,
+                "accuracy": 100 if perfect else 40,
+                "firstCorrect": 2 if perfect else 0,
+                "firstOf": 2,
                 "items": [{"name": "A", "mark": "good" if order[0]["name"] == "A" else "bad"}, {"name": "B", "mark": "good"}],
                 "secondGuess": {"kind": "rank", "order": [{"name": "A"}, {"name": "B"}]},
             },
@@ -641,7 +673,7 @@ def _self_test() -> None:
     assert set(board) == {"TW", "US"}
     assert board["TW"]["players"] == 2 and board["TW"]["solveRate"] == 0 and board["TW"]["avgTries"] == 3.0
     assert board["US"]["players"] == 1 and board["US"]["solveRate"] == 100 and board["US"]["avgTries"] == 1.0
-    assert "score" not in snap  # four scored plays stay on the seed distribution
+    assert "standing" not in snap  # four scored plays stay on the seed distribution
 
     top = aggregate_plays([
         {"puzzle_id": "demo-top", "puzzle_type": "top5", "mode": "archive", "solved": False, "perfect": False,
@@ -665,8 +697,10 @@ def _self_test() -> None:
     replaced = overlay_seed(seed, big)
     assert replaced["puzzles"]["demo-rank"]["seeded"] is False
     assert replaced["source"] == "live"
-    assert replaced["puzzles"]["demo-rank"]["score"]["n"] == 24
-    assert replaced["puzzles"]["demo-rank"]["score"]["seeded"] is False
+    standing = replaced["puzzles"]["demo-rank"]["standing"]
+    assert standing["n"] == 24 and standing["seeded"] is False
+    assert standing["avgTries"] > 1
+    assert sum(sum(hist) for hist in standing["byTries"].values()) == 24
     assert replaced["puzzles"]["demo-rank"]["countryBoard"]
 
     tiny = {"version": 1, "source": "seed", "puzzles": {"work": {"type": "rank", "seeded": True, "players": 80, "pctPerfect": 21, "perItemCorrect": {"Greece": 80, "Japan": 40, "Germany": 20}}}}
