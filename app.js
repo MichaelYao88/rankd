@@ -1858,6 +1858,8 @@ function showResult(res) {
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderCommunity(p, res);
   maybeShowCrossPromo();
+  // Lock controls are done once the share block is on screen — don't leave one floating over it.
+  ["#submitBtn", "#matchSubmit", "#tierSubmit"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
 }
@@ -2299,7 +2301,7 @@ async function renderCommunity(p, res) {
   if (state.mode === "practice") {
     if (wrap) wrap.classList.add("hidden");
     if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
-    return;
+    scheduleFit(); return;
   }
   if (wrap) wrap.classList.remove("hidden");
   if (wrap) track("compare_viewed", { mode: state.mode, puzzle_type: p && p.type });
@@ -2310,13 +2312,13 @@ async function renderCommunity(p, res) {
       ViewerGeo.country().catch(() => null),
     ]);
   } catch { data = null; countryCode = null; }
-  if (!state.puzzle || state.puzzle.id !== p.id) return;
+  if (!state.puzzle || state.puzzle.id !== p.id) { scheduleFit(); return; }
   if (!data) {
     badge.textContent = "Coming soon";
     if (headLabel) headLabel.textContent = "What most players thought";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
     if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
-    return;
+    scheduleFit(); return;
   }
   fillCommunitySeed(data, p);
   const n = Number(data.players) || 0;
@@ -2333,6 +2335,7 @@ async function renderCommunity(p, res) {
   html += communityLeaderboard(data, p);
   body.innerHTML = html;
   renderYouVs(p, data, res || getResult());
+  scheduleFit();
 }
 window.RankdCommunity = {
   row: communityPlayRow,
@@ -2477,31 +2480,76 @@ async function doShare(text) {
 // until the reveal (hints stay in the card; "💡 Hints & guesses" opens them in a sheet). With the keyboard open
 // (input focused + viewport much shorter than before) body.kb also hides the top bar, ad banner and subtitle.
 const fitMQ = matchMedia("(max-width: 560px)");
-let vvMax = 0, vvW = 0;
+let vvMax = 0, vvW = 0, fitting = false, fitQueued = false;
+function scheduleFit() {
+  if (fitQueued) return;
+  fitQueued = true;
+  requestAnimationFrame(() => { fitQueued = false; fitLayout(); });
+}
+function boxesOverlap(a, b) {
+  if (!a || !b) return false;
+  const as = getComputedStyle(a), bs = getComputedStyle(b);
+  if (as.display === "none" || bs.display === "none" || as.visibility === "hidden" || bs.visibility === "hidden") return false;
+  const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
+  if (A.width < 2 || A.height < 2 || B.width < 2 || B.height < 2) return false;
+  return A.left < B.right && A.right > B.left && A.top < B.bottom && A.bottom > B.top;
+}
+function syncFabPad() {
+  const f = $("#fab"); if (!f) return;
+  const on = !f.classList.contains("hidden");
+  document.documentElement.style.setProperty("--fab-h", on ? Math.ceil(f.offsetHeight) + "px" : "0px");
+}
+function parkFab() {
+  const f = $("#fab"); if (!f) return;
+  if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
+  const hit = [$("#shareChallengeBtn"), $("#shareChallengeTop"), document.querySelector(".share-row")].some(el => boxesOverlap(f, el));
+  f.classList.toggle("fab-clear", hit);
+}
 function syncPlaying() {
   const on = !$("#playView").classList.contains("hidden") && $("#result").classList.contains("hidden");
   document.body.classList.toggle("playing", on); fitLayout();
 }
 function fitLayout() {
-  const vv = window.visualViewport, h = vv ? vv.height : innerHeight, b = document.body, hero = $("#hero");
-  if (innerWidth !== vvW) { vvW = innerWidth; vvMax = 0; } vvMax = Math.max(vvMax, h);
-  const fit = fitMQ.matches && b.classList.contains("playing");
-  b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
-  b.classList.toggle("fit", fit);
-  if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); return; }
-  const ab = $("#adBottom"), abH = ab && ab.offsetHeight ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner stays on screen
-  const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
-  // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
-  hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop");
-  // Tier it on phone: always hide subtitle + stat (4 rows + chip pool need the room). Match-7: only if still tight.
-  if (fit && hero.classList.contains("is-tier")) hero.classList.add("q-drop");
-  let natural = hero.scrollHeight;
-  if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
-  hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
-  if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
+  if (fitting) return;
+  fitting = true;
+  try {
+    const vv = window.visualViewport, h = vv ? vv.height : innerHeight, b = document.body, hero = $("#hero");
+    if (!hero) return;
+    if (innerWidth !== vvW) { vvW = innerWidth; vvMax = 0; } vvMax = Math.max(vvMax, h);
+    const fit = fitMQ.matches && b.classList.contains("playing");
+    b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
+    b.classList.toggle("fit", fit);
+    if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); parkFab(); return; }
+    const ab = $("#adBottom");
+    const abShown = ab && getComputedStyle(ab).display !== "none" && ab.offsetHeight;
+    const abH = abShown ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner stays on screen
+    // Document offset of the card (stable while playing at scroll 0), from the visual viewport — not 100vh.
+    const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
+    // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
+    hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop");
+    // Tier it on phone: always hide subtitle + stat (4 rows + chip pool need the room). Match-7: only if still tight.
+    if (hero.classList.contains("is-tier")) hero.classList.add("q-drop");
+    let natural = hero.scrollHeight;
+    if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
+    hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
+    if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
+    const share = $("#shareChallengeTop");
+    const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
+    if (share && share.closest(".under-card")) share.closest(".under-card").classList.toggle("lock-covered", locks.some(btn => boxesOverlap(btn, share)));
+    parkFab();
+  } finally { fitting = false; }
 }
-window.visualViewport?.addEventListener("resize", fitLayout); addEventListener("resize", fitLayout);
-fitMQ.addEventListener?.("change", fitLayout);
+window.visualViewport?.addEventListener("resize", scheduleFit);
+window.visualViewport?.addEventListener("scroll", scheduleFit);
+addEventListener("resize", scheduleFit);
+addEventListener("scroll", () => { if (!fitting) parkFab(); }, { passive: true });
+fitMQ.addEventListener?.("change", scheduleFit);
+document.fonts?.ready.then(() => scheduleFit());
+$("#hero")?.addEventListener("load", () => scheduleFit(), true);
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => { if (!fitting) scheduleFit(); });
+  ["#hero", "#cards", "#mClues", "#mPeople", "#tierBoard", "#t5board", "#art"].forEach(sel => { const el = $(sel); if (el) ro.observe(el); });
+}
 function extraSheet() {
   openModal(`<h2>Hints &amp; guesses</h2><div class="hints">${$("#hints").innerHTML}</div><ol class="guesses">${$("#guesses").innerHTML}</ol>`);
   $("#modal").classList.add("sheet");
@@ -2725,7 +2773,8 @@ function fabGo() {
 }
 function showFab(on) {
   const f = $("#fab"); f.textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "daily" ? "Play the archive →" : state.mode === "practice" ? "🎲 New random puzzle →" : "Next puzzle →";
-  f.classList.toggle("hidden", !on); document.body.classList.toggle("has-fab", on);
+  f.classList.toggle("hidden", !on); document.body.classList.toggle("has-fab", !!on);
+  syncFabPad(); parkFab();
 }
 function next() { if (state.mode === "preview") { location.href = "loadingzone.html"; return; } if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
 
