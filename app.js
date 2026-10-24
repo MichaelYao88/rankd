@@ -1938,10 +1938,240 @@ function communityLeaderboard(data, p) {
   }).join("");
   return `<h3 class="community-sec">Top countries</h3><p class="community-note">${esc(note)}</p><ol class="country-board">${items}</ol>`;
 }
-function PlayerFigure(you) {
+/* Crowd on the results podium. Looks are a deterministic shuffle of the puzzle id
+   plus the result, so a re-render doesn't reshuffle gender, skin, or hair.
+   Gender is a silhouette read (short hair + shirt and pants, or longer hair + a dress).
+   Race is skin tone plus hair texture and color only — the face is the same on everyone. */
+const PF_SKINS = ["#FFE0CC", "#F0B48A", "#C9845A", "#A0623C", "#6B3E24", "#3A2214"];
+const PF_SHIRTS = ["#3F6E9A", "#C2544C", "#3C7A68", "#C4963A", "#6A5B94", "#4E7A4A", "#A85B78", "#5C6A7A"];
+const PF_PANTS = ["#2C3442", "#3A4252", "#2A3140", "#343E4C"];
+const PF_HAIR_M = [
+  { style: "crop", color: "#1A1A1A" },
+  { style: "curls", color: "#1C140F" },
+  { style: "wavy", color: "#6B4423" },
+  { style: "crop", color: "#E6C25A" },
+  { style: "crop", color: "#E04B32" },
+  { style: "wavy", color: "#1A1A1A" },
+  { style: "curls", color: "#4A2E1B" },
+  { style: "crop", color: "#3D2918" },
+];
+const PF_HAIR_F = [
+  { style: "long", color: "#1A1A1A" },
+  { style: "afro", color: "#1C140F" },
+  { style: "waves", color: "#6B4423" },
+  { style: "pony", color: "#E6C25A" },
+  { style: "long", color: "#E04B32" },
+  { style: "pony", color: "#1A1A1A" },
+  { style: "waves", color: "#8C3E22" },
+  { style: "afro", color: "#3A2418" },
+  { style: "long", color: "#E6C25A" },
+  { style: "waves", color: "#E04B32" },
+];
+function pfShuffle(list, rand) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function pfBalanced(n, rand) {
+  const half = Math.floor(n / 2);
+  const arr = [];
+  for (let i = 0; i < half; i++) arr.push("f", "m");
+  if (arr.length < n) arr.push(rand() < 0.5 ? "f" : "m");
+  return pfShuffle(arr, rand);
+}
+function pfCycle(items, n, rand) {
+  const out = [];
+  let prev = null;
+  while (out.length < n) {
+    const batch = pfShuffle(items, rand);
+    if (prev != null && batch[0] === prev && batch.length > 1) batch.push(batch.shift());
+    for (let i = 0; i < batch.length && out.length < n; i++) out.push(batch[i]);
+    prev = out[out.length - 1];
+  }
+  return out;
+}
+function pfCast(n, seed) {
+  const rand = rng(String(seed || "ranki"));
+  const back = pfBalanced(n, rand);
+  const front = pfBalanced(n, rand);
+  const genders = [];
+  for (let i = 0; i < n; i++) genders.push(back[i], front[i]);
+  const count = genders.length;
+  const skins = pfCycle(PF_SKINS, count, rand);
+  const shirts = pfCycle(PF_SHIRTS, count, rand);
+  const pants = pfCycle(PF_PANTS, count, rand);
+  const hairM = pfCycle(PF_HAIR_M, count, rand);
+  const hairF = pfCycle(PF_HAIR_F, count, rand);
+  let mi = 0, fi = 0;
+  const looks = [];
+  for (let i = 0; i < count; i++) {
+    const g = genders[i];
+    const hair = g === "f" ? hairF[fi++] : hairM[mi++];
+    const waveRoll = rand();
+    looks.push({
+      g: g,
+      skin: skins[i],
+      hair: hair.style,
+      hc: hair.color,
+      shirt: shirts[i],
+      pants: pants[i],
+      wave: waveRoll < 0.16 ? "both" : waveRoll < 0.58 ? "l" : "r",
+      bobDur: (2.15 + rand() * 1.25).toFixed(2) + "s",
+      bobDelay: (-rand() * 2.1).toFixed(2) + "s",
+      hopDur: (3.5 + rand() * 2.6).toFixed(2) + "s",
+      hopPhase: (rand() * 2.4).toFixed(2) + "s",
+      hopY: "-" + (5 + Math.floor(rand() * 4)) + "px",
+      waveDur: (5.4 + rand() * 2.8).toFixed(2) + "s",
+      waveDelay: (0.4 + rand() * 3.2).toFixed(2) + "s",
+    });
+  }
+  for (let i = 1; i < looks.length; i++) {
+    if (looks[i].hc === looks[i - 1].hc) {
+      for (let j = i + 1; j < looks.length; j++) {
+        if (looks[j].g === looks[i].g && looks[j].hc !== looks[i - 1].hc) {
+          const style = looks[i].hair, color = looks[i].hc;
+          looks[i].hair = looks[j].hair; looks[i].hc = looks[j].hc;
+          looks[j].hair = style; looks[j].hc = color;
+          break;
+        }
+      }
+    }
+  }
+  return looks;
+}
+function pfInk(skin) {
+  const h = String(skin || "").replace("#", "");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  const y = (r * 299 + g * 587 + b * 114) / 1000;
+  return y < 150 ? "rgba(255,246,240,.92)" : "rgba(55,36,32,.85)";
+}
+function pfEl(name, attrs) {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+  if (attrs) for (const k in attrs) node.setAttribute(k, attrs[k]);
+  return node;
+}
+function pfHairBack(look) {
+  const g = pfEl("g", { class: "pf-hair" });
+  const s = look.hair;
+  if (s === "long" || s === "waves") {
+    const sway = pfEl("g", { class: "pf-hair-tail" });
+    if (s === "long") {
+      sway.appendChild(pfEl("path", { d: "M11.4 12 C7.2 20 6.4 32 9.6 44 C12.8 33 13.6 22 15.4 12 Z" }));
+      sway.appendChild(pfEl("path", { d: "M28.6 12 C32.8 20 33.6 32 30.4 44 C27.2 33 26.4 22 24.6 12 Z" }));
+    } else {
+      sway.appendChild(pfEl("path", { d: "M12 13 C7.5 20 13 27 8.6 36 C12.4 29 12 21 16 14 Z" }));
+      sway.appendChild(pfEl("path", { d: "M28 13 C32.5 20 27 27 31.4 36 C27.6 29 28 21 24 14 Z" }));
+    }
+    g.appendChild(sway);
+  } else if (s === "pony") {
+    const sway = pfEl("g", { class: "pf-hair-tail" });
+    sway.appendChild(pfEl("path", { d: "M22.5 8.5 C31 10 34.5 20 31 36 C27 24 25.5 14 22 10 Z" }));
+    sway.appendChild(pfEl("circle", { cx: "27.2", cy: "11.2", r: "2.7" }));
+    sway.appendChild(pfEl("circle", { cx: "28.4", cy: "15.2", r: "1.35", class: "pf-cloth" }));
+    g.appendChild(sway);
+  } else if (s === "afro") {
+    [[20, 7.2, 6.4], [12.2, 12.4, 5.1], [27.8, 12.4, 5.1], [14.6, 6.4, 4.1], [25.4, 6.4, 4.1], [20, 2.8, 3.3], [10.4, 17.5, 3.5], [29.6, 17.5, 3.5]].forEach(p => {
+      g.appendChild(pfEl("circle", { cx: String(p[0]), cy: String(p[1]), r: String(p[2]) }));
+    });
+  } else if (s === "curls") {
+    [[20, 6.6, 4.4], [14.2, 10.2, 3.4], [25.8, 10.2, 3.4], [16.8, 4.8, 2.8], [23.2, 4.8, 2.8]].forEach(p => {
+      g.appendChild(pfEl("circle", { cx: String(p[0]), cy: String(p[1]), r: String(p[2]) }));
+    });
+  }
+  return g;
+}
+function pfHairFront(look) {
+  const g = pfEl("g", { class: "pf-hair" });
+  const s = look.hair;
+  if (s === "wavy") {
+    g.appendChild(pfEl("path", { d: "M12.2 13.2 C12 6.2 28 6.2 27.8 13.2 C24.2 10 15.8 10 12.2 13.2 Z" }));
+    g.appendChild(pfEl("path", { d: "M11 12.4 C8.6 15.2 9.6 20 13 18.8 C11.2 16.6 11 13.8 11 12.4 Z" }));
+  } else if (s === "curls" || s === "afro") {
+    g.appendChild(pfEl("circle", { cx: "15.2", cy: "9.2", r: "2.6" }));
+    g.appendChild(pfEl("circle", { cx: "20", cy: "7.6", r: "2.9" }));
+    g.appendChild(pfEl("circle", { cx: "24.8", cy: "9.2", r: "2.6" }));
+  } else {
+    g.appendChild(pfEl("path", { d: "M12.6 12.8 C12.8 5.6 27.2 5.6 27.4 12.8 C24.2 9.8 15.8 9.8 12.6 12.8 Z" }));
+  }
+  return g;
+}
+function pfArm(side) {
+  const wrap = pfEl("g", { transform: side < 0 ? "translate(11.2 23.2)" : "translate(28.8 23.2)" });
+  const arm = pfEl("g", { class: "pf-arm " + (side < 0 ? "pf-arm-l" : "pf-arm-r") });
+  arm.appendChild(pfEl("rect", { class: "pf-skin", x: "-2.15", y: "0", width: "4.3", height: "13.2", rx: "2.15" }));
+  arm.appendChild(pfEl("rect", { class: "pf-cloth", x: "-2.45", y: "0", width: "4.9", height: "5.2", rx: "2" }));
+  arm.appendChild(pfEl("circle", { class: "pf-skin", cx: "0", cy: "13.1", r: "2.15" }));
+  wrap.appendChild(arm);
+  return wrap;
+}
+function pfFace(ink) {
+  const g = pfEl("g", { class: "pf-face" });
+  [["17.15", "13.15"], ["22.85", "13.15"]].forEach(c => {
+    g.appendChild(pfEl("circle", { cx: c[0], cy: c[1], r: "1.55", fill: "#FFF8F3" }));
+    g.appendChild(pfEl("circle", { class: "pf-eye", cx: c[0], cy: c[1], r: "0.82" }));
+  });
+  const smile = pfEl("path", { class: "pf-smile", d: "M17.7 16.15 Q20 17.55 22.3 16.15" });
+  smile.style.stroke = ink;
+  g.appendChild(smile);
+  return g;
+}
+function pfSvg(look) {
+  const svg = pfEl("svg", { class: "pf-svg", viewBox: "0 0 40 58", "aria-hidden": "true" });
+  const hop = pfEl("g", { class: "pf-draw" });
+  hop.appendChild(pfHairBack(look));
+  if (look.g === "m") {
+    hop.appendChild(pfEl("rect", { class: "pf-pants", x: "13", y: "33.2", width: "6", height: "18.2", rx: "2.1" }));
+    hop.appendChild(pfEl("rect", { class: "pf-pants", x: "21", y: "33.2", width: "6", height: "18.2", rx: "2.1" }));
+  } else {
+    hop.appendChild(pfEl("rect", { class: "pf-skin", x: "15.3", y: "43.5", width: "4", height: "8.2", rx: "1.6" }));
+    hop.appendChild(pfEl("rect", { class: "pf-skin", x: "20.7", y: "43.5", width: "4", height: "8.2", rx: "1.6" }));
+  }
+  hop.appendChild(pfEl("rect", { class: "pf-shoe", x: "12.7", y: "50.6", width: "6.4", height: "6.6", rx: "1.5" }));
+  hop.appendChild(pfEl("rect", { class: "pf-shoe", x: "20.9", y: "50.6", width: "6.4", height: "6.6", rx: "1.5" }));
+  if (look.g === "f") {
+    hop.appendChild(pfEl("path", { class: "pf-cloth pf-dress", d: "M13.2 22.4 H26.8 L31.4 45.6 Q20 49.4 8.6 45.6 Z" }));
+  } else {
+    hop.appendChild(pfEl("rect", { class: "pf-cloth pf-shirt", x: "12.2", y: "21.6", width: "15.6", height: "13", rx: "3.2" }));
+    hop.appendChild(pfEl("rect", { x: "12.2", y: "31.2", width: "15.6", height: "2.5", rx: "1", fill: "#000", "fill-opacity": "0.14" }));
+  }
+  hop.appendChild(pfArm(-1));
+  hop.appendChild(pfArm(1));
+  hop.appendChild(pfEl("rect", { class: "pf-skin", x: "17.7", y: "18.4", width: "4.6", height: "5", rx: "1.5" }));
+  hop.appendChild(pfEl("circle", { class: "pf-skin pf-head", cx: "20", cy: "13.2", r: "7.5" }));
+  hop.appendChild(pfHairFront(look));
+  hop.appendChild(pfFace(pfInk(look.skin)));
+  svg.appendChild(hop);
+  return svg;
+}
+function PlayerFigure(you, look) {
   const el = document.createElement("span");
-  el.className = "player-figure" + (you ? " is-you" : "");
+  const cast = look || { g: "m", skin: PF_SKINS[0], hair: "crop", hc: "#1A1A1A", shirt: PF_SHIRTS[0], pants: PF_PANTS[0], wave: "r", bobDur: "2.6s", bobDelay: "0s", hopDur: "4.4s", hopPhase: "0.4s", hopY: "-6px", waveDur: "6.2s", waveDelay: "1s" };
+  el.className = "player-figure " + (cast.g === "f" ? "is-f" : "is-m") + (you ? " is-you" : "") + " wave-" + cast.wave;
   el.setAttribute("aria-hidden", "true");
+  el.dataset.gender = cast.g;
+  el.dataset.hair = cast.hair;
+  el.style.setProperty("--skin", cast.skin);
+  el.style.setProperty("--hair", cast.hc);
+  el.style.setProperty("--shirt", cast.shirt);
+  el.style.setProperty("--pants", cast.pants);
+  el.style.setProperty("--ink", pfInk(cast.skin));
+  el.style.setProperty("--bob-dur", cast.bobDur);
+  el.style.setProperty("--bob-delay", cast.bobDelay);
+  el.style.setProperty("--hop-dur", cast.hopDur);
+  el.style.setProperty("--hop-phase", cast.hopPhase);
+  el.style.setProperty("--hop-y", cast.hopY);
+  el.style.setProperty("--wave-dur", cast.waveDur);
+  el.style.setProperty("--wave-delay", cast.waveDelay);
+  const hop = document.createElement("span");
+  hop.className = "pf-hop";
+  const bob = document.createElement("span");
+  bob.className = "pf-bob";
+  bob.appendChild(pfSvg(cast));
+  hop.appendChild(bob);
+  el.appendChild(hop);
   if (you) {
     const marker = document.createElement("span");
     marker.className = "you-marker";
@@ -1950,14 +2180,17 @@ function PlayerFigure(you) {
   }
   return el;
 }
-function renderPlatforms(percentile) {
+function renderPlatforms(percentile, castSeed) {
   const seed = window.RankdSeed;
   if (!seed || percentile == null) return null;
   const pick = seed.platformCount(percentile / 100);
   const platforms = document.createElement("div");
   platforms.className = "platforms";
   platforms.setAttribute("aria-hidden", "true");
+  platforms.style.setProperty("--n", String(pick.n));
   const soft = pick.band < Math.ceil(pick.n * 0.45);
+  const looks = pfCast(pick.n, castSeed || ("band" + pick.band));
+  let lookI = 0;
   for (let i = 0; i < pick.n; i++) {
     const col = document.createElement("div");
     col.className = "platform" + (i === pick.band ? " is-you" : "");
@@ -1966,17 +2199,31 @@ function renderPlatforms(percentile) {
     // crowd on each step is the same size.
     for (let f = 0; f < 2; f++) {
       const you = i === pick.band && f === 1;
-      const fig = PlayerFigure(you);
+      const fig = PlayerFigure(you, looks[lookI++]);
+      fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + " + (0.08 + f * 0.11).toFixed(2) + "s)");
       if (!you && f === 1) fig.classList.add("extra");
       if (you) {
         fig.classList.add(soft ? "celebrate-soft" : "celebrate");
         if (!soft) {
-          for (let s = 0; s < 3; s++) {
+          const bits = [
+            ["-12px", "-18px", "-32deg", "var(--brand)", "0ms", false],
+            ["-1px", "-22px", "18deg", "#F2B441", "45ms", true],
+            ["12px", "-16px", "42deg", "#3CB7A4", "20ms", false],
+            ["-16px", "-9px", "-18deg", "#F2B441", "70ms", true],
+            ["7px", "-20px", "12deg", "var(--brand)", "30ms", false],
+            ["16px", "-11px", "58deg", "#E25B45", "55ms", true],
+          ];
+          const hop = fig.querySelector(".pf-hop");
+          bits.forEach(bit => {
             const spark = document.createElement("i");
-            spark.className = "pf-spark";
-            spark.style.setProperty("--i", String(s));
-            fig.appendChild(spark);
-          }
+            spark.className = "pf-spark" + (bit[5] ? " is-round" : "");
+            spark.style.setProperty("--dx", bit[0]);
+            spark.style.setProperty("--dy", bit[1]);
+            spark.style.setProperty("--rot", bit[2]);
+            spark.style.setProperty("--spark", bit[4]);
+            spark.style.background = bit[3];
+            hop.appendChild(spark);
+          });
         }
       }
       col.appendChild(fig);
@@ -2006,7 +2253,7 @@ function renderYouVs(p, data, res) {
   el.classList.remove("hidden");
   el.innerHTML = `<div class="you-vs-pair"><div class="you-vs-main"><b>${esc(triesLabel(mine.tries, top5))}</b><div class="acc-line">Accuracy ${mine.accuracy} <span class="tip-wrap"><button type="button" class="tip-btn" aria-expanded="false" aria-label="How accuracy is calculated">?</button><span class="tip-pop" role="tooltip">${esc(mine.tip)}</span></span></div></div><span class="avg">${esc("avg " + triesLabel(block.avgTries, top5, 1))}</span></div>`
     + `<div class="you-vs-pair"><b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span></div>`;
-  const platforms = better == null ? null : renderPlatforms(better);
+  const platforms = better == null ? null : renderPlatforms(better, p.id + "|" + mine.tries + "|" + mine.accuracy + "|" + (mine.solved ? 1 : 0));
   if (platforms) {
     el.appendChild(platforms);
     const note = document.createElement("p");
