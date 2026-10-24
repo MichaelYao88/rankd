@@ -851,6 +851,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
   "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
   "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
+  "Girlboss": "female CEOs",
 };
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
@@ -953,6 +954,7 @@ const SOURCE_BRAND = [
   [/world population review/i, "WORLD POPULATION REVIEW"],
   [/ethnologue/i, "ETHNOLOGUE"],
   [/gallup/i, "GALLUP"],
+  [/deloitte/i, "DELOITTE"],
   [/\bubs\b/i, "UBS"],
   [/visual capitalist/i, "VISUAL CAPITALIST"],
   [/wikipedia/i, "WIKIPEDIA"],
@@ -1140,7 +1142,10 @@ function renderRank(saved, keepOrder) {
   if (!g.done) state.order = enforcePinned(p, state.order, g.pinned);
   const board = $("#board");
   // v12.1: values are always on (no show-values setting or chip)
-  board.classList.toggle("values", true); board.classList.toggle("locked", locked); board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
+  board.classList.toggle("values", true); board.classList.toggle("locked", locked);
+  board.classList.toggle("n6", p.items.length >= 6);   // v10: 6-item rankers get compact rows
+  board.classList.toggle("n7", p.items.length >= 7);   // 7-item rankers: one step tighter; 6-item boards stay on n6 only
+  board.style.setProperty("--rank-n", String(p.items.length));
   $("#direction").textContent = p.higherIs === "bottom" ? "▲ Lowest at the top" : "▲ Highest at the top";
   // v8: values are shown together in ONE panel (sorted, top to bottom = the order asked for), never on the draggable cards
   // v8.1: ONE separate column box to the left of the cards, one value per row (sorted, aligned with the card rows),
@@ -2536,7 +2541,7 @@ function clearDataModal() {   // v11.1: confirm step for "Clear all data"
 function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + future), filterable by mode; hidden when CONFIG.SHOW_ALL_PUZZLES = false
   if (!CONFIG.SHOW_ALL_PUZZLES) return;
   const all = load(LS.results, {}), today = dayNumber(todayKey()) + 1;
-  const kind = p => p.type === "top5" ? "top5" : p.type === "match" ? "match" : p.type === "tier" ? "tier" : p.items.length === 6 ? "rank6" : (p.items.length && p.items.every(it => /^\p{RI}\p{RI}$/u.test(it.emoji)) ? "rank" : "incountry");
+  const kind = p => p.type === "top5" ? "top5" : p.type === "match" ? "match" : p.type === "tier" ? "tier" : p.items.length >= 6 ? "rank6" : (p.items.length && p.items.every(it => /^\p{RI}\p{RI}$/u.test(it.emoji)) ? "rank" : "incountry");
   const KINDS = [["any", "All"], ["rank", "Rank it"], ["rank6", "6-country"], ["top5", "Top 5"], ["match", "Match it"], ["tier", "Tier it"], ["incountry", "Groups"]];
   const count = k => PUZZLES.filter(p => k === "any" || kind(p) === k).length;
   openModal(`<h2>All puzzles (${PUZZLES.length})</h2><p class="plist-note">Pre-launch list: every puzzle, past and future. Plays here never count toward stats or streaks.</p>
@@ -2551,7 +2556,7 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
     const rr = r && r.type === "rank" ? normRank(r) : r, o = Math.round(p.order);
     const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
     const when = o < 10000 ? `#${pad3(o)} · ${prettyDate(keyFromDay(o - 1)).replace(/, \d{4}$/, "")}${o > today ? " · future" : o === today ? " · today" : ""}` : "";
-    const k = kind(p), kl = { rank: "Rank it", rank6: "Rank it · 6 countries", top5: "Guess the top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
+    const k = kind(p), kl = { rank: "Rank it", rank6: `Rank it · ${p.items.length} countries`, top5: "Guess the top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
     return `<button data-i="${i}" data-k="${k}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
   let kf = "any";
   const apply = () => {

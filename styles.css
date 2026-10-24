@@ -530,6 +530,13 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 .board.n6.vcol .card{height:56px}
 .board.n6 .vchip{height:56px}
 @media (max-width:560px){.board.n6 .card{min-height:52px}.board.n6 .name{font-size:14px}}
+/* 7-item rankers: tighter than n6. 6-item boards never get .n7, so their rows stay as above. */
+.board.n7 .card{min-height:46px;padding-top:4px;padding-bottom:4px}
+.board.n7 .arrows{gap:1px}.board.n7 .arrows button{height:14px}
+.board.n7.vcol .card{height:48px}
+.board.n7 .vchip{height:48px}
+.board.n7 .name{font-size:15px}
+@media (max-width:560px){.board.n7 .card{min-height:44px}.board.n7 .name{font-size:13px}}
 /* ---------- v11: win celebrations (see Fx in app.js). explosive > big > normal; reduced motion = static banner only ---------- */
 .fx-layer{position:fixed;inset:0;z-index:70;pointer-events:none;display:grid;place-items:center;overflow:hidden}
 .fx-canvas{position:absolute;inset:0;width:100%;height:100%}
@@ -641,6 +648,11 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .board.vcol{align-items:stretch}
   body.fit .cards,body.fit .vp-list{display:grid;grid-auto-rows:minmax(0,58px);gap:6px;height:100%;max-height:100%}
   body.fit .board.n6 .cards,body.fit .board.n6 .vp-list{grid-auto-rows:minmax(0,52px)}
+  body.fit .board.n7 .cards,body.fit .board.n7 .vp-list{grid-template-rows:repeat(var(--rank-n, 7), minmax(0, 1fr));grid-auto-rows:minmax(0, 1fr);gap:4px}
+  body.fit .board.n7 .card{max-height:none;padding:2px 8px}
+  body.fit .board.n7 .name{font-size:13px}
+  body.fit .board.n7 .emoji{font-size:18px;width:22px}
+  body.fit .board.n7 .rank{width:20px;height:20px;font-size:10px}
   body.fit .card{min-height:0!important;height:auto!important;max-height:64px;padding:4px 9px;overflow:hidden;border-radius:13px}
   body.fit .board .cards{align-content:start}
   body.fit .vchip{height:auto!important;max-height:64px;min-height:0}
