@@ -84,7 +84,11 @@ def check(doc: dict) -> list[str]:
                     errors.append(f"{pid}: implausible avg tries {avg_tries} for {r.get('code')}")
         standing = row.get("standing") or {}
         buckets = standing.get("byTries") or {}
+        failed = standing.get("failed") or {}
         counted = sum(sum(hist) for hist in buckets.values() if isinstance(hist, list))
+        counted += sum(sum(hist) for hist in failed.values() if isinstance(hist, list))
+        if not failed:
+            errors.append(f"{pid}: standing is missing unfinished games")
         if counted != int(row.get("players") or 0):
             errors.append(f"{pid}: standing histogram does not match players")
         avg_tries = float(standing.get("avgTries") or 0)
@@ -92,12 +96,12 @@ def check(doc: dict) -> list[str]:
         if row.get("type") == "top5":
             if not 8.5 <= avg_tries <= 13:
                 errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
-            if not 60 <= acc <= 90:
+            if not 48 <= acc <= 78:
                 errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
         else:
             if not 2.8 <= avg_tries <= 3.6:
                 errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-            if not 45 <= acc <= 68:
+            if not 55 <= acc <= 72:
                 errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
     return errors
 
