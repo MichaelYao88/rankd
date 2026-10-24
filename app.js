@@ -83,9 +83,15 @@ window.RankdData = RankdData;
 //   top5: avgFound, avgRank, firstGuess: [{name, emoji, pct}] // world, kept
 //   all:  firstGuessWorld: { players, bars: [...] }
 //         firstGuessByCountry: { "TW": { players, bars }, "US": {...} }
+//         countryBoard: [{ code, players, solveRate, avgTries }]
+//         score: { avg: 0–1, n, hist: [20 bins], seeded? }
 //   bars: rank {slot, name, pct}; tier {name, tier, pct}; match {name, matchedTo, label, pct}; top5 {name, pct}
-// pctPerfect is "solved perfectly (first-try / full clear)".
-// A country bucket under COMMUNITY_MIN_COUNTRY plays is an empty state, not invented stats.
+// pctPerfect is "solved perfectly (first-try / full clear)". The results panel does not draw those
+// percents: it shows the consensus ordering, a country solve-rate board, and one placement score.
+// A country under COMMUNITY_MIN_COUNTRY plays is skipped, not shown as a one-off rate.
+// score.hist is correct placements / placements across every guess. When the snapshot has no
+// countryBoard or score yet, RankdSeed fills a distribution that sits a little under a typical clear.
+// Real plays replace that puzzle once tools/rebuild_community_snapshot.py sees enough of them.
 // Practice hides compare and is not inserted. Studio never starts the game.
 // ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
 // card already skip it) so those finishes are not inserted either. Streamer mode
@@ -157,6 +163,27 @@ function top5Piece(p, key) {
   try { piece.hit = inTop(p, c); piece.rank = tieRank(p, c); } catch { /* catalog not ready */ }
   return piece;
 }
+// One number for the whole game: correct placements divided by placements submitted.
+// Each lock-in (or each Top 5 guess) counts, so using more tries pulls the score down.
+function placementScore(result) {
+  if (!result) return null;
+  const type = result.type;
+  if (type === "top5") {
+    const n = (result.guesses || []).length;
+    if (!n || result.hits == null || Number.isNaN(Number(result.hits))) return null;
+    return Math.max(0, Math.min(1, Number(result.hits) / n));
+  }
+  const attempts = Array.isArray(result.attempts) ? result.attempts : [];
+  let good = 0, total = 0;
+  for (const attempt of attempts) {
+    for (const mark of (attempt.marks || [])) {
+      total += 1;
+      if (mark === "good") good += 1;
+    }
+  }
+  if (!total) return null;
+  return good / total;
+}
 function communityPlayRow(result) {
   if (!result || window.RANKD_STUDIO || PREVIEW) return null;
   const mode = result.mode;
@@ -203,6 +230,8 @@ function communityPlayRow(result) {
   }
   payload.firstGuess = first;
   payload.secondGuess = second;
+  const score = placementScore(result);
+  if (score != null) payload.score = Math.round(score * 10000) / 10000;
   return {
     puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload,
     first_guess: first, second_guess: second,
@@ -1699,7 +1728,7 @@ function showResult(res) {
   $("#sourceName").textContent = p.source || "source";
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
-  renderCommunity(p);
+  renderCommunity(p, res);
   maybeShowCrossPromo();
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
   setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
@@ -1721,57 +1750,86 @@ function communityBarLabel(p, bar) {
   if (p.type === "match" && bar.matchedTo && bar.name) return `${bar.name} → ${bar.matchedTo}`;
   return bar.name || "";
 }
-function firstGuessCaption(type) {
-  if (type === "top5") return "The first country they named";
-  if (type === "tier") return "The tier they picked most often";
-  if (type === "match") return "Who they matched on the first try";
-  return "Most common card in each spot";
-}
 function communityEmojiOf(p, name) {
   const pools = [].concat(p.items || [], p.people || [], p.countries || []);
   const hit = pools.find(x => x && x.name === name);
   return (hit && hit.emoji) || "";
 }
-function communityGuessSection(title, note, bars, p) {
-  let html = `<h3 class="community-sec">${esc(title)}</h3>`;
-  if (note) html += `<p class="community-note">${esc(note)}</p>`;
-  html += bars.map(bar => communityCrow(communityBarLabel(p, bar), bar.pct, bar.emoji || communityEmojiOf(p, bar.name))).join("");
-  return html;
+function flagEmoji(code) {
+  const c = String(code || "").toUpperCase();
+  if (!/^[A-Z]{2}$/.test(c)) return "";
+  return [...c].map(ch => String.fromCodePoint(0x1F1E6 + ch.charCodeAt(0) - 65)).join("");
 }
-function communityCorrectSection(data, p, withSub) {
-  const hasCorrect = data.perItemCorrect && typeof data.perItemCorrect === "object";
-  const hasTopMeta = p.type === "top5" && (data.avgFound != null || data.avgRank != null);
-  const hasPerfect = data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier");
-  if (!hasCorrect && !hasTopMeta && !hasPerfect) return "";
-  let html = "";
-  if (withSub) html += `<div class="community-sub">${p.type === "top5" ? "How they scored" : "Who got it right"}</div>`;
-  if (hasPerfect) html += `<div class="community-summary"><b>${Math.round(data.pctPerfect)}%</b> solved perfectly (first-try / full clear)</div>`;
-  if (hasTopMeta) html += `<div class="community-summary">Avg found <b>${esc(data.avgFound)}</b>/5 · avg world rank <b>#${esc(data.avgRank)}</b></div>`;
-  if (hasCorrect) {
-    const order = (p.type === "match" ? (p.people || []).map(x => x.name) : (p.items || []).map(x => x.name));
-    const names = order.length ? order.filter(n => n in data.perItemCorrect) : Object.keys(data.perItemCorrect);
-    html += names.map(n => communityCrow(n, data.perItemCorrect[n], communityEmojiOf(p, n))).join("");
+function communityOrderList(bars, p) {
+  if (!bars.length) return "";
+  if (p.type === "top5") {
+    const bar = bars[0];
+    const emoji = bar.emoji || communityEmojiOf(p, bar.name);
+    const name = bar.name || bar.label || "";
+    return `<div class="consensus-hero"><span class="fl">${emoji ? esc(emoji) : ""}</span><span class="nm">${esc(name)}</span></div><p class="community-note">The first country most players named</p>`;
   }
-  return html;
+  const ranked = p.type === "rank" || bars.some(bar => bar.slot);
+  const items = bars.map(bar => {
+    const emoji = bar.emoji || communityEmojiOf(p, bar.name);
+    const text = ranked ? (bar.name || communityBarLabel(p, bar)) : communityBarLabel(p, bar);
+    const pos = ranked && bar.slot ? `<span class="pos">${bar.slot}</span>` : "";
+    return `<li>${pos}<span class="fl">${emoji ? esc(emoji) : ""}</span><span class="nm">${esc(text)}</span></li>`;
+  }).join("");
+  const tag = ranked ? "ol" : "ul";
+  return `<${tag} class="consensus">${items}</${tag}>`;
+}
+function fillCommunitySeed(data, p) {
+  const seed = window.RankdSeed;
+  // Only puzzles still on the seed get synthetic standings. A live puzzle
+  // (seeded: false) keeps whatever the snapshot computed, including an empty board.
+  if (!data || !p || !seed || data.seeded === false) return data;
+  if (!Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, p.type || data.type || "rank");
+  if (!data.score || !Array.isArray(data.score.hist) || !data.score.hist.length) data.score = seed.scoreBlock(p.id, Number(data.players) || 0);
+  return data;
 }
 function communityCountrySection(data, code, p) {
   if (!code) return "";
-  const friendly = regionName(code);
-  const title = `What people in ${friendly} thought was right (first guess)`;
   const bucket = data.firstGuessByCountry && data.firstGuessByCountry[code];
   const players = bucket ? Number(bucket.players) || 0 : 0;
   const bars = players >= COMMUNITY_MIN_COUNTRY ? communityBars(bucket) : [];
-  if (!bars.length) {
-    return `<h3 class="community-sec">${esc(title)}</h3><p class="community-empty">Not enough first guesses from ${esc(friendly)} yet.</p>`;
-  }
-  return communityGuessSection(title, firstGuessCaption(p.type), bars, p);
+  if (!bars.length) return "";
+  return `<h3 class="community-sec">What players in ${esc(regionName(code))} thought</h3>` + communityOrderList(bars, p);
 }
-async function renderCommunity(p) {
+function communityLeaderboard(data, p) {
+  const seed = window.RankdSeed;
+  const rows = seed ? seed.topCountries(data.countryBoard, COMMUNITY_MIN_COUNTRY, 5) : [];
+  if (!rows.length) return `<h3 class="community-sec">Top countries</h3><p class="community-empty">Not enough plays from any one country yet.</p>`;
+  const unit = p.type === "top5" ? "guesses" : "tries";
+  const items = rows.map(row => {
+    const avg = row.avgTries == null || Number.isNaN(Number(row.avgTries)) ? "" : ` · ${Number(row.avgTries).toFixed(1)} ${unit}`;
+    return `<li><span class="fl">${esc(flagEmoji(row.code))}</span><span class="nm">${esc(regionName(row.code))}</span><span class="meta">${Math.round(Number(row.solveRate))}% solved${avg}</span></li>`;
+  }).join("");
+  return `<h3 class="community-sec">Top countries</h3><p class="community-note">Highest solve rate on this puzzle</p><ol class="country-board">${items}</ol>`;
+}
+function renderYouVs(p, data, res) {
+  const el = $("#youVs");
+  if (!el) return;
+  const mine = placementScore(res);
+  const block = data && data.score;
+  const hist = block && block.hist;
+  if (mine == null || !hist || !hist.length || block.avg == null) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+  const avg = Number(block.avg);
+  const better = window.RankdSeed ? window.RankdSeed.betterThan(hist, mine) : null;
+  const under = mine < avg - 0.005;
+  const line = under || better == null
+    ? (under ? "A bit under the average on this one." : "Above the average on this one.")
+    : `You did better than ${better}% of players`;
+  el.classList.remove("hidden");
+  el.innerHTML = `<div class="you-vs-row"><div><b>${Math.round(mine * 100)}</b><span>Your score</span></div><div><b>${Math.round(avg * 100)}</b><span>Average</span></div></div><p class="you-vs-line">${esc(line)}</p><p class="you-vs-note">Correct placements across your guesses</p>`;
+}
+async function renderCommunity(p, res) {
   const wrap = document.querySelector(".community"), body = $("#communityBody"), badge = $("#communityBadge");
   const headLabel = wrap && wrap.querySelector(".community-head > span:first-child");
+  const you = $("#youVs");
   // Practice doesn't count toward community compare
   if (state.mode === "practice") {
     if (wrap) wrap.classList.add("hidden");
+    if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
     return;
   }
   if (wrap) wrap.classList.remove("hidden");
@@ -1783,30 +1841,29 @@ async function renderCommunity(p) {
       ViewerGeo.country().catch(() => null),
     ]);
   } catch { data = null; countryCode = null; }
+  if (!state.puzzle || state.puzzle.id !== p.id) return;
   if (!data) {
     badge.textContent = "Coming soon";
-    if (headLabel) headLabel.textContent = "What players thought was right";
+    if (headLabel) headLabel.textContent = "What most players thought";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
+    if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
     return;
   }
+  fillCommunitySeed(data, p);
   const n = Number(data.players) || 0;
   badge.textContent = data.seeded ? `Early data · ${n.toLocaleString()} players` : `${n.toLocaleString()} players`;
   badge.title = data.seeded ? "Seeded snapshot until live aggregates exist" : "";
   const worldBlock = data.firstGuessWorld || (p.type === "top5" && data.firstGuess ? { bars: data.firstGuess, players: n } : null);
   const worldBars = communityBars(worldBlock);
+  if (headLabel) headLabel.textContent = "What most players thought";
   let html = "";
   if (worldBars.length) {
-    if (headLabel) headLabel.textContent = "What players thought was right";
-    html += communityGuessSection("What the world thought was right (first guess)", firstGuessCaption(p.type), worldBars, p);
+    html += communityOrderList(worldBars, p);
     html += communityCountrySection(data, countryCode, p);
-    html += communityCorrectSection(data, p, true);
-  } else {
-    if (data.pctPerfect != null && (p.type === "rank" || p.type === "match" || p.type === "tier")) {
-      if (headLabel) headLabel.textContent = p.type === "match" ? "What % matched each person?" : p.type === "tier" ? "What % put each in the right tier?" : "What % of players got each right?";
-    } else if (headLabel) headLabel.textContent = "What % of players got it right?";
-    html += communityCorrectSection(data, p, false);
-  }
-  body.innerHTML = html || `<p class="community-empty">No breakdown for this puzzle yet.</p>`;
+  } else html += `<p class="community-empty">No first guesses for this puzzle yet.</p>`;
+  html += communityLeaderboard(data, p);
+  body.innerHTML = html;
+  renderYouVs(p, data, res || getResult());
 }
 window.RankdCommunity = {
   row: communityPlayRow,
@@ -1891,7 +1948,28 @@ function maybeShowCrossPromo() {
 }
 
 // ================================================================ sharing
-function shareUrl() { return CONFIG.siteUrl.replace(/#.*$/, "") + linkHash(); }
+// Share links always name this puzzle. Daily and archive use #d=YYYY-MM-DD, practice uses
+// #r=<seed>, the all-puzzles list uses #p=<id>. Loading Zone preview uses ?preview=YYYY-MM-DD:
+// a future #d= link is refused and would open today. The schedule page (loadingzone.html)
+// is not a puzzle URL, so shares point at the game.
+function gameShareBase() {
+  const http = location.protocol.startsWith("http");
+  const origin = http ? location.origin : "https://ranki.gg";
+  let path = http ? (location.pathname || "/") : "/";
+  path = path.replace(/\/(?:loadingzone|studio)(?:\/index\.html|\.html)?\/?$/i, "/");
+  path = path.replace(/index\.html$/i, "");
+  if (!path.endsWith("/")) path += "/";
+  return origin + path;
+}
+function shareUrl() {
+  const base = gameShareBase();
+  if (!state.puzzle) return base;
+  if (state.mode === "preview") return base + "?preview=" + encodeURIComponent(state.dateKey);
+  if (state.mode === "practice") return base + "#r=" + encodeURIComponent(state.puzzle.seed);
+  if (state.mode === "all") return base + "#p=" + encodeURIComponent(state.puzzle.id);
+  return base + "#d=" + state.dateKey;
+}
+window.RankdShare = { url: shareUrl, base: gameShareBase };
 const fullTitle = p => p.headline && p.question && p.headline !== p.question ? `${p.headline}: ${p.question}` : (p.headline || p.question);   // v11 share/list text
 function shareTitle() { return state.mode === "preview" ? `${CONFIG.brand} preview` : state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
 function challengeText() {
