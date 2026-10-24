@@ -733,10 +733,12 @@ const AdSense = {
   },
   collapse(box) { if (!box) return; box.classList.add("ad-collapsed"); window.RankdFit?.layout(); },
   banner() {
-    // Practice play view only. Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
+    // Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
+    // Practice always; a short archive day only after .ad-on is committed.
     if (this.bannerDone || this.mode === "placeholder" || this.mode === "waiting" || this.mode === "blocked") return;
-    if ($("#playView").classList.contains("hidden") || state.mode !== "practice") return;
-    this.bannerDone = true; this.fill($("#adTop"), CONFIG.ADSENSE_SLOTS.banner);
+    const box = $("#adTop");
+    if (!box || !box.classList.contains("ad-on") || $("#playView").classList.contains("hidden")) return;
+    this.bannerDone = true; this.fill(box, CONFIG.ADSENSE_SLOTS.banner);
   },
   // v12.2: Practice bottom banner, requested the first time it is actually visible (AdSense can't size a hidden slot)
   bottom() {
@@ -2515,9 +2517,12 @@ function syncPlaying() {
 function fitLayout() {
   if (fitting) return;
   fitting = true;
+  let bannerPhase = "off";
   try {
     const vv = window.visualViewport, h = vv ? vv.height : innerHeight, b = document.body, hero = $("#hero");
     if (!hero) return;
+    // Banner height changes the card's top, so commit .ad-on before measuring the visual viewport.
+    bannerPhase = applyTopBanner();
     if (innerWidth !== vvW) { vvW = innerWidth; vvMax = 0; } vvMax = Math.max(vvMax, h);
     const fit = fitMQ.matches && b.classList.contains("playing");
     b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
@@ -2540,7 +2545,10 @@ function fitLayout() {
     const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
     if (share && share.closest(".under-card")) share.closest(".under-card").classList.toggle("lock-covered", locks.some(btn => boxesOverlap(btn, share)));
     parkFab();
-  } finally { fitting = false; }
+  } finally {
+    fitting = false;
+    confirmArchiveBanner(bannerPhase);
+  }
 }
 window.visualViewport?.addEventListener("resize", scheduleFit);
 window.visualViewport?.addEventListener("scroll", scheduleFit);
@@ -2656,11 +2664,84 @@ function maybeShowHowto() {
 }
 
 // ================================================================ views / navigation
-function syncTopBanner() {
+// Play-board rows. Standard Rank it is 6; 7-row boards (Girlboss) are taller. Top 5 is five slots.
+function playRows(p) {
+  if (!p) return 6;
+  if (p.type === "top5") return 5;
+  if (p.type === "match") return (p.people || []).length;
+  if (p.type === "tier") return (p.tiers || []).length;
+  return (p.items || []).length;
+}
+// Archive banner is only for a past day (#d=, state.mode "archive" — never today's Daily, the list, or All puzzles)
+// whose board is shorter than a 6-row Rank it, and only when the Lock control still fits.
+let archiveBannerHold = null;
+function archiveBannerKey() {
+  const vv = window.visualViewport;
+  const h = Math.round((vv ? vv.height : innerHeight) / 8) * 8;
+  return [state.mode, state.dateKey, state.puzzle && state.puzzle.id, fitMQ.matches ? "m" : "d", h].join("|");
+}
+function topBannerWanted() {
+  if ($("#playView").classList.contains("hidden") || !Ads.allowed()) return "off";
+  if (state.mode === "practice") return "practice";
+  if (state.mode === "archive" && playRows(state.puzzle) < 6) return "archive";
+  return "off";
+}
+function applyTopBanner() {
+  const box = $("#adTop"); if (!box) return "off";
+  const want = topBannerWanted();
+  if (want === "practice") { box.classList.add("ad-on"); return "practice"; }
+  if (want !== "archive") {
+    if (box.classList.contains("ad-on")) box.classList.remove("ad-on");
+    archiveBannerHold = null;
+    return "off";
+  }
+  const key = archiveBannerKey();
+  if (archiveBannerHold && archiveBannerHold.key === key) {
+    box.classList.toggle("ad-on", archiveBannerHold.show);
+    return archiveBannerHold.show ? "archive-on" : "archive-off";
+  }
+  box.classList.add("ad-on");
+  return "archive-try";
+}
+function locksComfortable() {
+  // Result screen has no Lock control. Phone fit hides Share while playing; still refuse a Lock that
+  // leaves the card or the visual viewport (the overlap PR #40 closed) or that paints over Share.
+  if (!document.body.classList.contains("playing")) return true;
+  const hero = $("#hero"); if (!hero) return false;
+  const hr = hero.getBoundingClientRect();
+  const vv = window.visualViewport;
+  const viewTop = vv ? vv.offsetTop : 0;
+  const viewBot = viewTop + (vv ? vv.height : innerHeight);
+  const share = $("#shareChallengeTop");
+  const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
+  const guess = $("#guessBtn");
+  if (guess && guess.offsetParent && !$("#guessGame").classList.contains("hidden")) locks.push(guess);
+  if (!locks.length) return true;
+  const phone = document.body.classList.contains("fit");
+  for (const btn of locks) {
+    const r = btn.getBoundingClientRect();
+    if (r.width < 2 || r.height < 2) continue;
+    if (share && boxesOverlap(btn, share)) return false;
+    // Desktop scrolls, so a Lock below the fold is not an overlap. Phone fit keeps the card in the
+    // visual viewport; if the banner shoves Lock out of the card or the viewport, drop it.
+    if (phone && (r.top < hr.top - 2 || r.bottom > hr.bottom + 2 || r.top < viewTop - 2 || r.bottom > viewBot - 2)) return false;
+  }
+  return true;
+}
+function confirmArchiveBanner(phase) {
+  if (phase === "practice" || phase === "archive-on") { AdSense.banner(); return; }
+  if (phase !== "archive-try") return;
+  const p = state.puzzle, head = $("#headline");
+  if (!p || !head || head.textContent !== (p.headline || p.question)) return;
   const box = $("#adTop"); if (!box) return;
-  const on = !$("#playView").classList.contains("hidden") && state.mode === "practice";
-  box.classList.toggle("ad-on", on);
-  if (on) AdSense.banner();
+  const ok = locksComfortable();
+  archiveBannerHold = { key: archiveBannerKey(), show: ok };
+  if (!ok) { box.classList.remove("ad-on"); scheduleFit(); }
+  else AdSense.banner();
+}
+function syncTopBanner() {
+  const phase = applyTopBanner();
+  if (phase === "practice" || phase === "archive-on") AdSense.banner();
 }
 function showView(v) {
   if (v !== "play") showFab(false);
