@@ -19,10 +19,11 @@ guesses, for top 5) and a solve rate kept for older readers. The client
 drops countries under MIN_COUNTRY_PLAYERS and ranks the rest by fewest tries.
 
 standing is the results-card comparison: average tries, items correct on the
-first guess, and accuracy (0–100). byTries is a 10-bin accuracy histogram per
-try count so the client can say "better than X%", with fewer tries winning
-and accuracy breaking ties. It is only attached once that many plays carried
-both a try count and an accuracy, so a thin sample does not replace the seed.
+first guess, and accuracy (0–100). byTries is finished games and failed is
+unfinished games, each a 10-bin accuracy histogram per try count. Fewer tries
+wins, accuracy breaks ties, and unfinished games rank below every finish.
+It is only attached once that many plays carried both a try count and an
+accuracy, so a thin sample does not replace the seed.
 """
 from __future__ import annotations
 
@@ -393,7 +394,7 @@ def aggregate_plays(rows: list[dict]) -> dict:
         snap.update(_standings(plays))
         puzzles[pid] = snap
     return {
-        "version": 4,
+        "version": 5,
         "source": "live",
         "puzzles": puzzles,
         "secondGuessRows": second_n,
@@ -445,7 +446,7 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
     tries_vals: list[float] = []
     first_vals: list[float] = []
     first_of: list[int] = []
-    acc_pairs: list[tuple[int, float]] = []
+    acc_pairs: list[tuple[int, float, bool]] = []
     top5 = any(play.get("puzzle_type") == "top5" for play in plays)
     for play in plays:
         tries = play_tries(play)
@@ -460,7 +461,7 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             first_of.append(int(width))
         accuracy = _accuracy(play)
         if tries is not None and accuracy is not None:
-            acc_pairs.append((int(round(tries)), accuracy))
+            acc_pairs.append((int(round(tries)), accuracy, bool(play.get("solved"))))
         code = _country(play.get("country_code"))
         if not code:
             continue
@@ -484,8 +485,10 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
     out: dict[str, Any] = {"countryBoard": board}
     if len(tries_vals) >= MIN_COUNTRY_PLAYERS and len(acc_pairs) >= MIN_COUNTRY_PLAYERS:
         by_tries: dict[str, list[int]] = {}
-        for tries, accuracy in acc_pairs:
-            hist = by_tries.setdefault(str(tries), [0] * 10)
+        failed: dict[str, list[int]] = {}
+        for tries, accuracy, solved in acc_pairs:
+            group = by_tries if solved else failed
+            hist = group.setdefault(str(tries), [0] * 10)
             hist[_acc_bin(accuracy)] += 1
         of = Counter(first_of).most_common(1)[0][0] if first_of else (1 if top5 else 0)
         out["standing"] = {
@@ -495,8 +498,9 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             "avgTries": round(sum(tries_vals) / len(tries_vals), 2),
             "avgFirst": round(sum(first_vals) / len(first_vals), 2) if first_vals else None,
             "firstOf": of,
-            "avgAccuracy": round(sum(acc for _tries, acc in acc_pairs) / len(acc_pairs)),
+            "avgAccuracy": round(sum(acc for _tries, acc, _solved in acc_pairs) / len(acc_pairs)),
             "byTries": by_tries,
+            "failed": failed,
         }
     return out
 
@@ -616,7 +620,7 @@ def overlay_seed(seed_doc: dict, live_doc: dict, min_players: int = MIN_COUNTRY_
             fresh["seeded"] = False
             out.setdefault("puzzles", {})[pid] = fresh
             replaced.append(pid)
-    out["version"] = 4
+    out["version"] = 5
     if replaced and len(replaced) == len(out.get("puzzles") or {}):
         out["source"] = "live"
     elif replaced:
@@ -700,7 +704,9 @@ def _self_test() -> None:
     standing = replaced["puzzles"]["demo-rank"]["standing"]
     assert standing["n"] == 24 and standing["seeded"] is False
     assert standing["avgTries"] > 1
-    assert sum(sum(hist) for hist in standing["byTries"].values()) == 24
+    failed_n = sum(sum(hist) for hist in standing["failed"].values())
+    solved_n = sum(sum(hist) for hist in standing["byTries"].values())
+    assert solved_n + failed_n == 24 and failed_n == 18
     assert replaced["puzzles"]["demo-rank"]["countryBoard"]
 
     tiny = {"version": 1, "source": "seed", "puzzles": {"work": {"type": "rank", "seeded": True, "players": 80, "pctPerfect": 21, "perItemCorrect": {"Greece": 80, "Japan": 40, "Germany": 20}}}}
