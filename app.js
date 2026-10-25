@@ -96,13 +96,19 @@ window.RankdData = RankdData;
 // pctPerfect is "solved perfectly (first-try / full clear)". The results panel does not draw those
 // percents: it shows the consensus ordering, a country board ranked by fewest tries, and the player's
 // tries with a small accuracy line.
-// A country under COMMUNITY_MIN_COUNTRY plays is skipped.
+// The leaderboard skips a country under COMMUNITY_MIN_COUNTRY plays. Seeded
+// countries carry about 9 plays and those count, so they still appear. One or
+// two real plays with no seed stay off the board. The per-country ordering is
+// a 1-play seed and shows from the first play, so real submits replace it
+// immediately. "Your score vs average" and "better than" use the full standing
+// crowd, not that 1-play seed — a single seeded play would pin the percentile
+// at 0 or 99.
 // Accuracy starts at 100 and drops by the normalized rank distance of every imperfect guess.
 // A perfect guess costs nothing. An unfinished puzzle takes an extra drop so it ranks under
 // every finish. Platforms rank by tries, then accuracy, with failures at the bottom.
 // When the snapshot has no countryBoard or standing yet, RankdSeed fills a distribution that
-// sits a little under a typical clear. Real plays replace that puzzle once
-// rebuild_community_snapshot.py sees enough of them.
+// sits a little under a typical clear. Real plays mix into the seed, and replace that
+// puzzle once rebuild_community_snapshot.py sees enough of them for a stable percentile.
 // Practice hides compare and is not inserted. Studio never starts the game.
 // ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
 // card already skip it) so those finishes are not inserted either. Streamer mode
@@ -112,7 +118,7 @@ window.RankdData = RankdData;
 // Country is not sent by the client. submit-play derives an ISO code and drops the IP.
 // ================================================================
 const COMMUNITY_STATS_FALLBACK = "community-stats.json";
-const COMMUNITY_MIN_COUNTRY = 20;
+const COMMUNITY_MIN_COUNTRY = (window.RankdSeed && window.RankdSeed.MIN_COUNTRY) || 9;
 const GEO_LS = "rankd.country.v1";
 const GEO_TTL_MS = 12 * 60 * 60 * 1000;
 const GEO_NEG_TTL_MS = 10 * 60 * 1000;
@@ -1989,7 +1995,8 @@ function communityCountrySection(data, code, p) {
   if (!code) return "";
   const bucket = data.firstGuessByCountry && data.firstGuessByCountry[code];
   const players = bucket ? Number(bucket.players) || 0 : 0;
-  const bars = players >= COMMUNITY_MIN_COUNTRY ? communityBars(bucket) : [];
+  // One seeded play is enough to show the ordering. The leaderboard cutoff is separate.
+  const bars = players >= 1 ? communityBars(bucket) : [];
   if (!bars.length) return "";
   return `<h3 class="community-sec">What players in ${esc(regionName(code))} thought</h3>` + communityOrderList(bars, p);
 }
@@ -2255,17 +2262,24 @@ function renderPlatforms(percentile, castSeed) {
   platforms.setAttribute("aria-hidden", "true");
   platforms.style.setProperty("--n", String(pick.n));
   const soft = pick.band < Math.ceil(pick.n * 0.45);
+  const topBand = pick.n - 1;
+  if (pick.band !== topBand && topBand - pick.band === 1) platforms.classList.add("has-stack");
   const looks = pfCast(pick.n, castSeed || ("band" + pick.band));
   let lookI = 0;
   for (let i = 0; i < pick.n; i++) {
+    const yours = i === pick.band;
     const col = document.createElement("div");
-    col.className = "platform" + (i === pick.band ? " is-you" : "");
+    col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
+    if (yours && topBand - i === 1) col.classList.add("pct-stack");
     // Equal percentile bands hold about the same number of players, so the
-    // crowd on each step is the same size.
+    // crowd on each step is the same size. The player's own step keeps only
+    // the jumping You! figure.
     for (let f = 0; f < 2; f++) {
-      const you = i === pick.band && f === 1;
-      const fig = PlayerFigure(you, looks[lookI++]);
+      const you = yours && f === 1;
+      const look = looks[lookI++];
+      if (yours && !you) continue;
+      const fig = PlayerFigure(you, look);
       fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + " + (0.08 + f * 0.11).toFixed(2) + "s)");
       if (!you && f === 1) fig.classList.add("extra");
       if (you) {
@@ -2297,6 +2311,14 @@ function renderPlatforms(percentile, castSeed) {
     const step = document.createElement("i");
     step.className = "platform-step";
     col.appendChild(step);
+    // Rightmost pedestal is the top slice. The player's pedestal gets the
+    // same kind of label. One label when those are the same step.
+    if ((yours || i === topBand) && seed.platformTopPercent) {
+      const label = document.createElement("span");
+      label.className = "platform-pct" + (yours ? " is-yours" : "");
+      label.textContent = "Top " + seed.platformTopPercent(pick.n, i) + "%";
+      col.appendChild(label);
+    }
     platforms.appendChild(col);
   }
   return platforms;

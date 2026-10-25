@@ -1,7 +1,10 @@
 /* Seeded comparison for the results screen, until a puzzle has enough real plays.
    Loaded by index.html (window.RankdSeed) and by `node community-seed.js`.
    Synthetic players sit a little under a typical clear, with a real spread:
-   some use fewer tries than a good game, and a couple of countries are too small to show. */
+   some use fewer tries than a good game, and a couple of countries are too small to show.
+   The leaderboard seeds about 9 plays per country (those count toward the cutoff).
+   World and per-country orderings are a separate 1-play seed, applied in
+   tools/community_snapshot.py, so the first real submits replace them. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
@@ -10,7 +13,12 @@
   "use strict";
 
   const COUNTRY_POOL = ["JP", "KR", "TW", "DE", "NL", "SE", "CA", "AU", "GB", "US", "FR", "BR", "IN", "PH", "IE", "NZ", "ES", "IT", "MX", "PL", "HK", "VN", "TH", "ID"];
-  const MIN_COUNTRY = 20;
+  /* Leaderboard cutoff. Seeds count, and a shown country is seeded at about
+     BOARD_SEED_PLAYS, so 9 qualifies. 1–2 real plays with no seed do not.
+     Keep this in sync with MIN_COUNTRY_PLAYERS in tools/community_snapshot.py. */
+  const MIN_COUNTRY = 9;
+  const CONSENSUS_SEED_PLAYS = 1;
+  const BOARD_SEED_PLAYS = 9;
   const ACC_BINS = 10;
 
   function hash32(str) {
@@ -146,7 +154,9 @@
     const rows = [];
     for (let i = 0; i < 8; i++) {
       const thin = i >= 6;
-      const players = thin ? 5 + Math.floor(rng() * 10) : 26 + Math.floor(rng() * 120);
+      /* Shown countries: 9, 10, or 11 plays, all on the board. The last two
+         stay at 1 or 2 so a tiny real sample cannot take the top spot. */
+      const players = thin ? 1 + Math.floor(rng() * 2) : BOARD_SEED_PLAYS + Math.floor(rng() * 3);
       let avg;
       if (thin && i === 6) avg = top5 ? 6.2 : 1.6;
       else avg = top5 ? 8.4 + rng() * 5.2 : 2.35 + rng() * 1.75;
@@ -236,6 +246,16 @@
     return { n: bestN, band: bestBand };
   }
 
+  /* "Top X%" for one pedestal. Equal bands run worst → best, so band `index`
+     is the group that is inside the top (count - index) / count of players.
+     The rightmost pedestal is the top round(100 / n) percent (Top 10% at 10
+     platforms, Top 1% at 100). The player's pedestal uses the same cut. */
+  function platformTopPercent(n, band) {
+    const count = Math.max(1, Math.round(Number(n)) || 1);
+    const index = Math.max(0, Math.min(count - 1, Math.round(Number(band)) || 0));
+    return Math.max(1, Math.round((100 * (count - index)) / count));
+  }
+
   function selfTest() {
     const ids = ["work-hours", "sex-ratio-15-64", "pew-meaning-religion", "top5-demo", "match-pew"];
     const leaders = new Set();
@@ -287,6 +307,14 @@
       });
       const fastestThin = Math.min.apply(null, hidden.map(r => r.avgTries));
       if (!(fastestThin < shown[0].avgTries)) throw new Error(id + " thin country was not faster than the leader");
+      shown.forEach(r => {
+        if (r.players < BOARD_SEED_PLAYS || r.players > BOARD_SEED_PLAYS + 2) {
+          throw new Error(id + " board seed " + r.code + " " + r.players);
+        }
+      });
+      hidden.forEach(r => {
+        if (r.players < 1 || r.players > 2) throw new Error(id + " thin seed " + r.code + " " + r.players);
+      });
       leaders.add(shown[0].code);
     });
     if (leaders.size < 2) throw new Error("leaderboard is the same country every puzzle");
@@ -297,6 +325,47 @@
       { code: "US", players: 40, avgTries: 3.1 },
     ]);
     if (rigged.map(r => r.code).join() !== "DE,JP,US") throw new Error("tries sort " + rigged.map(r => r.code).join());
+    const cutoff = topCountries([
+      { code: "NZ", players: 1, avgTries: 1.1 },
+      { code: "SG", players: 2, avgTries: 1.2 },
+      { code: "FR", players: 8, avgTries: 1.3 },
+      { code: "DE", players: 9, avgTries: 2.4 },
+      { code: "JP", players: 11, avgTries: 2.9 },
+    ]);
+    if (cutoff.map(r => r.code).join() !== "DE,JP") throw new Error("seed cutoff " + cutoff.map(r => r.code).join());
+    if (CONSENSUS_SEED_PLAYS !== 1) throw new Error("consensus seed");
+    if (MIN_COUNTRY !== BOARD_SEED_PLAYS) throw new Error("9 seeds must clear the cutoff");
+    const handful = standingBlock("work-hours", BOARD_SEED_PLAYS, "rank", 5);
+    const handfulGood = betterThan(handful, 2, 80, true);
+    const handfulPoor = betterThan(handful, 5, 30, false);
+    if (!(handfulGood > handfulPoor && handfulGood >= 50 && handfulGood <= 90 && handfulPoor <= 30)) {
+      throw new Error("board-sized comparison " + handfulGood + " " + handfulPoor);
+    }
+    const solo = standingBlock("work-hours", CONSENSUS_SEED_PLAYS, "rank", 5);
+    const soloGood = betterThan(solo, 2, 80, true);
+    if (solo.n !== 1 || (soloGood !== 0 && soloGood !== 99)) {
+      throw new Error("1-play crowd is not a stable better-than sample " + solo.n + " " + soloGood);
+    }
+    if (platformTopPercent(10, 9) !== 10) throw new Error("top 10");
+    if (platformTopPercent(100, 99) !== 1) throw new Error("top 1");
+    if (platformTopPercent(7, 6) !== 14) throw new Error("top 14");
+    if (platformTopPercent(12, 11) !== 8) throw new Error("top 8");
+    if (platformTopPercent(11, 5) !== 55) throw new Error("mid label");
+    [0.9, 0.95, 0.97, 0.99].forEach(p => {
+      const pick = platformCount(p);
+      if (pick.band !== pick.n - 1) throw new Error("not the top pedestal " + p + " " + pick.n + " " + pick.band);
+      if (platformTopPercent(pick.n, pick.band) !== platformTopPercent(pick.n, pick.n - 1)) {
+        throw new Error("top pedestal should have one label value");
+      }
+    });
+    const midPick = platformCount(0.5);
+    if (midPick.band === midPick.n - 1) throw new Error("center landed on top");
+    const midLabel = platformTopPercent(midPick.n, midPick.band);
+    const crownLabel = platformTopPercent(midPick.n, midPick.n - 1);
+    if (midLabel === crownLabel) throw new Error("mid and top labels collided");
+    if (midLabel < 40 || midLabel > 60 || crownLabel < 8 || crownLabel > 15) {
+      throw new Error("label range " + midLabel + " " + crownLabel);
+    }
     console.log("community-seed self-test ok");
   }
 
@@ -311,16 +380,16 @@
       row.standing = standingBlock(pid, row.players || 0, type, type === "top5" ? 1 : named);
       delete row.score;
     });
-    doc.version = 5;
-    doc.updatedAt = "2026-10-24T05:20:00Z";
+    doc.version = 6;
+    doc.updatedAt = "2026-10-25T03:40:00Z";
     doc.note = "Seeded distributions until live aggregates exist. Stable per puzzle id. "
-      + "firstGuessWorld / firstGuessByCountry are first submits (not final answers). "
-      + "countryBoard is average tries only; countries under 20 plays are skipped in the UI, "
-      + "and the board is ranked by fewest tries. "
+      + "firstGuessWorld and each firstGuessByCountry bucket are one seeded play, so the first real submits replace that ordering. "
+      + "countryBoard is average tries only, about 9 seeded plays per country. "
+      + "Countries under 9 plays are skipped on the leaderboard (seeds count); one or two real plays with no seed stay off it. "
+      + "The board is ranked by fewest tries. "
+      + "standing is a full crowd, a little under a typical clear, so better-than stays stable while real plays mix in. "
       + "standing.byTries is finished games; standing.failed is unfinished games, ranked below every finish. "
-      + "Accuracy starts at 100 and drops by the normalized rank distance of each imperfect guess. "
-      + "The crowd sits a little under a typical clear, with a real spread. "
-      + "US and TW first-guess buckets are large enough to show; SG is under the 20-play threshold.";
+      + "Accuracy starts at 100 and drops by the normalized rank distance of each imperfect guess.";
     return doc;
   }
 
@@ -337,5 +406,8 @@
     }
   }
 
-  return { standingBlock, countryBoard, topCountries, betterThan, combineAccuracy, platformCount, MIN_COUNTRY, mergeDoc };
+  return {
+    standingBlock, countryBoard, topCountries, betterThan, combineAccuracy,
+    platformCount, platformTopPercent, MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
+  };
 });
