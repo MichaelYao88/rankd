@@ -38,7 +38,8 @@ const CONFIG = {
     apiHost: "https://us.i.posthog.com",
     token: "phc_BFzhf5CAX9wKcoGBVXnX3uPb4T2LAjeD3ZfBGiHWvFxc",
   },
-  freeArchiveDays: 7,   // free base window (today + 6 prior); each long ad unlocks +7 further back
+  freeArchiveDays: 7,   // free base window (today + 6 prior). Not the per-ad step.
+  adUnlockDays: 5,      // each completed long archive ad unlocks this many further days
   longAdSeconds: 20,    // placeholder long-ad countdown (?longad=N overrides for tests)
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
@@ -53,7 +54,8 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
 //   rankd.settings.v1 : theme and streamer mode (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
-//   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays)
+//   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
+//                            including today. Kept as stored when the ad step changes; never rescaled.
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
 //   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
@@ -858,9 +860,48 @@ const VALUE_GLOSS_FALLBACK = {
   "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
   "Girlboss": "female CEOs",
 };
+// Free archive depth. unlockedDays in localStorage is an absolute count (today + earlier days),
+// so a save from the old 7-day ad step (14, 21, …) stays valid. The next ad adds adUnlockDays.
+function archiveBaseDays() { return CONFIG.freeArchiveDays || 7; }
+function archiveAdUnlockDays() { return CONFIG.adUnlockDays || 5; }
+function archiveAgeDays(key) { return Math.round((utc(todayKey()) - utc(key)) / 864e5); }   // 0 = today
+function getArchiveUnlockedDays() {
+  if (isPremium()) return 1e9;
+  const base = archiveBaseDays();
+  const st = load(LS.archiveUnlock, { unlockedDays: base });
+  return Math.max(base, Number(st.unlockedDays) || base);
+}
+function setArchiveUnlockedDays(n) { save(LS.archiveUnlock, { unlockedDays: n, at: Date.now() }); }
+function applyArchiveAdUnlock() {
+  const next = getArchiveUnlockedDays() + archiveAdUnlockDays();
+  setArchiveUnlockedDays(next);
+  return next;
+}
+function archiveFreeUnlocked(key) {
+  if (isPremium()) return true;
+  const age = archiveAgeDays(key);
+  return age >= 0 && age < getArchiveUnlockedDays();
+}
+function archiveUnlockToast() {
+  return `Unlocked ${archiveAdUnlockDays()} more days — tap again for older puzzles`;
+}
+function archiveLongAdCopy() {
+  return `Watch to unlock the next ${archiveAdUnlockDays()} days of the archive. Premium unlocks everything with no ads.`;
+}
+function archiveListHeaderHtml(unlocked, lastDayNumber) {
+  const freeN = archiveBaseDays();
+  const shown = Math.min(unlocked, lastDayNumber + 1);
+  return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
+}
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf };
+  window.RankdArchive = {
+    baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
+    getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
+    applyAdUnlock: applyArchiveAdUnlock, freeUnlocked: archiveFreeUnlocked,
+    toast: archiveUnlockToast, longAdCopy: archiveLongAdCopy, headerHtml: archiveListHeaderHtml,
+  };
   return;
 }
 function goPractice(seed) {
@@ -2758,11 +2799,11 @@ function goDate(key) {
   if (utc(key) > utc(today)) { toast("That puzzle isn't out yet 👀"); return goToday(); }   // never expose future dailies
   if (key === today) return goToday();
   if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); return; }
-  // Free: watch a long ad to unlock the next 7-day chunk, then retry
-  unlockNextArchiveWeek(() => {
+  // Free: watch a long ad to unlock the next adUnlockDays, then retry
+  unlockNextArchiveDays(() => {
     goArchive();
     if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); }
-    else toast("Unlocked 7 more days — tap again for older puzzles");
+    else toast(archiveUnlockToast());
   });
 }
 function goAll(idx) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
@@ -2776,21 +2817,7 @@ function goPreview(key) {   // v12 Studio preview of any scheduled day, past or 
   state.mode = "preview"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
 }
 
-// v12.2 Premium / free archive rolling unlock (UTC day keys)
-function archiveAgeDays(key) { return Math.round((utc(todayKey()) - utc(key)) / 864e5); }   // 0 = today
-function archiveChunk() { return CONFIG.freeArchiveDays || 7; }
-function getArchiveUnlockedDays() {
-  if (isPremium()) return 1e9;
-  const base = archiveChunk();
-  const st = load(LS.archiveUnlock, { unlockedDays: base });
-  return Math.max(base, Number(st.unlockedDays) || base);
-}
-function setArchiveUnlockedDays(n) { save(LS.archiveUnlock, { unlockedDays: n, at: Date.now() }); }
-function archiveFreeUnlocked(key) {
-  if (isPremium()) return true;
-  const age = archiveAgeDays(key);
-  return age >= 0 && age < getArchiveUnlockedDays();
-}
+// v12.2 Premium / free archive rolling unlock (UTC day keys). Depth helpers live above the Studio return.
 function longAdSeconds() {
   const q = new URLSearchParams(location.search).get("longad");
   if (q && /^\d+$/.test(q)) return Math.max(1, Math.min(60, +q));
@@ -2805,7 +2832,7 @@ function showLongAd({ reason, onDone, onCancel } = {}) {
   note.textContent = reason === "practice" ? "Practice" : "Archive unlock";
   copy.textContent = reason === "practice"
     ? "Free Practice shows a longer ad every 5 games (plus normal interstitials). Premium is ad-free."
-    : "Watch to unlock the next 7 days of the archive. Premium unlocks everything with no ads.";
+    : archiveLongAdCopy();
   timer.textContent = String(s);
   btn.disabled = true; btn.textContent = `Continue in ${s}`;
   ov.classList.remove("hidden");
@@ -2825,9 +2852,9 @@ function showLongAd({ reason, onDone, onCancel } = {}) {
 }
 window.RankdLongAd = window.RankdLongAd || { show: (opts) => showLongAd(opts) };
 
-function unlockNextArchiveWeek(then) {
+function unlockNextArchiveDays(then) {
   showLongAd({ reason: "archive", onDone: () => {
-    setArchiveUnlockedDays(getArchiveUnlockedDays() + archiveChunk());
+    applyArchiveAdUnlock();
     then && then();
   }});
 }
@@ -2840,11 +2867,11 @@ function bumpPracticeGame() {
 function goArchive() {
   state.view = "archive"; showView("archive"); setHash("#archive");
   const today = todayKey(), last = dayNumber(today), all = load(LS.results, {});
-  const prem = isPremium(), freeN = archiveChunk(), unlocked = getArchiveUnlockedDays();
+  const prem = isPremium(), unlocked = getArchiveUnlockedDays();
   const sub = document.querySelector("#archiveView .section-sub");
   if (sub) sub.innerHTML = prem
     ? "Every daily puzzle so far. Archive plays don't affect your streak."
-    : `Free: <b>${Math.min(unlocked, last + 1)}</b> days unlocked (base ${freeN}). Watch an ad for the next week. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
+    : archiveListHeaderHtml(unlocked, last);
   const rows = [];
   for (let n = last; n >= 0; n--) {
     const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = r && r.id === p.id ? r : null;
@@ -2905,7 +2932,7 @@ function nextUnplayedDay() {   // most recent unplayed past daily (never today o
   const all = load(LS.results, {}), last = dayNumber(todayKey());
   for (let n = last - 1; n >= 0; n--) {
     const key = keyFromDay(n), r = all["d:" + key];
-    if (!archiveFreeUnlocked(key)) continue;   // free users: stay inside the week window
+    if (!archiveFreeUnlocked(key)) continue;   // free users: stay inside the unlocked window
     if (key !== state.dateKey && !(r && r.id === puzzleForDay(n).id && isDone(r))) return key;
   }
   return null;
