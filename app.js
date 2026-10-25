@@ -1897,7 +1897,7 @@ function showResult(res) {
     $("#answerBox").classList.remove("hidden");
   }
   $("#emojiRow").textContent = res.type === "rank" || res.type === "match" || res.type === "tier" ? rankGrid(res) : (res.marks || []).map(m => EMO[m]).join("");
-  $("#fact").innerHTML = p.fact ? `<b>The twist:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
+  $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   $("#sourceName").textContent = p.source || "source";
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
