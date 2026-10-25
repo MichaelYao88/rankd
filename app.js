@@ -262,7 +262,7 @@ function resultCard(p, result) {
       firstOf: 1,
       accuracy: window.RankdSeed.combineAccuracy(distances, solved),
       kind: "top5",
-      tip: "Accuracy starts at 100 and drops for every miss by how far that country was from the top 5, with an extra drop if you don't find them all.",
+      tip: "Accuracy starts at 100 and drops for every miss by how far that country was from the top 5.",
     };
   }
   const attempts = result.attempts || [];
@@ -276,9 +276,9 @@ function resultCard(p, result) {
   const marks = (attempts[0] && attempts[0].marks) || [];
   if (!marks.length) return null;
   const tips = {
-    rank: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right order, with an extra drop if you don't finish.",
-    tier: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right tiers, with an extra drop if you don't finish.",
-    match: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right people, with an extra drop if you don't finish.",
+    rank: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right order.",
+    tier: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right tiers.",
+    match: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right people.",
   };
   return {
     tries: result.tries,
