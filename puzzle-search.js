@@ -50,6 +50,10 @@
     return false;
   }
 
+  function aliasGroup(name) {
+    return ALIAS_OF.get(normQuery(name)) || null;
+  }
+
   function rowNames(p) {
     const names = [];
     const add = n => { if (n != null && String(n).trim()) names.push(String(n)); };
@@ -61,6 +65,7 @@
 
   function categoryText(p) {
     if (!p) return "";
+    if (p.type === "name") return "Name it";
     if (p.type === "top5") return "Top 5 Guess the top 5";
     if (p.type === "match") return "Match it";
     if (p.type === "tier") return "Tier it";
@@ -114,5 +119,5 @@
     return run;
   }
 
-  return { normQuery, textMatches, nameMatches, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
+  return { normQuery, textMatches, nameMatches, aliasGroup, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
 });
