@@ -61,7 +61,7 @@
 
   function categoryText(p) {
     if (!p) return "";
-    if (p.type === "top5") return "Guess the top 5";
+    if (p.type === "top5") return "Top 5 Guess the top 5";
     if (p.type === "match") return "Match it";
     if (p.type === "tier") return "Tier it";
     const items = p.items || [];

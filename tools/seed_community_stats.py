@@ -39,8 +39,9 @@ def load_stats() -> dict:
     return json.loads(STATS.read_text(encoding="utf-8"))
 
 
-def check(doc: dict) -> list[str]:
+def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
     errors = []
+    catalog = puzzles_by_id if puzzles_by_id is not None else load_puzzles()
     puzzles = doc.get("puzzles") or {}
     if not puzzles:
         errors.append("no puzzles")
@@ -81,7 +82,7 @@ def check(doc: dict) -> list[str]:
                 if plays < cs.MIN_COUNTRY_PLAYERS or plays > cs.BOARD_SEED_PLAYS + 2:
                     errors.append(f"{pid}: {r.get('code')} has {plays} seeded plays, expected about {cs.BOARD_SEED_PLAYS}")
                 avg_tries = float(r["avgTries"])
-                lo, hi = (7, 15) if row.get("type") == "top5" else (2.1, 4.3)
+                lo, hi = (2.1, 4.3)
                 if not lo <= avg_tries <= hi:
                     errors.append(f"{pid}: implausible avg tries {avg_tries} for {r.get('code')}")
             for r in thin:
@@ -99,18 +100,31 @@ def check(doc: dict) -> list[str]:
             errors.append(f"{pid}: standing is missing unfinished games")
         if counted != int(row.get("players") or 0):
             errors.append(f"{pid}: standing histogram does not match players")
+        if "rowCount" in row:
+            errors.append(f"{pid}: rowCount should be consumed by the standing, not stored")
+        kind = row.get("type") or "rank"
+        width = cs.puzzle_row_count(catalog.get(pid), kind)
+        standing_of = standing.get("firstOf")
+        avg_first = standing.get("avgFirst")
+        if width is None:
+            errors.append(f"{pid}: puzzle row count is missing")
+        elif standing_of != width:
+            errors.append(f"{pid}: standing.firstOf {standing_of} does not match {width} rows")
+        elif avg_first is None:
+            errors.append(f"{pid}: missing avgFirst")
+        else:
+            af = float(avg_first)
+            lo, hi = 0.25 * width, 0.75 * width
+            if not lo <= af <= hi:
+                errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
         avg_tries = float(standing.get("avgTries") or 0)
         acc = float(standing.get("avgAccuracy") or 0)
-        if row.get("type") == "top5":
-            if not 8.5 <= avg_tries <= 13:
-                errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
-            if not 8 <= acc <= 40:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
-        else:
-            if not 2.8 <= avg_tries <= 3.6:
-                errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-            if not 50 <= acc <= 72:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if not 2.8 <= avg_tries <= 3.6:
+            errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
+        if not 50 <= acc <= 72:
+            errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if row.get("type") == "top5" and any(int(k) > 5 for k in (standing.get("byTries") or {})):
+            errors.append(f"{pid}: top5 standing still uses the old guess scale")
     return errors
 
 
