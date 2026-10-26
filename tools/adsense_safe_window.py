@@ -41,7 +41,7 @@ ASSIGNMENT = "window.RANKD_PUZZLES = "
 CLEAR_RES = (
     re.compile(r"homicide|murder|serial killer", re.I),
     re.compile(r"suicide", re.I),
-    re.compile(r"overdose|drug use disorder|drug[- ]death|cannabis|marijuana|\bweed\b", re.I),
+    re.compile(r"overdose|drug use disorder|drug[- ]death|cannabis|marijuana|\bweed\b|\bcocaine\b", re.I),
     re.compile(r"penis|erect circumference|reported circumference", re.I),
     re.compile(r"pornograph|child-sex image|child corn|sexual abuse of a child", re.I),
     re.compile(r"sex offenc|sex offens|sexual offenc", re.I),
