@@ -161,9 +161,10 @@ test("navigations and puzzle data are network-first; static assets revalidate", 
   for (const file of ["puzzles-data.js", "practice-data.js", "community-seed.js", "puzzles.csv", "community-stats.json", "hint_bank.csv"]) {
     assert.equal(sw.rankiPlan(req("https://ranki.gg/" + file)), "network-first", file);
   }
-  for (const file of ["app.js", "styles.css", "pwa.js", "favicon.svg", "icons/icon-512.png", "vendor/sortable.min.js"]) {
+  for (const file of ["app.js", "styles.css", "pwa.js", "challenge.js", "favicon.svg", "icons/icon-512.png", "vendor/sortable.min.js"]) {
     assert.equal(sw.rankiPlan(req("https://ranki.gg/" + file)), "stale-while-revalidate", file);
   }
+  assert.match(read("sw.js"), /"\/challenge\.js"/);
 });
 
 test("ad code and ads.txt are unchanged by the PWA tags", () => {
