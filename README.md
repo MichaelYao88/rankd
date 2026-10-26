@@ -1,6 +1,6 @@
 # Rankd: a daily game of surprising stats (prototype)
 
-There are two puzzle types, mixed into one daily rotation:
+Daily puzzles mix several types into one rotation:
 
 * **Rank it:** drag 3–5 countries or groups into order for one stat, then lock it in. Cards in the right spot turn
   🟩 green and lock in place; wrong ones turn 🟥 red and shake. Rearrange the rest and lock in again, up to
@@ -17,6 +17,7 @@ There are two puzzle types, mixed into one daily rotation:
   * Share: `Ranki.gg #016 🥔 Top 5: solved in 3 tries` (or `X/5`) plus one 🟩/🟥 row of 5 squares per try.
   * **Hints:** each failed lock reveals one hint about the highest-ranked slot that is still wrong, from that country's
     hint bank (vague → specific). A correct slot does not spend a hint.
+* **Name it** (`type: "name"`, `name-puzzles.js` / `name_puzzles.csv`): type any country that passes a letter rule and a stat rule. Aliases from `puzzle-search.js` count (USA, Korea). Non-countries and duplicate guesses do not use a try. Five tries. The first valid country wins. The reveal lists every valid answer, and the share text is one 🟥/🟩 row (`✏️ Name it: solved in 2 tries`). About 12% of Practice seeds deal one of these; the roll uses a separate RNG so other seeds stay put.
 
 ## Run it
 * **Easiest:** double-click `index.html`. It works from `file://` with no server and no internet,
