@@ -1035,7 +1035,6 @@ function archiveListHeaderHtml(unlocked, lastDayNumber) {
 }
 // Opening guess entirely wrong: every Rank / Match / Tier card red on try 1,
 // or all five Top 5 slots red on try 1. Old guess-style Top 5: the first five guesses all miss.
-// Name it is one country at a time, so it never counts.
 function openingAllWrong(res) {
   if (!res || res.type === "name") return false;
   if (res.type === "top5" && !Array.isArray(res.attempts)) {
@@ -1047,16 +1046,30 @@ function openingAllWrong(res) {
   const marks = attempt && attempt.marks;
   return Array.isArray(marks) && marks.length > 0 && marks.every(m => m === "bad");
 }
-// Results-screen word. Ignorant! only for that all-wrong opening, and a solved game keeps its win line.
+// Name it loss: every counted guess missed. A correct guess ends the game, so this is the unfinished run.
+function nameAllWrong(res) {
+  if (!res || res.type !== "name" || res.solved) return false;
+  const marks = Array.isArray(res.marks) ? res.marks : [];
+  return marks.length > 0 && marks.every(m => m === "bad");
+}
+// Results-screen word. Ignorant! only for an all-wrong opening, or a Name it loss with every try wrong.
+// A solved game keeps its win line.
 function ratingShout(res) {
-  if (!openingAllWrong(res) || res.solved || res.won) return "";
+  if (!res || res.solved || res.won) return "";
+  if (res.type === "name") return res.done && nameAllWrong(res) ? "Ignorant!" : "";
+  if (!openingAllWrong(res)) return "";
   if (res.type === "top5" && !Array.isArray(res.attempts) && typeof res.hits === "number" && res.hits > 0) return "";
   return "Ignorant!";
 }
 // Celebration tier. Win words stay first. Ignorant! wins over Racist!/Xenophobe!
-// only while the opening guess is entirely wrong.
+// only while the opening guess is entirely wrong. Name it says it only once the loss is finished.
 function cheerChoice(res, identity) {
   if (!res) return null;
+  if (res.type === "name") {
+    if (res.solved) return res.tries === 1 ? "explosive" : res.tries === 2 ? "big" : null;
+    if (res.done && nameAllWrong(res)) return "ignorant";
+    return null;
+  }
   if (res.type === "top5" && !Array.isArray(res.attempts)) {
     const hits = Number(res.hits) || 0;
     const misses = Number(res.misses) || 0;
@@ -1334,7 +1347,8 @@ function renderName(saved) {
       setResult(g);
       if (!restore && isToday()) recordStats(g);
       const tier = !restore ? winTier(g) : null;
-      if (tier) Fx.celebrate(tier, "name");
+      const cheer = !restore ? cheerChoice(g, false) : null;
+      if (cheer) Fx.celebrate(cheer, "name");
       if (!restore) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
       const reveal = () => showResult(g, { scroll: !restore });
       if (restore) reveal();
@@ -2224,7 +2238,7 @@ function winTier(r) {
   const m = missesOf(p, r); return m === 0 ? "explosive" : m <= 2 ? "big" : null;
 }
 const Fx = (() => {
-  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", racist: "Racist!", ignorant: "Ignorant!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!", ignorant: "Ignorant!" }, name: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!" } };
+  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", racist: "Racist!", ignorant: "Ignorant!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!", ignorant: "Ignorant!" }, name: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", ignorant: "Ignorant!" } };
   // v12.2 racist uses the same motion/timing as big (Brilliant!)
   const CFG = { explosive: { n: 220, speed: 15, dur: 2600, spread: Math.PI * 2 }, big: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, racist: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, ignorant: { n: 40, speed: 7.5, dur: 1800, spread: Math.PI * 1.1 }, normal: { n: 40, speed: 7.5, dur: 1500, spread: Math.PI * 1.1 } };
   const COLORS = ["#FFE48A", "#16B364", "#EF4A4F", "#FFFFFF", "#8EA2FF", "#F5B82E", "#FF7AC6"];
@@ -2345,7 +2359,7 @@ function showResult(res, opts) {
   } else if (res.type === "name") {
     const max = CONFIG.rankMaxTries;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
-    $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : `Named in ${res.tries} tries`) : "Out of tries 😅";
+    $("#scoreTitle").textContent = ratingShout(res) || (res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : `Named in ${res.tries} tries`) : "Out of tries 😅");
     $("#answerBox").innerHTML = window.RankdName ? RankdName.revealHtml(p, res) : "";
     $("#answerBox").classList.remove("hidden");
     const form = $("#nameForm"); if (form) form.classList.add("hidden");
@@ -3837,7 +3851,7 @@ function howModal() {
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
    <p><b>✏️ Name it:</b> type any country that passes both rules (a letter or word rule, plus a stat). Aliases such as USA and Korea count. A guess that isn't a country, or one you already tried, doesn't use a try. Any valid country wins. ${CONFIG.rankMaxTries} tries. Each miss says which rule it broke. At the end, every valid answer is shown.</p>
    <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
-   <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!.</p>
+   <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!. So does a Name it loss where every guess was wrong.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {

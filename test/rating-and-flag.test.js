@@ -137,6 +137,21 @@ test("Top 5 Ignorant! is all five slots missed on the opening guesses", () => {
   assert.equal(rating.ratingShout(short), "");
 });
 
+test("Name it Ignorant! is a loss where every try was wrong", () => {
+  const loss = { type: "name", marks: ["bad", "bad", "bad", "bad", "bad"], solved: false, done: true, tries: 5 };
+  assert.equal(rating.ratingShout(loss), "Ignorant!");
+  assert.equal(rating.cheerChoice(loss, false), "ignorant");
+
+  const early = { type: "name", marks: ["bad", "bad"], solved: false, done: false, tries: 2 };
+  assert.equal(rating.ratingShout(early), "");
+  assert.equal(rating.cheerChoice(early, false), null);
+
+  const win = { type: "name", marks: ["bad", "good"], solved: true, done: true, tries: 2 };
+  assert.equal(rating.ratingShout(win), "");
+  assert.equal(rating.cheerChoice(win, false), "big");
+  assert.equal(rating.cheerChoice({ type: "name", marks: ["good"], solved: true, done: true, tries: 1 }, false), "explosive");
+});
+
 test("Hitler's flag is blank and every other leader keeps theirs", () => {
   const puzzle = puzzles.find(p => p.id === "match-before-history");
   assert.ok(puzzle, "history puzzle missing");
