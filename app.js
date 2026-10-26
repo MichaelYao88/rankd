@@ -44,6 +44,11 @@ const CONFIG = {
   // Ad-unit IDs (AdSense > Ads > By ad unit > Display ads, responsive). Empty = that slot collapses (no blank gap) and
   // only Auto ads (if switched on in AdSense) can place ads. Banner: 320x50 on phones / 728x90 on desktop (fixed by CSS).
   ADSENSE_SLOTS: { banner: "8002826017", interstitial: "", bottom: "8002826017" },   // v12.2: Display unit "ranki"; interstitial pending
+  // AdSense review cutoff. Dailies on or before this date stay clear of sexual
+  // content, sexual violence, intimate partner violence, homicide, murder,
+  // suicide and drugs. The schedule itself is swapped (docs/adsense-safe-window.md).
+  // Set to "" after approval; that turns inAdsenseSafeWindow() off.
+  adsenseSafeThrough: "2026-11-03",
 };
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
@@ -893,9 +898,14 @@ function archiveListHeaderHtml(unlocked, lastDayNumber) {
   const shown = Math.min(unlocked, lastDayNumber + 1);
   return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
 }
+// True for a calendar day inside the AdSense-safe schedule (see CONFIG.adsenseSafeThrough).
+function inAdsenseSafeWindow(dateKey) {
+  const cut = CONFIG.adsenseSafeThrough;
+  return !!cut && String(dateKey) <= cut;
+}
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
-    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf };
+    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow };
   window.RankdArchive = {
     baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
     getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
