@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ranki">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ranki.gg">
   <meta property="og:url" content="https://ranki.gg/privacy.html">
@@ -27,6 +32,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="site-config.js"></script>
 <script src="pages.js"></script>
+<script src="pwa.js"></script>
 </head>
 <body class="static-page">
 <header class="page-top"><a class="hero-brand" href="index.html">Ranki.gg</a><a class="play-link" href="index.html">Play today's puzzle →</a></header>
@@ -39,8 +45,8 @@ puzzle game made by Michael Yao ("we", "us"). The short version: we don't have a
 and a finished Daily or Archive puzzle also sends an anonymous score summary so community percentages can be counted. That summary can include a coarse country (for example Taiwan or the United States) worked out from the connection. We do not store your IP address. The ads on the site are provided by Google AdSense, and anonymous product analytics by PostHog, both described below.</p>
 
 <h2>No accounts</h2>
-<p>You don't sign up or log in to play. The optional "Submit your own puzzle" form on the home page is the only place a name is asked for, and you can leave it blank.</p>
-<p>If you send a suggestion, we store the question or stat, any countries you list, an optional source link, and an optional name or handle. We also store a short browser label and, when product analytics is on, the same random analytics id already used for PostHog, so repeated junk is easier to spot. That id is not an account. Suggestions are insert-only from the site: the page cannot read them back.</p>
+<p>You don't sign up or log in to play. We don't ask for your email address. If you create a challenge link, the site asks once for an optional display name (up to 16 characters). That name is saved in this browser and placed in the link you share, so your friend can see who challenged them. It is not sent to our database or to the ads and analytics vendors.</p>
+<p>The optional "Submit your own puzzle" form on the home page asks for a question, and you can add an optional name or handle. If you send a suggestion, we store the question or stat, any countries you list, an optional source link, and that optional name. We also store a short browser label and, when product analytics is on, the same random analytics id already used for PostHog, so repeated junk is easier to spot. That id is not an account. Suggestions are insert-only from the site: the page cannot read them back.</p>
 <p>When you finish a Daily or Archive puzzle, the site sends one anonymous row to our database (hosted by Supabase): the puzzle id, the puzzle's date, whether it was Daily or Archive, the puzzle type, whether you solved it, whether that clear was perfect, and a short summary of your marks or guesses, including what you submitted on the first try and, if you tried again, the second try. The row has no name, email or account id. Practice, Studio and Loading Zone preview (<code>?preview=</code>) plays are not sent. Your streak, settings and unfinished games stay in this browser and are not part of that row.</p>
 <p>To group those anonymous rows ("what players in your country guessed first"), our server reads the country of the connection. If the host already provides a country code, that is used. Otherwise the server asks <a href="https://ipwhois.io/privacy" target="_blank" rel="noopener">ipwho.is</a> for the country code only and then discards the IP. The database stores an ISO country code such as <code>TW</code> or <code>US</code>, not the IP address, city, or precise location. If the country can't be determined, the row is stored without one. The same lookup may run when the results panel loads, and the code is cached in this browser for a few hours (<code>rankd.country.v1</code>, in session and local storage) so the panel can pick the matching group. That cache is removed when you clear Rankd data. It is not an account, and it is not sent to the ads or product-analytics vendors as part of this feature.</p>
 <p>The site is hosted on GitHub Pages. Like any web host, GitHub may log technical information such as your IP address when your browser
@@ -48,7 +54,7 @@ requests a page, for security and to run the service. See the
 <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener">GitHub Privacy Statement</a>.</p>
 
 <h2>Product analytics (PostHog)</h2>
-<p>Rankd uses <a href="https://posthog.com/privacy" target="_blank" rel="noopener">PostHog</a> for anonymous product analytics. We record that a round started, that a round finished (whether you solved it, and how many guesses it took), that you opened the comparison with other players, that you clicked a share button, or that a puzzle suggestion was sent (<code>puzzle_submitted</code>). An event can include the mode (daily, archive or practice) and the puzzle type. It does not include your name, email, or anything you type, including your guesses and puzzle suggestions. PostHog may store a random identifier in your browser so those events can be counted; that identifier is not an account. Studio and Loading Zone preview (<code>?preview=</code>) are not tracked.</p>
+<p>Rankd uses <a href="https://posthog.com/privacy" target="_blank" rel="noopener">PostHog</a> for anonymous product analytics. We record that a round started, that a round finished (whether you solved it, and how many guesses it took), that you opened the comparison with other players, that you clicked a share button, that you created or opened a challenge link, or that a puzzle suggestion was sent (<code>puzzle_submitted</code>). An event can include the mode (daily, archive or practice) and the puzzle type. It does not include your name, email, or anything you type, including your guesses, your challenge display name, and puzzle suggestions. PostHog may store a random identifier in your browser so those events can be counted; that identifier is not an account. Studio and Loading Zone preview (<code>?preview=</code>) are not tracked.</p>
 
 <h2>What is stored in your browser (localStorage)</h2>
 <p>To remember your progress, Rankd saves a few items in your browser's local storage on your device. They never leave your device and
@@ -60,6 +66,7 @@ are only read by the game itself:</p>
   <li><code>rankd.settings.v1</code>: your settings (light or dark theme, streamer mode)</li>
   <li><code>rankd.country.v1</code>: the coarse country code used to show community results for your country (no IP address)</li>
   <li><code>rankd.custom.v2</code>: only if you load your own puzzle spreadsheet</li>
+  <li><code>rankd.challengeName.v1</code>: the optional display name you chose for challenge links</li>
 </ul>
 <p>You can delete all of these at any time: open the menu (⚙️), go to <b>Settings → Your data → Clear all data</b>, and confirm. This removes every
 Rankd item (anything beginning with <code>rankd.</code>) from your browser and resets the game. Clearing your browser's site data does the same.</p>

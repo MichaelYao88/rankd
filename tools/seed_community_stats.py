@@ -4,11 +4,10 @@
 Keeps the existing players / pctPerfect / perItemCorrect / top5 firstGuess
 numbers and fills:
 
-  firstGuessWorld
-  firstGuessByCountry.US
-  firstGuessByCountry.TW
-  firstGuessByCountry.SG   (under the 20-play UI threshold, so the panel
-                            can show an empty state instead of fake stats)
+  firstGuessWorld                 (exactly 1 seeded play)
+  firstGuessByCountry.US          (exactly 1 seeded play)
+  firstGuessByCountry.TW          (exactly 1 seeded play)
+  firstGuessByCountry.SG          (exactly 1 seeded play)
 
     python3 tools/seed_community_stats.py
     python3 tools/seed_community_stats.py --check
@@ -40,8 +39,9 @@ def load_stats() -> dict:
     return json.loads(STATS.read_text(encoding="utf-8"))
 
 
-def check(doc: dict) -> list[str]:
+def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
     errors = []
+    catalog = puzzles_by_id if puzzles_by_id is not None else load_puzzles()
     puzzles = doc.get("puzzles") or {}
     if not puzzles:
         errors.append("no puzzles")
@@ -50,15 +50,15 @@ def check(doc: dict) -> list[str]:
         countries = row.get("firstGuessByCountry") or {}
         if not world:
             errors.append(f"{pid}: missing firstGuessWorld.bars")
-        for code in ("US", "TW"):
+        world_n = int((row.get("firstGuessWorld") or {}).get("players") or -1)
+        if world_n != cs.SEED_CONSENSUS_PLAYS:
+            errors.append(f"{pid}: world consensus seed is {world_n}, expected {cs.SEED_CONSENSUS_PLAYS}")
+        for code in ("US", "TW", "SG"):
             bucket = countries.get(code) or {}
-            if int(bucket.get("players") or 0) < cs.MIN_COUNTRY_PLAYERS:
-                errors.append(f"{pid}: {code} below threshold")
+            if int(bucket.get("players") or 0) != cs.SEED_CONSENSUS_PLAYS:
+                errors.append(f"{pid}: {code} consensus seed is {bucket.get('players')}, expected {cs.SEED_CONSENSUS_PLAYS}")
             if not bucket.get("bars"):
                 errors.append(f"{pid}: {code} missing bars")
-        sg = (countries.get("SG") or {}).get("players")
-        if sg is None or int(sg) >= cs.MIN_COUNTRY_PLAYERS:
-            errors.append(f"{pid}: SG should be present and under {cs.MIN_COUNTRY_PLAYERS}")
         if row.get("type") == "top5" and not row.get("firstGuess"):
             errors.append(f"{pid}: top5 firstGuess removed")
         board = row.get("countryBoard") or []
@@ -78,10 +78,19 @@ def check(doc: dict) -> list[str]:
             if fastest_thin >= fastest_shown:
                 errors.append(f"{pid}: a small country should be faster than the leader so the threshold matters")
             for r in shown:
+                plays = int(r.get("players") or 0)
+                if plays < cs.MIN_COUNTRY_PLAYERS or plays > cs.BOARD_SEED_PLAYS + 2:
+                    errors.append(f"{pid}: {r.get('code')} has {plays} seeded plays, expected about {cs.BOARD_SEED_PLAYS}")
                 avg_tries = float(r["avgTries"])
-                lo, hi = (7, 15) if row.get("type") == "top5" else (2.1, 4.3)
+                lo, hi = (2.1, 4.3)
                 if not lo <= avg_tries <= hi:
                     errors.append(f"{pid}: implausible avg tries {avg_tries} for {r.get('code')}")
+            for r in thin:
+                plays = int(r.get("players") or 0)
+                if plays < 1 or plays > 2:
+                    errors.append(f"{pid}: thin country {r.get('code')} has {plays} plays, expected 1 or 2")
+        if int(row.get("players") or 0) < 50:
+            errors.append(f"{pid}: comparison crowd is too small for a stable better-than")
         standing = row.get("standing") or {}
         buckets = standing.get("byTries") or {}
         failed = standing.get("failed") or {}
@@ -91,18 +100,31 @@ def check(doc: dict) -> list[str]:
             errors.append(f"{pid}: standing is missing unfinished games")
         if counted != int(row.get("players") or 0):
             errors.append(f"{pid}: standing histogram does not match players")
+        if "rowCount" in row:
+            errors.append(f"{pid}: rowCount should be consumed by the standing, not stored")
+        kind = row.get("type") or "rank"
+        width = cs.puzzle_row_count(catalog.get(pid), kind)
+        standing_of = standing.get("firstOf")
+        avg_first = standing.get("avgFirst")
+        if width is None:
+            errors.append(f"{pid}: puzzle row count is missing")
+        elif standing_of != width:
+            errors.append(f"{pid}: standing.firstOf {standing_of} does not match {width} rows")
+        elif avg_first is None:
+            errors.append(f"{pid}: missing avgFirst")
+        else:
+            af = float(avg_first)
+            lo, hi = 0.25 * width, 0.75 * width
+            if not lo <= af <= hi:
+                errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
         avg_tries = float(standing.get("avgTries") or 0)
         acc = float(standing.get("avgAccuracy") or 0)
-        if row.get("type") == "top5":
-            if not 8.5 <= avg_tries <= 13:
-                errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
-            if not 48 <= acc <= 78:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
-        else:
-            if not 2.8 <= avg_tries <= 3.6:
-                errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-            if not 55 <= acc <= 72:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if not 2.8 <= avg_tries <= 3.6:
+            errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
+        if not 50 <= acc <= 72:
+            errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if row.get("type") == "top5" and any(int(k) > 5 for k in (standing.get("byTries") or {})):
+            errors.append(f"{pid}: top5 standing still uses the old guess scale")
     return errors
 
 

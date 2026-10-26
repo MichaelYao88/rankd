@@ -121,6 +121,42 @@ test("a headline that names a ranked country is left off the play card", () => {
   assert.equal(lookalike.title, "Indians Abroad");
 });
 
+test("the play card reads its label from the puzzle type map", () => {
+  assert.equal(shared.PUZZLE_TYPE_LABEL.name, "Name it");
+  assert.equal(shared.PUZZLE_TYPE_LABEL.top5, "Top 5");
+  const named = shared.homeCardCopy({
+    type: "name",
+    headline: "S-Tier Living",
+    countries: [{ name: "Sweden" }],
+  }, "2026-10-08");
+  assert.equal(named.kind, shared.PUZZLE_TYPE_LABEL.name);
+  assert.equal(named.title, "S-Tier Living");
+  const spoiled = shared.homeCardCopy({
+    type: "name",
+    headline: "Sweden leads",
+    countries: [{ name: "Sweden" }],
+  }, "2026-10-08");
+  assert.equal(spoiled.title, "");
+  assert.equal(shared.homeCardCopy({ type: "top5", headline: "Powder" }, "2026-10-08").kind, shared.PUZZLE_TYPE_LABEL.top5);
+  assert.equal(shared.homeCardCopy({ type: "top1", headline: "Soon" }, "2026-10-08").kind, "Daily");
+});
+
+test("the landing sample starts in the same order as the in-game overlay", () => {
+  const namesIn = (marker) => {
+    const start = html.indexOf(marker);
+    assert.ok(start >= 0, marker);
+    const region = html.slice(start, start + 1800);
+    const cardsAt = region.search(/class="(?:mini-cards|howto-cards)"/);
+    const from = cardsAt >= 0 ? region.slice(cardsAt) : region;
+    const end = from.indexOf("</ol>");
+    const slice = end >= 0 ? from.slice(0, end) : from;
+    return [...slice.matchAll(/South Korea|United States|India/g)].map(m => m[0]);
+  };
+  const order = ["South Korea", "United States", "India"];
+  assert.deepEqual(namesIn('class="howto-cards"'), order);
+  assert.deepEqual(namesIn('class="mini mini-step1"'), order);
+});
+
 test("puzzle suggestions require a question and keep optional fields in bounds", () => {
   const bad = shared.validatePuzzleSubmission({ question: "  " });
   assert.equal(bad.ok, false);
