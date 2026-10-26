@@ -146,8 +146,10 @@
   function standingBlock(puzzleId, players, type, firstOf) {
     const n = Math.max(0, Math.round(Number(players) || 0));
     const rng = rngFor(String(puzzleId) + ":standing");
-    // Top 5 locks five slots. A country-list length passed in by mistake is not the denominator.
-    const of = type === "top5" ? 5 : Math.max(2, Math.round(Number(firstOf) || 5));
+    // Top 5 locks five slots. Name it is one country, so the first-guess scale is 1.
+    // A country-list length passed in by mistake is not the Top 5 denominator.
+    const nameIt = type === "name";
+    const of = type === "top5" ? 5 : nameIt ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
     const tryKeys = [1, 2, 3, 4, 5];
     const base = [10, 28, 28, 16, 8, 10];
     const counts = distribute(n, base.map(w => w * (0.84 + rng() * 0.32)));
@@ -184,7 +186,7 @@
     return {
       n,
       seeded: true,
-      kind: type === "top5" ? "top5" : "order",
+      kind: nameIt ? "name" : type === "top5" ? "top5" : "order",
       avgTries: Math.round(avgTries * 100) / 100,
       avgFirst: Math.round(avgFirst * 100) / 100,
       firstOf: of,
@@ -489,8 +491,8 @@
       const row = puzzles[pid];
       if (row.seeded === false) return;
       const type = row.type || "rank";
-      const named = row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0;
-      const width = type === "top5" ? 5 : (Number(row.rowCount) || named);
+      const named = type === "name" ? 1 : (row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0);
+      const width = type === "top5" ? 5 : type === "name" ? 1 : (Number(row.rowCount) || named);
       row.countryBoard = countryBoard(pid, type);
       row.standing = standingBlock(pid, row.players || 0, type, width);
       delete row.rowCount;

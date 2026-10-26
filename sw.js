@@ -28,6 +28,8 @@ var PRECACHE = [
   "/pages.js",
   "/pwa.js",
   "/puzzle-search.js",
+  "/name-puzzles.js",
+  "/name-it.js",
   "/challenge.js",
   "/puzzles-data.js",
   "/practice-data.js",

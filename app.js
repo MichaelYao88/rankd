@@ -302,6 +302,26 @@ function resultCard(p, result) {
       tip,
     };
   }
+  if (type === "name") {
+    const attempts = result.attempts || [];
+    if (!attempts.length || result.tries == null) return null;
+    const distances = [];
+    for (const attempt of attempts) {
+      const marks = attempt.marks || [];
+      if (!marks.length) return null;
+      distances.push(marks.every(m => m === "good") ? 0 : 1);
+    }
+    const firstMarks = (attempts[0] && attempts[0].marks) || [];
+    return {
+      tries: result.tries,
+      solved: !!result.solved,
+      firstCorrect: firstMarks.length && firstMarks.every(m => m === "good") ? 1 : 0,
+      firstOf: 1,
+      accuracy: window.RankdSeed.combineAccuracy(distances, !!result.solved),
+      kind: "name",
+      tip,
+    };
+  }
   const attempts = result.attempts || [];
   if (!attempts.length || result.tries == null) return null;
   const distances = [];
@@ -353,7 +373,7 @@ function communityPlayRow(result) {
   if (!result.puzzleId || !/^\d{4}-\d{2}-\d{2}$/.test(result.day || "")) return null;
   const p = state.puzzle && state.puzzle.id === result.puzzleId ? state.puzzle : null;
   const type = result.type || (p && p.type) || "";
-  if (type !== "rank" && type !== "top5" && type !== "tier" && type !== "match") return null;
+  if (type !== "rank" && type !== "top5" && type !== "tier" && type !== "match" && type !== "name") return null;
   const tries = result.tries ?? null;
   let solved = false, perfect = false;
   const payload = { tries };
@@ -398,6 +418,15 @@ function communityPlayRow(result) {
     payload.avgRank = result.avgRank ?? null;
     first = top5Piece(p, keys[0]);
     second = keys.length > 1 ? top5Piece(p, keys[1]) : null;
+  } else if (type === "name") {
+    solved = !!result.solved;
+    perfect = solved && tries === 1;
+    const guesses = (result.guesses || []).filter(g => g && g.counts !== false && g.name);
+    payload.guesses = guesses.map(g => ({ name: g.name, emoji: g.emoji || "", iso3: g.iso3 || "" }));
+    payload.pick = result.pick || null;
+    const piece = g => (g ? { kind: "name", name: g.name, emoji: g.emoji || "" } : null);
+    first = piece(guesses[0]);
+    second = guesses.length > 1 ? piece(guesses[1]) : null;
   } else {
     solved = !!(result.solved || result.won);
     perfect = solved && tries === 1;
@@ -717,7 +746,20 @@ function parseTables(t) {
 
 let custom = load(LS.custom, null);
 const KNOWN = p => p && (p.type === "rank" || p.type === "top5" || (p.type === "match" && p.people && p.people.length >= 4 && p.people.length <= 7) || (p.type === "tier" && p.tiers && p.items && p.tiers.length >= 2 && p.items.length >= 3));   // drops pre-v7 "guess" puzzles from old uploads
-let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : (window.RANKD_PUZZLES || []);
+// Name it lives in name-puzzles.js so the rank sheet stays a rank sheet. Append after the
+// built-in queue; an uploaded spreadsheet is left as uploaded.
+function attachNamePuzzles(list) {
+  const extra = window.RANKD_NAME_PUZZLES || [];
+  const base = Array.isArray(list) ? list : [];
+  if (!extra.length) return base;
+  const ids = new Set(base.map(p => p && p.id));
+  const fresh = extra.filter(p => p && p.id && !ids.has(p.id)).map(p => Object.assign({}, p));
+  let max = 0;
+  base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000 && o > max) max = o; });
+  fresh.forEach((p, i) => { p.order = max + 1 + i; });
+  return base.concat(fresh);
+}
+let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : attachNamePuzzles(window.RANKD_PUZZLES || []);
 
 // ================================================================ settings + theme
 const settings = Object.assign({ theme: "system", stream: "off" }, load(LS.settings, {}));
@@ -867,6 +909,10 @@ const Practice = {
   ok: () => !!(PR && PR.datasets && PR.datasets.length),
   rules: { minGapShare: 0.03, rankGap: (n, k) => Math.max(2, Math.floor(n / (k * 4))), sixShare: 0.3, minPopM: 1 },
   generate(seed, tries = 0) {
+    if (!tries && window.RankdName && typeof RankdName.practiceFromSeed === "function") {
+      const named = RankdName.practiceFromSeed(seed);
+      if (named) return named;
+    }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
     const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
     const ds = PR.datasets[Math.floor(R() * PR.datasets.length)];
@@ -1187,7 +1233,7 @@ function renderHero() {
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
   document.querySelector(".hero-top").classList.toggle("practice", state.mode === "practice");
   $("#heroNo").textContent = state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
-  $("#heroKind").textContent = p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
+  $("#heroKind").textContent = p.type === "name" ? `✏️ Name it` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = p.headline || p.question;
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
   // label — hide it when it only repeats the subtitle (e.g. Share the Tape had both).
@@ -1226,18 +1272,42 @@ function renderHero() {
   renderArt(p); $("#hero").dataset.kind = p.type; $("#shareChallengeTop").textContent = label + " ↗"; $("#shareChallengeBtn").textContent = label;
 }
 
+function renderName(saved) {
+  if (!window.RankdName) return;
+  RankdName.mount({
+    puzzle: state.puzzle,
+    saved,
+    maxTries: CONFIG.rankMaxTries,
+    onFit: scheduleFit,
+    onToast: toast,
+    onDraft(g) { setResult(g); fitLayout(); },
+    onFinish(g, opts) {
+      const restore = !!(opts && opts.restore);
+      setResult(g);
+      if (!restore && isToday()) recordStats(g);
+      const tier = !restore ? winTier(g) : null;
+      if (tier) Fx.celebrate(tier, "name");
+      if (!restore) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
+      const reveal = () => showResult(g, { scroll: !restore });
+      if (restore) reveal();
+      else afterSubmit(reveal, tier);
+    },
+  });
+  fitLayout();
+}
+
 function openPuzzle(p) {
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
   const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
-  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top5", p.type === "top5"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
+  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#nameGame").classList.toggle("hidden", p.type !== "name"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top5", p.type === "top5"); $("#hero").classList.toggle("is-name", p.type === "name"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
   $("#t5board").classList.toggle("hidden", !g); $("#hints").classList.toggle("hidden", !g);
   setHash(linkHash());
   const saved = getResult();
   if (freshRound(saved)) track("game_started", { mode: state.mode, puzzle_type: p.type });
   const h2h = $("#h2h"); if (h2h) { h2h.classList.add("hidden"); h2h.replaceChildren(); }
-  p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop5(saved);
+  p.type === "name" ? renderName(saved) : p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop5(saved);
   if (state.challengeOpenedFresh) {
     state.challengeOpenedFresh = false;
     track("challenge_link_opened", { mode: state.mode, puzzle_type: p.type });
@@ -2085,12 +2155,12 @@ function isIdentityRank(p) {
   return /\b(men|women|Black|White|Hispanic|Asian|Christian|Jewish|Muslim|Catholic|Protestant|Mixed|Chinese|Indian|Buddhist|Hindu)\b/i.test(blob);
 }
 function winTier(r) {
-  if (r.type === "rank" || r.type === "match" || r.type === "tier" || (r.type === "top5" && r.attempts)) return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
+  if (r.type === "rank" || r.type === "match" || r.type === "tier" || r.type === "name" || (r.type === "top5" && r.attempts)) return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
   const p = state.puzzle; if (!r.guesses || hitsOf(p, r) < 5) return null;
   const m = missesOf(p, r); return m === 0 ? "explosive" : m <= 2 ? "big" : null;
 }
 const Fx = (() => {
-  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", racist: "Racist!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!" } };
+  const TXT = { rank: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!", racist: "Racist!" }, top5: { explosive: "FLAWLESS!", big: "BRILLIANT!", normal: "Nice!" }, name: { explosive: "PERFECT!", big: "BRILLIANT!", normal: "Nice!" } };
   // v12.2 racist uses the same motion/timing as big (Brilliant!)
   const CFG = { explosive: { n: 220, speed: 15, dur: 2600, spread: Math.PI * 2 }, big: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, racist: { n: 110, speed: 11, dur: 2100, spread: Math.PI * 2 }, normal: { n: 40, speed: 7.5, dur: 1500, spread: Math.PI * 1.1 } };
   const COLORS = ["#FFE48A", "#16B364", "#EF4A4F", "#FFFFFF", "#8EA2FF", "#F5B82E", "#FF7AC6"];
@@ -2208,6 +2278,14 @@ function showResult(res, opts) {
       $("#answerBox").innerHTML = line ? `<p class="t5out-line">${esc(line)}</p>` : "";
       $("#answerBox").classList.toggle("hidden", !line);
     } else $("#answerBox").classList.add("hidden");
+  } else if (res.type === "name") {
+    const max = CONFIG.rankMaxTries;
+    $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
+    $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : `Named in ${res.tries} tries`) : "Out of tries 😅";
+    $("#answerBox").innerHTML = window.RankdName ? RankdName.revealHtml(p, res) : "";
+    $("#answerBox").classList.remove("hidden");
+    const form = $("#nameForm"); if (form) form.classList.add("hidden");
+    if (window.RankdName) RankdName.paintRarity(p, null);
   } else {
     const h = hitsOf(p, res), m = missesOf(p, res), avg = avgRank(p, res);
     $("#scoreBig").textContent = `${h}/5`;
@@ -2229,7 +2307,7 @@ function showResult(res, opts) {
   renderCommunity(p, res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
-  ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
+  ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
 }
 function communityCrow(label, pct, emoji) {
@@ -2261,11 +2339,12 @@ function flagEmoji(code) {
 }
 function communityOrderList(bars, p) {
   if (!bars.length) return "";
-  if (p.type === "top5" && !bars.some(bar => bar.slot)) {
-    const bar = bars[0];
+  if ((p.type === "name") || (p.type === "top5" && !bars.some(bar => bar.slot))) {
+    const bar = p.type === "name" ? bars.slice().sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0))[0] : bars[0];
     const emoji = bar.emoji || communityEmojiOf(p, bar.name);
     const name = bar.name || bar.label || "";
-    return `<div class="consensus-hero"><span class="fl">${emoji ? esc(emoji) : ""}</span><span class="nm">${esc(name)}</span></div><p class="community-note">The first country most players named</p>`;
+    const note = p.type === "name" ? "The country most players named" : "The first country most players named";
+    return `<div class="consensus-hero"><span class="fl">${emoji ? esc(emoji) : ""}</span><span class="nm">${esc(name)}</span></div><p class="community-note">${note}</p>`;
   }
   const ranked = p.type === "rank" || bars.some(bar => bar.slot);
   const items = bars.map(bar => {
@@ -2290,7 +2369,7 @@ function fillCommunitySeed(data, p) {
   );
   if (staleTop5 || !Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, type);
   if (staleTop5 || !standing || !standing.byTries || !standing.failed || standing.avgTries == null) {
-    const firstOf = type === "top5" ? 5 : (p.items || p.people || []).length;
+    const firstOf = type === "top5" ? 5 : type === "name" ? 1 : (p.items || p.people || []).length;
     data.standing = seed.standingBlock(p.id, Number(data.players) || 0, type, firstOf);
   }
   return data;
@@ -2701,15 +2780,20 @@ function renderYouVs(p, data, res) {
   pair.innerHTML = `<div class="you-vs-main"><b>${esc(triesLabel(mine.tries, top5))}</b><div class="acc-line">Accuracy ${mine.accuracy} <span class="tip-wrap"><button type="button" class="tip-btn" aria-expanded="false" aria-label="How accuracy is calculated">?</button><span class="tip-pop" role="tooltip">${esc(mine.tip)}</span></span></div></div>${avgTries}`;
   el.appendChild(pair);
   if (hasStanding) {
+    const named = mine.kind === "name";
     const yoursFirst = top5
       ? (mine.firstCorrect ? "First guess in the top 5" : "First guess missed")
-      : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
-    const scaled = !top5 && seedApi && seedApi.scaleAvgFirst
+      : named
+        ? (mine.firstCorrect ? "Named it first try" : "First guess missed")
+        : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
+    const scaled = !top5 && !named && seedApi && seedApi.scaleAvgFirst
       ? seedApi.scaleAvgFirst(block.avgFirst, block.firstOf, mine.firstOf)
       : null;
     const avgFirst = top5
       ? `${Math.round(Number(block.avgFirst) * 100)}% hit first`
-      : `avg ${(scaled ? scaled.avg : Number(block.avgFirst)).toFixed(1)}/${scaled ? scaled.firstOf : (block.firstOf || mine.firstOf)}`;
+      : named
+        ? `${Math.round(Number(block.avgFirst) / (Number(block.firstOf) || 1) * 100)}% named it first`
+        : `avg ${(scaled ? scaled.avg : Number(block.avgFirst)).toFixed(1)}/${scaled ? scaled.firstOf : (block.firstOf || mine.firstOf)}`;
     const pair2 = document.createElement("div");
     pair2.className = "you-vs-pair";
     pair2.innerHTML = `<b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span>`;
@@ -2771,6 +2855,7 @@ async function renderCommunity(p, res) {
     ]);
   } catch { data = null; countryCode = null; }
   if (!state.puzzle || state.puzzle.id !== p.id) { pendingResultScroll = false; scheduleFit(); return; }
+  if (!data && p.type === "name" && window.RankdName && RankdName.seedSnapshot) data = RankdName.seedSnapshot(p);
   if (!data) {
     badge.textContent = "Coming soon";
     if (headLabel) headLabel.textContent = "What most players thought";
@@ -2794,6 +2879,7 @@ async function renderCommunity(p, res) {
   } else html += `<p class="community-empty">No first guesses for this puzzle yet.</p>`;
   html += communityLeaderboard(data, p);
   body.innerHTML = html;
+  if (p.type === "name" && window.RankdName) RankdName.paintRarity(p, data);
   renderYouVs(p, data, res || getResult());
   scheduleFit();
   settleResultScroll();
@@ -2820,8 +2906,8 @@ function recordStats(res) {
   const s = load(LS.stats, { played: 0, wins: 0, streak: 0, best: 0, lastDay: null, dist: {} });
   const dn = dayNumber(state.dateKey); if (s.lastDay === dn) return;
   s.streak = s.lastDay === dn - 1 ? s.streak + 1 : 1; s.best = Math.max(s.best, s.streak); s.lastDay = dn; s.played++;
-  const win = res.type === "rank" || res.type === "match" || res.type === "tier" || (res.type === "top5" && res.attempts) ? res.solved : res.won; if (win) s.wins++;
-  const k = res.type === "rank" ? (res.solved ? `Rank in ${res.tries}` : "Rank ✗") : res.type === "match" ? (res.solved ? `Match in ${res.tries}` : "Match ✗") : res.type === "tier" ? (res.solved ? `Tier in ${res.tries}` : "Tier ✗") : (res.attempts ? (res.solved ? `Top 5 in ${res.tries}` : "Top 5 ✗") : `Top 5: ${res.hits}/5`);
+  const win = res.type === "rank" || res.type === "match" || res.type === "tier" || res.type === "name" || (res.type === "top5" && res.attempts) ? res.solved : res.won; if (win) s.wins++;
+  const k = res.type === "rank" ? (res.solved ? `Rank in ${res.tries}` : "Rank ✗") : res.type === "match" ? (res.solved ? `Match in ${res.tries}` : "Match ✗") : res.type === "tier" ? (res.solved ? `Tier in ${res.tries}` : "Tier ✗") : res.type === "name" ? (res.solved ? `Name in ${res.tries}` : "Name ✗") : (res.attempts ? (res.solved ? `Top 5 in ${res.tries}` : "Top 5 ✗") : `Top 5: ${res.hits}/5`);
   s.dist[k] = (s.dist[k] || 0) + 1; save(LS.stats, s);
 }
 function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; const dn = dayNumber(todayKey()); return (s.lastDay === dn || s.lastDay === dn - 1) ? s.streak : 0; }
@@ -2893,8 +2979,13 @@ function markCode(m) {
 function gridFromResult(p, r) {
   if (!p || !r) return [];
   // One row per lock-in. New Top 5 is five slots a try, same as Rank it.
+  // Name it joins those per-try squares into one row (🟥🟥🟩).
   // The flat marks list is only the last try, so it is the fallback for old guess-style games.
   const fromTries = (r.attempts || []).map(a => (a.marks || []).map(markCode).join("")).filter(Boolean);
+  if (p.type === "name") {
+    const row = fromTries.join("") || (r.marks || []).map(markCode).join("");
+    return row ? [row] : [];
+  }
   if (fromTries.length) return fromTries;
   if (p.type !== "top5") return [];
   const marks = r.marks && r.marks.length ? r.marks : (r.guesses || []).map(k => {
@@ -3065,7 +3156,7 @@ const fullTitle = p => p.headline && p.question && p.headline !== p.question ? `
 function shareTitle() { return state.mode === "preview" ? `${CONFIG.brand} preview` : state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
 function challengeText() {
   const p = state.puzzle;
-  return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
+  return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "name" ? "Name it: can you name any country that passes both rules?" : p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
 }
 function accuracyShareBit(p, r) {
   const card = resultCard(p, r);
@@ -3077,6 +3168,11 @@ function resultText() {
   if (p.type === "match") {
     const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})${acc}`;
     return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
+  }
+  if (p.type === "name") {
+    const line = r.solved ? `✏️ Name it: solved in ${r.tries} ${r.tries === 1 ? "try" : "tries"}${acc}` : `✏️ Name it: X/${CONFIG.rankMaxTries}${acc}`;
+    const grid = (r.marks || []).map(m => EMO[m] || "🟥").join("");
+    return `${shareTitle()} ${line}\n${grid}\n${fullTitle(p)}\n${shareUrl()}`;
   }
   if (p.type === "rank" || p.type === "tier" || (p.type === "top5" && r.attempts && r.attempts.length)) {
     const kind = p.type === "tier" ? "Tier it" : p.type === "top5" ? "Top 5" : "";
@@ -3146,7 +3242,8 @@ function fitLayout() {
     bannerPhase = applyTopBanner();
     if (innerWidth !== vvW) { vvW = innerWidth; vvMax = 0; } vvMax = Math.max(vvMax, h);
     const fit = fitMQ.matches && b.classList.contains("playing");
-    b.classList.toggle("kb", fit && document.activeElement === $("#guessInput") && h < vvMax - 120);
+    const typing = document.activeElement === $("#guessInput") || document.activeElement === $("#nameInput");
+    b.classList.toggle("kb", fit && typing && h < vvMax - 120);
     b.classList.toggle("fit", fit);
     if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); parkFab(); return; }
     const ab = $("#adBottom");
@@ -3163,7 +3260,7 @@ function fitLayout() {
     hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
     if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
     const share = $("#shareChallengeTop");
-    const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
+    const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
     if (share && share.closest(".under-card")) share.closest(".under-card").classList.toggle("lock-covered", locks.some(btn => boxesOverlap(btn, share)));
     parkFab();
   } finally {
@@ -3180,7 +3277,7 @@ document.fonts?.ready.then(() => scheduleFit());
 $("#hero")?.addEventListener("load", () => scheduleFit(), true);
 if (window.ResizeObserver) {
   const ro = new ResizeObserver(() => { if (!fitting) scheduleFit(); });
-  ["#hero", "#cards", "#mClues", "#mPeople", "#tierBoard", "#t5board", "#art"].forEach(sel => { const el = $(sel); if (el) ro.observe(el); });
+  ["#hero", "#cards", "#mClues", "#mPeople", "#tierBoard", "#t5board", "#nameGame", "#art"].forEach(sel => { const el = $(sel); if (el) ro.observe(el); });
 }
 function extraSheet() {
   const hints = $("#hints") ? $("#hints").innerHTML : "";
@@ -3496,12 +3593,13 @@ function goArchive() {
       else if (mine && mine.type === "match") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
       else if (mine && mine.type === "tier") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
       else if (mine && mine.type === "top5" && mine.attempts) badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
+      else if (mine && mine.type === "name") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
       else if (mine && mine.done) badge = mine.type === "rank" ? ""
         : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
       else if (mine) badge = `<span class="ar">In progress</span>`;
     }
     rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
-      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
+      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "name" ? "Name it" : p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
   $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
@@ -3610,7 +3708,7 @@ function settingsModal() {
   }));
   $("#mLoad").onclick = () => $("#fileInput").click(); $("#mTemplate").onclick = downloadCsv;
   $("#mClear").onclick = clearDataModal;
-  if ($("#mReset")) $("#mReset").onclick = () => { localStorage.removeItem(LS.custom); custom = null; PUZZLES = window.RANKD_PUZZLES; closeModal(); toast("Built-in puzzles restored"); goToday(); };
+  if ($("#mReset")) $("#mReset").onclick = () => { localStorage.removeItem(LS.custom); custom = null; PUZZLES = attachNamePuzzles(window.RANKD_PUZZLES || []); closeModal(); toast("Built-in puzzles restored"); goToday(); };
 }
 function clearDataModal() {   // v11.1: confirm step for "Clear all data"
   openModal(`<div id="clearConfirm" role="alertdialog" aria-labelledby="clearTitle" aria-describedby="clearDesc"><h2 id="clearTitle">Clear all data?</h2>
@@ -3622,8 +3720,8 @@ function clearDataModal() {   // v11.1: confirm step for "Clear all data"
 function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + future), filterable by mode; hidden when CONFIG.SHOW_ALL_PUZZLES = false
   if (!CONFIG.SHOW_ALL_PUZZLES) return;
   const all = load(LS.results, {}), today = dayNumber(todayKey()) + 1;
-  const kind = p => p.type === "top5" ? "top5" : p.type === "match" ? "match" : p.type === "tier" ? "tier" : p.items.length >= 6 ? "rank6" : (p.items.length && p.items.every(it => /^\p{RI}\p{RI}$/u.test(it.emoji)) ? "rank" : "incountry");
-  const KINDS = [["any", "All"], ["rank", "Rank it"], ["rank6", "6-country"], ["top5", "Top 5"], ["match", "Match it"], ["tier", "Tier it"], ["incountry", "Groups"]];
+  const kind = p => p.type === "name" ? "name" : p.type === "top5" ? "top5" : p.type === "match" ? "match" : p.type === "tier" ? "tier" : p.items.length >= 6 ? "rank6" : (p.items.length && p.items.every(it => /^\p{RI}\p{RI}$/u.test(it.emoji)) ? "rank" : "incountry");
+  const KINDS = [["any", "All"], ["rank", "Rank it"], ["rank6", "6-country"], ["top5", "Top 5"], ["match", "Match it"], ["tier", "Tier it"], ["name", "Name it"], ["incountry", "Groups"]];
   const count = k => PUZZLES.filter(p => k === "any" || kind(p) === k).length;
   openModal(`<h2>All puzzles (${PUZZLES.length})</h2><p class="plist-note">Pre-launch list: every puzzle, past and future. Plays here never count toward stats or streaks.</p>
     <div class="seg plist-filter">${KINDS.map(([k, l]) => `<button data-k="${k}" class="${k === "any" ? "on" : ""}">${l} <small>${count(k)}</small></button>`).join("")}</div>
@@ -3635,9 +3733,9 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
     <p class="plist-empty hidden" id="plistEmpty" role="status"></p>
     <div class="plist">${PUZZLES.map((p, i) => { const r = all["p:" + p.id];
     const rr = r && r.type === "rank" ? normRank(r) : r, o = Math.round(p.order);
-    const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" || (rr.type === "top5" && rr.attempts) ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
+    const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" || rr.type === "name" || (rr.type === "top5" && rr.attempts) ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
     const when = o < 10000 ? `#${pad3(o)} · ${prettyDate(keyFromDay(o - 1)).replace(/, \d{4}$/, "")}${o > today ? " · future" : o === today ? " · today" : ""}` : "";
-    const k = kind(p), kl = { rank: "Rank it", rank6: `Rank it · ${p.items.length} countries`, top5: "Top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
+    const k = kind(p), kl = { rank: "Rank it", rank6: `Rank it · ${p.items.length} countries`, top5: "Top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, name: "Name it", incountry: "Rank it · groups" }[k];
     return `<button data-i="${i}" data-k="${k}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
   let kf = "any";
   const apply = () => {
@@ -3665,8 +3763,9 @@ function howModal() {
    <p><b>🖐️ Top 5:</b> six country cards, the real top 5 plus one that does not belong. Drag them into the five slots (highest at #1), or tap a card and then a slot, and leave the odd one out. Lock it in. Right slots turn 🟩 green and lock; wrong ones turn 🟥 red. You get ${CONFIG.rankMaxTries} tries.</p>
    <p><b>🔗 Match it:</b> match each clue (4 to 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
+   <p><b>✏️ Name it:</b> type any country that passes both rules (a letter or word rule, plus a stat). Aliases such as USA and Korea count. A guess that isn't a country, or one you already tried, doesn't use a try. Any valid country wins. ${CONFIG.rankMaxTries} tries. Each miss says which rule it broke. At the end, every valid answer is shown.</p>
    <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
-   <p>🎉 Solve on the 1st or 2nd try for a celebration. First try = the big one.</p>
+   <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {
