@@ -924,7 +924,7 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .howto-kicker{margin:0;font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;opacity:.75}
 .howto-card h2{margin:6px 0 8px;font-size:22px;letter-spacing:-.03em;line-height:1.2}
 .howto-sub{margin:0 0 14px;font-size:13.5px;line-height:1.4;opacity:.9}
-.howto-demo{display:grid;grid-template-columns:64px 1fr;gap:8px;align-items:stretch;margin:0 0 8px;min-height:132px}
+.howto-demo{display:grid;grid-template-columns:72px 1fr;gap:8px;align-items:stretch;margin:0 0 8px;min-height:132px}
 .howto-vals{display:flex;flex-direction:column;justify-content:space-around;border:1.5px dashed rgba(255,255,255,.45);border-radius:12px;padding:6px 4px;text-align:center}
 .howto-vals b{font-size:12px;font-weight:800}
 .howto-cards{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;position:relative;perspective:800px}
@@ -933,22 +933,21 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .howto-flag{font-size:18px}
 .howto-caption{margin:0 0 10px;font-size:10px;line-height:1.35;font-weight:600;letter-spacing:.01em;text-align:center;opacity:.78}
 .howto-step{margin:0 0 12px;font-size:12.5px;line-height:1.35;opacity:.9;min-height:2.7em}
-.howto-card .howto-lock{width:100%;margin:0 0 8px;transition:transform .12s ease,opacity .2s}
+.howto-card .howto-lock{width:100%;margin:0;transition:transform .12s ease,opacity .2s}
 .howto-card .howto-lock:disabled{opacity:.55}
 .howto-card .howto-lock.pressing{transform:scale(.94);background:#fff;color:var(--brand);border-color:#fff}
-.howto-skip{display:block;width:100%;border:0;background:transparent;color:#fff;font-weight:700;font-size:13px;padding:10px;opacity:.85;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.howto-card .howto-lock:focus-visible{outline:2px solid #fff;outline-offset:3px}
 .howto-pointer{position:absolute;z-index:4;left:50%;top:46%;font-size:30px;line-height:1;pointer-events:none;opacity:0;transform:translate(-50%,0);filter:drop-shadow(0 2px 1px rgba(0,0,0,.4));transition:left .68s cubic-bezier(.2,.8,.2,1),top .68s cubic-bezier(.2,.8,.2,1),opacity .2s}
 .howto-pointer.on{opacity:1}
-.howto-pointer.tap{animation:howtoTap .32s ease}
+.howto-pointer.hint{animation:howtoPulse 1.15s ease-in-out infinite}
 @keyframes howtoFlip{
   0%{transform:translateY(var(--ty,0px)) rotateX(0)}
   50%{transform:translateY(var(--ty,0px)) rotateX(90deg)}
   100%{transform:translateY(var(--ty,0px)) rotateX(0)}
 }
-@keyframes howtoTap{
-  0%{transform:translate(-50%,0) scale(1)}
-  45%{transform:translate(-50%,9px) scale(.9)}
-  100%{transform:translate(-50%,0) scale(1)}
+@keyframes howtoPulse{
+  0%,100%{transform:translate(-50%,0)}
+  50%{transform:translate(-50%,8px)}
 }
 @media (min-width:720px){
   .howto-overlay{align-items:center}

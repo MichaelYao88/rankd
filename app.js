@@ -2611,17 +2611,23 @@ window.RankdFit = { sync: syncPlaying, layout: fitLayout };
 
 // ================================================================ v12.2 first-visit howto
 const HOWTO_KEY = "rankd.howto.seen.v1";
-// Nicest People sample — InterNations Expat Insider 2024, share of expats who rate
-// locals as friendly towards foreign residents (global average 61%):
-// Costa Rica 90%, Qatar 67%, Germany 39%. High → low in the values column.
-// https://www.internations.org/expat-insider/2024/ease-of-settling-in-index-40452
+// Female homicide rate sample — puzzle homicide-women, UNODC via World Bank 2022,
+// female intentional homicides per 100k women. High → low: United States 2.81, India 2.37, South Korea 0.50.
 const HOWTO_SUCCESS = "All green = perfect! Wrong cards turn red so you can fix them.";
 let howtoRun = 0, howtoTimers = [];
 function howtoSeen() { try { return localStorage.getItem(HOWTO_KEY) === "1"; } catch (e) { return true; } }
 function markHowtoSeen() { try { localStorage.setItem(HOWTO_KEY, "1"); } catch (e) {} }
 function clearHowtoTimers() { howtoTimers.forEach(clearTimeout); howtoTimers = []; }
+function onHowtoKey(e) {
+  if (e.key !== "Escape") return;
+  const el = $("#howtoOverlay");
+  if (!el || el.classList.contains("hidden")) return;
+  e.preventDefault();
+  dismissHowto();
+}
 function dismissHowto() {
   howtoRun++; clearHowtoTimers();
+  document.removeEventListener("keydown", onHowtoKey);
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.add("hidden"); markHowtoSeen();
 }
@@ -2647,61 +2653,64 @@ function runHowtoDemo() {
     rows.forEach((li, n) => setY(li, sorted ? (+li.dataset.slot - n) * h : 0, snap));
   };
   const paint = (green) => rows.forEach(li => li.classList.toggle("good", green));
-  const hidePointer = () => { if (pointer) pointer.classList.remove("on", "tap"); };
-  const showFinal = () => {
-    layout(true, true); paint(true); hidePointer();
-    lock.classList.remove("pressing"); lock.disabled = false;
-    step.textContent = HOWTO_SUCCESS;
-  };
-  lock.onclick = (e) => e.preventDefault();
-  if (prefersReduce()) { showFinal(); return; }
+  const hidePointer = () => { if (pointer) pointer.classList.remove("on", "hint"); };
   const pointAt = (rect, dy) => {
+    if (!pointer || !card) return;
     const cr = card.getBoundingClientRect();
     pointer.style.left = (rect.left + rect.width / 2 - cr.left) + "px";
     pointer.style.top = (rect.top + dy - cr.top) + "px";
   };
-  const cycle = () => {
-    if (prefersReduce()) { showFinal(); return; }
-    layout(false, true); paint(false); hidePointer();
-    lock.classList.remove("pressing"); lock.disabled = true; lock.textContent = "Lock it in ↵";
-    step.textContent = "Watch the cards slide into order…";
-    later(() => {
-      layout(true, false);
-      step.textContent = "Highest value at the top — then Lock it in.";
-      later(() => {
-        lock.disabled = false;
-        if (pointer && card) {
-          pointer.classList.remove("on", "tap");
-          pointer.style.transition = "none";
-          pointAt(rows[1].getBoundingClientRect(), 8);
-          pointer.offsetHeight;
-          pointer.style.transition = "";
-          pointer.classList.add("on");
-          requestAnimationFrame(() => requestAnimationFrame(() => pointAt(lock.getBoundingClientRect(), 14)));
-        }
-        later(() => {
-          if (pointer) pointer.classList.add("tap");
-          lock.classList.add("pressing");
-          later(() => {
-            lock.classList.remove("pressing");
-            paint(true);
-            step.textContent = HOWTO_SUCCESS;
-            later(hidePointer, 640);
-            later(cycle, 2700);
-          }, 340);
-        }, 720);
-      }, 640);
-    }, 780);
+  // Finger stays on Lock it in! and pulses until the player taps. No auto-tap.
+  const showHint = (travel) => {
+    lock.disabled = false;
+    step.textContent = "Highest value at the top — then Lock it in!";
+    if (!pointer || !card) { lock.focus({ preventScroll: true }); return; }
+    pointer.classList.remove("on", "hint");
+    if (!travel || prefersReduce()) {
+      pointer.style.transition = "none";
+      pointAt(lock.getBoundingClientRect(), 14);
+      pointer.offsetHeight;
+      pointer.style.transition = "";
+      pointer.classList.add("on", "hint");
+    } else {
+      pointer.style.transition = "none";
+      pointAt(rows[1].getBoundingClientRect(), 8);
+      pointer.offsetHeight;
+      pointer.style.transition = "";
+      pointer.classList.add("on");
+      requestAnimationFrame(() => requestAnimationFrame(() => pointAt(lock.getBoundingClientRect(), 14)));
+      later(() => { if (!committed) pointer.classList.add("hint"); }, 700);
+    }
+    lock.focus({ preventScroll: true });
   };
-  cycle();
+  let committed = false;
+  const commitHowto = () => {
+    if (committed || lock.disabled) return;
+    committed = true;
+    lock.classList.add("pressing");
+    paint(true);
+    hidePointer();
+    step.textContent = HOWTO_SUCCESS;
+    later(() => lock.classList.remove("pressing"), 180);
+    later(dismissHowto, 1100);
+  };
+  lock.onclick = commitHowto;
+  if (prefersReduce()) { layout(true, true); paint(false); showHint(false); return; }
+  layout(false, true); paint(false); hidePointer();
+  lock.classList.remove("pressing"); lock.disabled = true;
+  step.textContent = "Watch the cards slide into order…";
+  later(() => {
+    layout(true, false);
+    later(() => showHint(true), 620);
+  }, 780);
 }
 function maybeShowHowto() {
   if (howtoSeen()) return;
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.remove("hidden");
   runHowtoDemo();
-  $("#howtoSkip").onclick = dismissHowto;
   el.addEventListener("click", (e) => { if (e.target === el) dismissHowto(); });
+  document.addEventListener("keydown", onHowtoKey);
 }
 
 // ================================================================ views / navigation
