@@ -1039,3 +1039,21 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .long-ad-box .pill-btn:disabled{opacity:.55}
 .long-ad-prem{margin:12px 0 0;font-size:12px;color:var(--muted)}
 .arch .ar.unlock{background:rgba(var(--brand-rgb),.12);color:var(--brand)}
+
+/* PWA install. A header icon and a menu row, never a blocking dialog. */
+.topbar-tools{display:flex;align-items:center;gap:2px;flex:none}
+.pwa-install-wrap{display:inline-flex;align-items:center;gap:0;flex:none}
+.pwa-install.round-btn{width:38px;height:38px;flex:none}
+.pwa-install-x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:0 2px;cursor:pointer}
+.pwa-install-x:hover{color:var(--ink)}
+.pwa-ios-hint{max-width:582px;margin:6px auto 0;padding:0 16px;font-size:12px;line-height:1.35;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pwa-ios-hint b{color:var(--ink);font-weight:700}
+.pwa-result-install{display:block;margin:2px auto 0}
+.menu-list #mInstall small{display:block;color:var(--muted);font-weight:500;margin-top:2px}
+@media (max-width:560px){
+  .pwa-install.round-btn{width:34px;height:34px}
+  .pwa-ios-hint{padding:0 10px}
+}
+@media (display-mode: standalone), (display-mode: fullscreen){
+  .pwa-install-wrap,.pwa-ios-hint,#mInstall,.pwa-result-install{display:none!important}
+}

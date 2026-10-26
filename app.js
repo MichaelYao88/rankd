@@ -5,6 +5,11 @@
 (() => {
 "use strict";
 
+// PWA: pwa.js (loaded on public pages, before this file) registers /sw.js.
+// Studio never loads pwa.js. start() also no-ops for Studio and ?preview=.
+// A new worker claims the page without reloading, so an open puzzle keeps its board.
+if (window.RankiPwa) window.RankiPwa.start();
+
 // ================================================================ config
 const CONFIG = {
   brand: "Ranki.gg",  // v12.2 visible wordmark; localStorage keys stay rankd.*
