@@ -178,16 +178,16 @@ suicide-world,,,,,,,,Uruguay,🇺🇾,22.2,2023,,,,10,185,,,,,,
 suicide-world,,,,,,,,France,🇫🇷,13.9,2023,,,,63,185,,,,,,
 suicide-world,,,,,,,,China,🇨🇳,8,2023,,,,114,185,,,,,,
 suicide-world,,,,,,,,Greece,🇬🇷,3.9,2023,,,,155,185,,,,,,
-trends-anime,44,🍥,"Which country Googles ""anime"" the most?","Google search interest in the search term ""anime""",index (0–100),top,no,Mongolia,🇲🇳,100,Oct 2021–Oct 2026,"Google Trends, interest by region (country), past 5 years, search term, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=anime,"Japan ranks last because people there search アニメ, not English 'anime'. Mongolia leads on share of searches, not fan count. Note: each country's own Google searches, scaled to 100.",1,82,,sparkles,,,,Anime Searches
-trends-anime,,,,,,,,Philippines,🇵🇭,76,Oct 2021–Oct 2026,,,,4,82,,,,,,
-trends-anime,,,,,,,,Indonesia,🇮🇩,40,Oct 2021–Oct 2026,,,,13,82,,,,,,
-trends-anime,,,,,,,,United States,🇺🇸,17,Oct 2021–Oct 2026,,,,45,82,,,,,,
-trends-anime,,,,,,,,Japan,🇯🇵,2,Oct 2021–Oct 2026,,,,82,82,,,,,,
-trends-messi,81,⚽,Which country Googles Lionel Messi the most?,Google search interest in Lionel Messi (person topic),index (0–100),top,no,Guinea,🇬🇳,100,Oct 2021–Oct 2026,"Google Trends, interest by region (country), past 5 years, topic entity, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=%2Fm%2F06qjgc,"Argentina is not first. Trends scores each country's share of its own searches, so smaller football-mad countries can outrank his home. Note: not search volume or number of fans.",1,103,,football,,,,Messi Fans
-trends-messi,,,,,,,,Argentina,🇦🇷,43,Oct 2021–Oct 2026,,,,7,103,,,,,,
-trends-messi,,,,,,,,Nigeria,🇳🇬,27,Oct 2021–Oct 2026,,,,15,103,,,,,,
-trends-messi,,,,,,,,Spain,🇪🇸,10,Oct 2021–Oct 2026,,,,54,103,,,,,,
-trends-messi,,,,,,,,United States,🇺🇸,4,Oct 2021–Oct 2026,,,,92,103,,,,,,
+trends-anime,44,🍥,"Which country Googles ""anime"" the most?","Google search interest in the search term ""anime"", countries with high internet use",index (0–100),top,no,Bolivia,🇧🇴,83,Oct 2021–Oct 2026,"Google Trends, countries with high internet use, interest by region (country), past 5 years, search term, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=anime,"Japan ranks last because people there search アニメ, not English 'anime'. Bolivia leads on share of searches, not fan count. Note: each country's own Google searches, scaled to 100, among countries with high internet use.",1,60,,sparkles,,,,Anime Searches
+trends-anime,,,,,,,,Vietnam,🇻🇳,73,Oct 2021–Oct 2026,,,,2,60,,,,,,
+trends-anime,,,,,,,,Indonesia,🇮🇩,40,Oct 2021–Oct 2026,,,,5,60,,,,,,
+trends-anime,,,,,,,,United States,🇺🇸,17,Oct 2021–Oct 2026,,,,27,60,,,,,,
+trends-anime,,,,,,,,Japan,🇯🇵,2,Oct 2021–Oct 2026,,,,60,60,,,,,,
+trends-messi,81,⚽,Which country Googles Lionel Messi the most?,"Google search interest in Lionel Messi (person topic), countries with high internet use",index (0–100),top,no,Argentina,🇦🇷,43,Oct 2021–Oct 2026,"Google Trends, countries with high internet use, interest by region (country), past 5 years, topic entity, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=%2Fm%2F06qjgc,"Argentina leads this set, with Cuba one point behind. Spain, where he made his name at Barcelona, is far lower. Note: not search volume or number of fans.",1,66,,football,,,,Messi Fans
+trends-messi,,,,,,,,Cuba,🇨🇺,42,Oct 2021–Oct 2026,,,,2,66,,,,,,
+trends-messi,,,,,,,,Iraq,🇮🇶,24,Oct 2021–Oct 2026,,,,4,66,,,,,,
+trends-messi,,,,,,,,Spain,🇪🇸,10,Oct 2021–Oct 2026,,,,24,66,,,,,,
+trends-messi,,,,,,,,United States,🇺🇸,4,Oct 2021–Oct 2026,,,,57,66,,,,,,
 renewables,36,🌿,Who gets the most of its energy from renewables?,Renewable energy consumption (% of total final energy consumption),%,top,no,Uganda,🇺🇬,91,2021,"World Bank (IEA, IRENA, UN Statistics Division, WHO, World Bank: SDG 7.2 tracking)",https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS,"Uganda beats Norway because firewood and charcoal count as renewable. A high share here often means energy poverty, not green power plants. Note: share of final energy, 2021.",5,212,,windmill,,,,Green Machines
 renewables,,,,,,,,Norway,🇳🇴,61.4,2021,,,,36,212,,,,,,
 renewables,,,,,,,,India,🇮🇳,34.9,2021,,,,69,212,,,,,,
@@ -213,11 +213,11 @@ autism,,,,,,,,United States,🇺🇸,0.97,2023,,,,10,204,,,,,,
 autism,,,,,,,,United Kingdom,🇬🇧,0.74,2023,,,,83,204,,,,,,
 autism,,,,,,,,India,🇮🇳,0.51,2023,,,,197,204,,,,,,
 autism,,,,,,,,Bangladesh,🇧🇩,0.34,2023,,,,204,204,,,,,,
-trends-minecraft,89,⛏️,"Which country Googles ""Minecraft"" the most?","Google search interest in the search term ""Minecraft""",index (0–100),top,no,Myanmar,🇲🇲,100,Oct 2021–Oct 2026,"Google Trends, interest by region (country), past 5 years, search term, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=Minecraft,"Myanmar leads because the word is a large share of its Google searches, not because it has the most players. Note: share of each country's searches, scaled to 100. Language matters.",1,80,,pickaxe,,,,Minecraft Searches
-trends-minecraft,,,,,,,,Philippines,🇵🇭,59,Oct 2021–Oct 2026,,,,4,80,,,,,,
-trends-minecraft,,,,,,,,United States,🇺🇸,33,Oct 2021–Oct 2026,,,,31,80,,,,,,
-trends-minecraft,,,,,,,,India,🇮🇳,13,Oct 2021–Oct 2026,,,,74,80,,,,,,
-trends-minecraft,,,,,,,,Japan,🇯🇵,3,Oct 2021–Oct 2026,,,,80,80,,,,,,
+trends-minecraft,89,⛏️,"Which country Googles ""Minecraft"" the most?","Google search interest in the search term ""Minecraft"", countries with high internet use",index (0–100),top,no,Cuba,🇨🇺,68,Oct 2021–Oct 2026,"Google Trends, countries with high internet use, interest by region (country), past 5 years, search term, fetched 20 Oct 2026",https://trends.google.com/trends/explore?date=today%205-y&q=Minecraft,"Cuba leads because the word is a large share of its Google searches, not because it has the most players. Japan is last. Note: share of each country's searches, scaled to 100. Language matters.",1,62,,pickaxe,,,,Minecraft Searches
+trends-minecraft,,,,,,,,Bolivia,🇧🇴,48,Oct 2021–Oct 2026,,,,2,62,,,,,,
+trends-minecraft,,,,,,,,United States,🇺🇸,33,Oct 2021–Oct 2026,,,,15,62,,,,,,
+trends-minecraft,,,,,,,,India,🇮🇳,13,Oct 2021–Oct 2026,,,,56,62,,,,,,
+trends-minecraft,,,,,,,,Japan,🇯🇵,3,Oct 2021–Oct 2026,,,,62,62,,,,,,
 space-first,65,🚀,Which country sent its first person to space first?,Year the country's first citizen flew to space,,bottom,no,Vietnam,🇻🇳,1980,23 Jul 1980 · Soyuz 37 (USSR),Wikipedia: Timeline of space travel by nationality,https://en.wikipedia.org/wiki/Timeline_of_space_travel_by_nationality,"Vietnam, Mongolia and Afghanistan flew first as Soviet guests on Soyuz. China waited until it could launch its own astronaut. Note: nationality at launch. Only China flew its own rocket.",8,55,countries,rocket,,,,Space Race
 space-first,,,,,,,,Mongolia,🇲🇳,1981,22 Mar 1981 · Soyuz 39 (USSR),,,,10,55,countries,,,,,
 space-first,,,,,,,,Afghanistan,🇦🇫,1988,29 Aug 1988 · Soyuz TM-6 (USSR),,,,20,55,countries,,,,,

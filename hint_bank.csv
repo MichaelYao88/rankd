@@ -124,36 +124,36 @@ top5-height-gain,5,Thailand,THA,2,It has 50–150 million people (2024).,,World 
 top5-height-gain,5,Thailand,THA,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
 top5-height-gain,5,Thailand,THA,4,Its capital city starts with “B”.,,World Bank country metadata (capitalCity)
 top5-height-gain,5,Thailand,THA,5,Its name starts with “T”.,,the name
-top5-trends-kpop,1,Philippines,PHL,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,1,Philippines,PHL,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,1,Philippines,PHL,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,1,Philippines,PHL,4,Its capital city starts with “M”.,,World Bank country metadata (capitalCity)
-top5-trends-kpop,1,Philippines,PHL,5,Its name starts with “P”.,,the name
-top5-trends-kpop,2,Singapore,SGP,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,2,Singapore,SGP,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,2,Singapore,SGP,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,2,Singapore,SGP,4,It has a coastline.,,standard list of landlocked countries
-top5-trends-kpop,2,Singapore,SGP,5,Its name starts with “S”.,,the name
-top5-trends-kpop,3,Myanmar,MMR,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,3,Myanmar,MMR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,3,Myanmar,MMR,3,"Its GDP per person is under $2,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,3,Myanmar,MMR,4,Its capital city starts with “N”.,,World Bank country metadata (capitalCity)
-top5-trends-kpop,3,Myanmar,MMR,5,Its name starts with “M”.,,the name
-top5-trends-kpop,4,Malaysia,MYS,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,4,Malaysia,MYS,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,4,Malaysia,MYS,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,4,Malaysia,MYS,4,Its capital city starts with “K”.,,World Bank country metadata (capitalCity)
-top5-trends-kpop,4,Malaysia,MYS,5,Its name starts with “M”.,,the name
-top5-trends-kpop,5,South Korea,KOR,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,5,South Korea,KOR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,5,South Korea,KOR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,5,South Korea,KOR,4,It has a coastline.,,standard list of landlocked countries
-top5-trends-kpop,5,South Korea,KOR,5,Its name starts with “S”.,,the name
-top5-trends-kpop,5,Indonesia,IDN,1,It's in Asia.,,continent (6-continent model)
-top5-trends-kpop,5,Indonesia,IDN,2,It has more than 150 million people (2024).,,World Bank SP.POP.TOTL
-top5-trends-kpop,5,Indonesia,IDN,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
-top5-trends-kpop,5,Indonesia,IDN,4,Its capital city starts with “J”.,,World Bank country metadata (capitalCity)
-top5-trends-kpop,5,Indonesia,IDN,5,Its name starts with “I”.,,the name
+top5-trends-kpop,1,Singapore,SGP,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,1,Singapore,SGP,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,1,Singapore,SGP,3,"Its GDP per person is over $60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,1,Singapore,SGP,4,It has a coastline.,,standard list of landlocked countries
+top5-trends-kpop,1,Singapore,SGP,5,Its name starts with “S”.,,the name
+top5-trends-kpop,2,Malaysia,MYS,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,2,Malaysia,MYS,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,2,Malaysia,MYS,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,2,Malaysia,MYS,4,Its capital city starts with “K”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,2,Malaysia,MYS,5,Its name starts with “M”.,,the name
+top5-trends-kpop,3,South Korea,KOR,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,3,South Korea,KOR,2,It has 50–150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,3,South Korea,KOR,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,3,South Korea,KOR,4,It has a coastline.,,standard list of landlocked countries
+top5-trends-kpop,3,South Korea,KOR,5,Its name starts with “S”.,,the name
+top5-trends-kpop,4,Indonesia,IDN,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,4,Indonesia,IDN,2,It has more than 150 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,4,Indonesia,IDN,3,"Its GDP per person is $2,000–10,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,4,Indonesia,IDN,4,Its capital city starts with “J”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,4,Indonesia,IDN,5,Its name starts with “I”.,,the name
+top5-trends-kpop,5,Chile,CHL,1,It's in South America.,,continent (6-continent model)
+top5-trends-kpop,5,Chile,CHL,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,5,Chile,CHL,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,5,Chile,CHL,4,Its capital city starts with “S”.,,World Bank country metadata (capitalCity)
+top5-trends-kpop,5,Chile,CHL,5,Its name starts with “C”.,,the name
+top5-trends-kpop,5,Hong Kong,HKG,1,It's in Asia.,,continent (6-continent model)
+top5-trends-kpop,5,Hong Kong,HKG,2,It has 1–10 million people (2024).,,World Bank SP.POP.TOTL
+top5-trends-kpop,5,Hong Kong,HKG,3,"Its GDP per person is $30,000–60,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
+top5-trends-kpop,5,Hong Kong,HKG,4,It has a coastline.,,standard list of landlocked countries
+top5-trends-kpop,5,Hong Kong,HKG,5,Its name starts with “H”.,,the name
 top5-alcohol,1,Romania,ROU,1,It's in Europe.,,continent (6-continent model)
 top5-alcohol,1,Romania,ROU,2,It has 10–50 million people (2024).,,World Bank SP.POP.TOTL
 top5-alcohol,1,Romania,ROU,3,"Its GDP per person is $10,000–30,000 a year (2024, US$).",,World Bank NY.GDP.PCAP.CD (current US$)
