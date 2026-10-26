@@ -193,12 +193,27 @@ def rotate_top5(guesses: list[dict], salt: int) -> list[dict]:
     return bars
 
 
+def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
+    """Rows the player locks. Top 5 is a single first-guess rate, not the country list."""
+    if kind == "top5":
+        return 1
+    if not isinstance(puzzle, dict):
+        return None
+    rows = puzzle.get("people") if kind == "match" else puzzle.get("items")
+    if not isinstance(rows, list) or not rows:
+        return None
+    return len(rows)
+
+
 def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None) -> dict:
     """Add firstGuessWorld / firstGuessByCountry without changing existing scores."""
     puzzles_by_id = puzzles_by_id or {}
     for pid, row in (doc.get("puzzles") or {}).items():
         puzzle = puzzles_by_id.get(pid)
         kind = row.get("type") or "rank"
+        width = puzzle_row_count(puzzle, kind)
+        if width:
+            row["rowCount"] = width
         counts = consensus_counts()
         if kind == "top5":
             world = [dict(g) for g in (row.get("firstGuess") or [])]
@@ -251,7 +266,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
             if counts.get(code)
         }
     doc["version"] = 6
-    doc["updatedAt"] = "2026-10-26T19:06:00Z"
+    doc["updatedAt"] = "2026-10-26T19:45:00Z"
     doc["source"] = doc.get("source") or "seed"
     doc["note"] = (
         "Seeded distributions until live aggregates exist. Stable per puzzle id. "
@@ -822,6 +837,7 @@ def _self_test() -> None:
     for code in ("TW", "US", "SG"):
         assert block["firstGuessByCountry"][code]["players"] == SEED_CONSENSUS_PLAYS
     assert block["firstGuessWorld"]["bars"][0]["name"] != block["firstGuessByCountry"]["US"]["bars"][0]["name"]
+    assert block["rowCount"] == 3
 
     mix_seed = {
         "version": 6,
