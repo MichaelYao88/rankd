@@ -39,8 +39,9 @@ def load_stats() -> dict:
     return json.loads(STATS.read_text(encoding="utf-8"))
 
 
-def check(doc: dict) -> list[str]:
+def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
     errors = []
+    catalog = puzzles_by_id if puzzles_by_id is not None else load_puzzles()
     puzzles = doc.get("puzzles") or {}
     if not puzzles:
         errors.append("no puzzles")
@@ -99,6 +100,27 @@ def check(doc: dict) -> list[str]:
             errors.append(f"{pid}: standing is missing unfinished games")
         if counted != int(row.get("players") or 0):
             errors.append(f"{pid}: standing histogram does not match players")
+        if "rowCount" in row:
+            errors.append(f"{pid}: rowCount should be consumed by the standing, not stored")
+        kind = row.get("type") or "rank"
+        width = cs.puzzle_row_count(catalog.get(pid), kind)
+        standing_of = standing.get("firstOf")
+        avg_first = standing.get("avgFirst")
+        if width is None:
+            errors.append(f"{pid}: puzzle row count is missing")
+        elif standing_of != width:
+            errors.append(f"{pid}: standing.firstOf {standing_of} does not match {width} rows")
+        elif avg_first is None:
+            errors.append(f"{pid}: missing avgFirst")
+        else:
+            af = float(avg_first)
+            if kind == "top5":
+                if not 0.15 <= af <= 0.6:
+                    errors.append(f"{pid}: first-guess rate {af} is outside the seeded band")
+            else:
+                lo, hi = 0.25 * width, 0.75 * width
+                if not lo <= af <= hi:
+                    errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
         avg_tries = float(standing.get("avgTries") or 0)
         acc = float(standing.get("avgAccuracy") or 0)
         if row.get("type") == "top5":

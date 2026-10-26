@@ -272,7 +272,32 @@
       return 0;
     });
     if (!total) return null;
-    return Math.max(0, Math.min(99, Math.round(100 * worse / total)));
+    const pct = Math.max(0, Math.min(99, Math.round(100 * worse / total)));
+    /* A perfect first Lock is the top of the field. The same-bin fraction
+       would otherwise leave a few perfect games "not worse", so the caption
+       said 97 while the pedestal said Top 1%. */
+    if (done && mine <= 1 && Number(accuracy) >= 100) return 99;
+    return pct;
+  }
+
+  /* The player's pedestal and the "Better than Y%" line are one cut.
+     Top X% is the remainder, so 99 is Top 1% and 76 is Top 24%. */
+  function pedestalTopPercent(betterThanPct) {
+    const y = Math.max(0, Math.min(99, Math.round(Number(betterThanPct) || 0)));
+    return 100 - y;
+  }
+
+  /* avgFirst is sometimes stored against a shorter list than the puzzle's
+     rows (named countries, not every row). Stretch it onto the row count
+     the player just played, and keep the denominator on that same scale. */
+  function scaleAvgFirst(avgFirst, seededOf, rowCount) {
+    const denom = Math.max(1, Math.round(Number(rowCount) || Number(seededOf) || 1));
+    let avg = Number(avgFirst);
+    if (!Number.isFinite(avg)) avg = 0;
+    const seeded = Math.round(Number(seededOf) || 0);
+    if (seeded > 0 && seeded !== denom) avg = avg * denom / seeded;
+    avg = Math.max(0, Math.min(denom, avg));
+    return { avg: Math.round(avg * 10) / 10, firstOf: denom };
   }
 
   /* N in 7..9 whose equal bands put `percentile` (0–1, from the bottom)
@@ -309,10 +334,10 @@
     };
   }
 
-  /* "Top X%" for one pedestal. Equal bands run worst → best, so band `index`
-     is the group that is inside the top (count - index) / count of players.
-     The rightmost pedestal is the top round(100 / n) percent (Top 10% at 10
-     platforms, Top 1% at 100). The player's pedestal uses the same cut. */
+  /* "Top X%" for a crowd pedestal, not the player's. Equal bands run
+     worst → best, so band `index` is the group inside the top
+     (count - index) / count of players. The rightmost pedestal is the top
+     round(100 / n) percent. The player's own pedestal uses pedestalTopPercent. */
   function platformTopPercent(n, band) {
     const count = Math.max(1, Math.round(Number(n)) || 1);
     const index = Math.max(0, Math.min(count - 1, Math.round(Number(band)) || 0));
@@ -350,7 +375,7 @@
         const lastTry = betterThan(block, 5, 40, true);
         if (good < 68 || good > 86) throw new Error(id + " good " + good);
         if (poor > 25) throw new Error(id + " poor " + poor);
-        if (perfect < 88 || perfect > 99) throw new Error(id + " perfect " + perfect);
+        if (perfect !== 99) throw new Error(id + " perfect " + perfect);
         if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
       }
       const mid = platformCount(0.5);
@@ -441,6 +466,25 @@
     if (midLabel < 40 || midLabel > 60 || crownLabel < 8 || crownLabel > 15) {
       throw new Error("label range " + midLabel + " " + crownLabel);
     }
+    [3, 4, 5, 6, 7].forEach(width => {
+      const row = standingBlock("width-" + width, 900, "rank", width);
+      if (row.firstOf !== width) throw new Error("row width " + width + " stored " + row.firstOf);
+      const ratio = row.avgFirst / width;
+      if (ratio < 0.25 || ratio > 0.7) throw new Error("row width " + width + " avg " + row.avgFirst);
+    });
+    const tierRow = standingBlock("pew-meaning-religion", 900, "tier", 6);
+    const matchRow = standingBlock("match-foreign-relations", 900, "match", 4);
+    if (tierRow.firstOf !== 6 || matchRow.firstOf !== 4) throw new Error("tier/match width");
+    const topRow = standingBlock("top5-demo", 900, "top5", 80);
+    if (topRow.firstOf !== 1 || topRow.avgFirst < 0.15 || topRow.avgFirst > 0.55) {
+      throw new Error("top5 first " + topRow.firstOf + " " + topRow.avgFirst);
+    }
+    const scaled = scaleAvgFirst(1.66, 4, 6);
+    if (scaled.firstOf !== 6 || scaled.avg !== 2.5) throw new Error("scale " + scaled.avg + "/" + scaled.firstOf);
+    if (pedestalTopPercent(99) !== 1 || pedestalTopPercent(76) !== 24) throw new Error("pedestal");
+    [0, 24, 76, 97, 99].forEach(y => {
+      if (pedestalTopPercent(y) + y !== 100) throw new Error("percentile split " + y);
+    });
     console.log("community-seed self-test ok");
   }
 
@@ -451,18 +495,21 @@
       if (row.seeded === false) return;
       const type = row.type || "rank";
       const named = row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0;
+      const width = type === "top5" ? 1 : (Number(row.rowCount) || named);
       row.countryBoard = countryBoard(pid, type);
-      row.standing = standingBlock(pid, row.players || 0, type, type === "top5" ? 1 : named);
+      row.standing = standingBlock(pid, row.players || 0, type, width);
+      delete row.rowCount;
       delete row.score;
     });
     doc.version = 6;
-    doc.updatedAt = "2026-10-26T19:06:00Z";
+    doc.updatedAt = "2026-10-26T19:45:00Z";
     doc.note = "Seeded distributions until live aggregates exist. Stable per puzzle id. "
       + "firstGuessWorld and each firstGuessByCountry bucket are one seeded play, so the first real submits replace that ordering. "
       + "countryBoard is average tries only, about 9 seeded plays per country. "
       + "Countries under 9 plays are skipped on the leaderboard (seeds count); one or two real plays with no seed stay off it. "
       + "The board is ranked by fewest tries. "
       + "standing is a full crowd, a little under a typical clear, so better-than stays stable while real plays mix in. "
+      + "standing.firstOf is the puzzle row count and avgFirst is on that scale. "
       + "standing.byTries is finished games; standing.failed is unfinished games, ranked below every finish. "
       + "Accuracy starts at 100 and drops with each extra try. How far a miss was only moves the score inside that try's band.";
     return doc;
@@ -483,6 +530,7 @@
 
   return {
     standingBlock, countryBoard, topCountries, betterThan, combineAccuracy,
-    platformCount, platformWindow, platformTopPercent, MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
+    platformCount, platformWindow, platformTopPercent, pedestalTopPercent, scaleAvgFirst,
+    MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
   };
 });

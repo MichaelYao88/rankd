@@ -186,7 +186,7 @@ a{color:var(--link)}
 .top-row .tv{font-variant-numeric:tabular-nums}
 .fact{margin-top:10px;padding:16px 20px;border-radius:20px;background:var(--surface);line-height:1.5;font-size:15px;border:1px solid var(--line)}
 .fact b{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 2px}
-.source{display:inline-block;margin:12px 4px 0;font-size:13px;font-weight:700;text-decoration:none;word-break:break-word}
+.source{display:inline-block;max-width:100%;margin:12px 4px 0;font-size:0.9rem;font-weight:700;line-height:1.35;color:var(--muted);text-decoration:none}
 .community{margin-top:14px;padding:16px 20px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
 .community-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;gap:8px}
 .badge{font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(var(--ink-rgb),.07);color:var(--muted);text-transform:uppercase;letter-spacing:.12em;white-space:nowrap}
@@ -236,10 +236,8 @@ a{color:var(--link)}
 .platform.is-you{z-index:2}
 .platform-step{display:block;width:100%;height:calc(8px + var(--step) * 4.5px);border-radius:5px 5px 2px 2px;background:rgba(var(--brand-rgb),calc(.16 + var(--step) * .05))}
 .platform.is-you .platform-step{background:var(--brand)}
-.player-figure{position:relative;z-index:2;width:22px;height:32px;flex:none;line-height:0}
-.platform .player-figure:first-child{left:-5px;z-index:1}
-.platform .player-figure:nth-child(2){left:5px;margin-top:-15px;z-index:2}
-.platform.is-you .player-figure.is-you{left:0;margin-top:0;z-index:3}
+.player-figure{position:relative;z-index:2;left:0;margin-top:0;width:22px;height:32px;flex:none;line-height:0}
+.platform.is-you .player-figure.is-you{z-index:3}
 .pf-hop,.pf-bob{display:block;width:100%;height:100%;transform-origin:50% 100%}
 .pf-hop{position:relative}
 .pf-svg{display:block;width:100%;height:100%;overflow:visible}
@@ -296,9 +294,7 @@ a{color:var(--link)}
   .platforms.has-stack{padding-bottom:30px}
   .platform-step{height:calc(6px + var(--step) * 3.4px)}
   .player-figure{width:18px;height:26px}
-  .platform .player-figure:first-child{left:0}
   .platform.is-you .player-figure.is-you{left:0;margin-top:0}
-  .player-figure.extra{display:none}
   .you-marker{bottom:calc(100% + 14px);font-size:9px}
   .platform-pct{font-size:9px;letter-spacing:-.04em}
   .platforms.is-winner{padding-top:32px}
@@ -538,7 +534,8 @@ a{color:var(--link)}
 .fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:40;background:var(--brand);color:var(--on-brand);
   border:0;border-radius:999px;padding:15px 22px;font:inherit;font-weight:700;font-size:15px;letter-spacing:.01em;box-shadow:0 10px 28px rgba(20,30,120,.35);cursor:pointer;animation:slideIn .35s ease both}
 .fab:hover{filter:brightness(1.08)}.fab:focus-visible{outline:3px solid var(--link);outline-offset:3px}
-body.has-fab{padding-bottom:96px}
+body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 48px + env(safe-area-inset-bottom))}
+body.has-fab .share-row{scroll-margin-bottom:calc(var(--fab-h, 56px) + 36px + env(safe-area-inset-bottom))}
 .fab.fab-clear{visibility:hidden;pointer-events:none}
 .lasthint{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:-4px 0 12px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.16);font-size:14px;font-weight:600}
 .lasthint .lm-k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
@@ -755,7 +752,8 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 @media (max-width:560px){
   body.playing .under-card,.under-card.lock-covered{display:none!important}
   body.fit .hero{overflow:hidden}
-  body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 20px + env(safe-area-inset-bottom))}
+  body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 48px + env(safe-area-inset-bottom))}
+  body.has-fab .share-row{scroll-margin-bottom:calc(var(--fab-h, 56px) + 36px + env(safe-area-inset-bottom))}
 }
 
 /* v11 (steering C): fun headline (h1) + the plain stat question as a subtitle */

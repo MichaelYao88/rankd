@@ -1896,6 +1896,7 @@ let pendingResultScroll = false;
 function scrollResultIntoView() {
   const share = document.querySelector("#result .share-row");
   if (!share) return;
+  syncFabPad();
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   share.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" });
 }
@@ -1903,8 +1904,9 @@ function settleResultScroll() {
   if (!pendingResultScroll) return;
   pendingResultScroll = false;
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reduced) requestAnimationFrame(scrollResultIntoView);
-  else setTimeout(scrollResultIntoView, 650);
+  const after = () => { syncFabPad(); parkFab(); };
+  if (reduced) requestAnimationFrame(() => { scrollResultIntoView(); requestAnimationFrame(after); });
+  else setTimeout(() => { scrollResultIntoView(); setTimeout(after, 750); }, 650);
 }
 function showResult(res, opts) {
   const p = state.puzzle;
@@ -2085,11 +2087,9 @@ function pfCycle(items, n, rand) {
 }
 function pfCast(n, seed) {
   const rand = rng(String(seed || "ranki"));
-  const back = pfBalanced(n, rand);
-  const front = pfBalanced(n, rand);
-  const genders = [];
-  for (let i = 0; i < n; i++) genders.push(back[i], front[i]);
-  const count = genders.length;
+  const count = Math.max(1, Math.round(Number(n) || 1));
+  // One look per platform. A second "front" cast used to stand on the same step.
+  const genders = pfBalanced(count, rand);
   const skins = pfCycle(PF_SKINS, count, rand);
   const shirts = pfCycle(PF_SHIRTS, count, rand);
   const pants = pfCycle(PF_PANTS, count, rand);
@@ -2292,8 +2292,10 @@ function pfSparks(fig) {
     hop.appendChild(spark);
   });
 }
-function renderWinnerPlatforms(castSeed) {
+function renderWinnerPlatforms(castSeed, better) {
   const n = 9, center = 4;
+  const seed = window.RankdSeed;
+  const top = seed && seed.pedestalTopPercent ? seed.pedestalTopPercent(better == null ? 99 : better) : 1;
   const platforms = document.createElement("div");
   platforms.className = "platforms is-winner";
   platforms.setAttribute("aria-hidden", "true");
@@ -2304,8 +2306,8 @@ function renderWinnerPlatforms(castSeed) {
     const col = document.createElement("div");
     col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
-    // One figure per step. The centre step's own figure is You!; nothing else stands above it.
-    const fig = PlayerFigure(yours, looks[i * 2]);
+    // One figure per step. The centre step's own figure is You!.
+    const fig = PlayerFigure(yours, looks[i]);
     fig.style.setProperty("--land-delay", (0.06 + Math.abs(i - center) * 0.05).toFixed(2) + "s");
     if (yours) {
       fig.classList.add("celebrate");
@@ -2322,7 +2324,7 @@ function renderWinnerPlatforms(castSeed) {
     if (yours) {
       const label = document.createElement("span");
       label.className = "platform-pct is-yours";
-      label.textContent = "Top 1%";
+      label.textContent = "Top " + top + "%";
       col.appendChild(label);
     }
     platforms.appendChild(col);
@@ -2330,7 +2332,7 @@ function renderWinnerPlatforms(castSeed) {
   return platforms;
 }
 function renderPlatforms(percentile, castSeed, opts) {
-  if (opts && opts.winner) return renderWinnerPlatforms(castSeed);
+  if (opts && opts.winner) return renderWinnerPlatforms(castSeed, percentile);
   const seed = window.RankdSeed;
   if (!seed || percentile == null) return null;
   const pick = seed.platformCount(percentile / 100);
@@ -2350,32 +2352,26 @@ function renderPlatforms(percentile, castSeed, opts) {
     col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
     if (yours && topBand - i === 1) col.classList.add("pct-stack");
-    // Equal percentile bands hold about the same number of players, so the
-    // crowd on each step is the same size. The player's step keeps its own
-    // regular figure and styles that one as You!. The second figure, the one
-    // that stands above the regular crowd, is not drawn there.
-    for (let f = 0; f < 2; f++) {
-      const look = looks[lookI++];
-      if (yours && f === 1) continue;
-      const you = yours;
-      const fig = PlayerFigure(you, look);
-      fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + " + (0.08 + f * 0.11).toFixed(2) + "s)");
-      if (!you && f === 1) fig.classList.add("extra");
-      if (you) {
-        fig.classList.add(soft ? "celebrate-soft" : "celebrate");
-        if (!soft) pfSparks(fig);
-      }
-      col.appendChild(fig);
+    // Every step gets exactly one figure. The player's own figure is You!.
+    const fig = PlayerFigure(yours, looks[lookI++]);
+    fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + .08s)");
+    if (yours) {
+      fig.classList.add(soft ? "celebrate-soft" : "celebrate");
+      if (!soft) pfSparks(fig);
     }
+    col.appendChild(fig);
     const step = document.createElement("i");
     step.className = "platform-step";
     col.appendChild(step);
-    // Rightmost pedestal is the top slice. The player's pedestal gets the
-    // same kind of label. One label when those are the same step.
-    if ((yours || i === topBand) && seed.platformTopPercent) {
+    // The rightmost crowd step keeps the band slice. The player's step
+    // uses the same number as "Better than Y%". One label when those coincide.
+    if ((yours || i === topBand) && (seed.pedestalTopPercent || seed.platformTopPercent)) {
       const label = document.createElement("span");
       label.className = "platform-pct" + (yours ? " is-yours" : "");
-      label.textContent = "Top " + seed.platformTopPercent(pick.n, i) + "%";
+      const pct = yours && seed.pedestalTopPercent
+        ? seed.pedestalTopPercent(percentile)
+        : seed.platformTopPercent(pick.n, i);
+      label.textContent = "Top " + pct + "%";
       col.appendChild(label);
     }
     platforms.appendChild(col);
@@ -2392,9 +2388,12 @@ function renderYouVs(p, data, res) {
   const hasStanding = !!(mine && block && block.avgTries != null);
   const top5 = !!(mine && mine.kind === "top5");
   const seedApi = window.RankdSeed;
-  const better = hasStanding && block.byTries && seedApi ? seedApi.betterThan(block, mine.tries, mine.accuracy, mine.solved) : null;
+  let better = hasStanding && block.byTries && seedApi ? seedApi.betterThan(block, mine.tries, mine.accuracy, mine.solved) : null;
   // A perfect first Lock is its own podium, even before a crowd exists.
+  // The caption and the pedestal both use 99, so the line reads Top 1% and
+  // "Better than 99% of players".
   const perfectFirst = !!(mine && mine.kind !== "top5" && mine.solved && mine.tries === 1);
+  if (perfectFirst) better = 99;
   el.classList.remove("hidden");
   el.innerHTML = "";
   if (squares) {
@@ -2414,9 +2413,12 @@ function renderYouVs(p, data, res) {
     const yoursFirst = top5
       ? (mine.firstCorrect ? "First guess in the top 5" : "First guess missed")
       : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
+    const scaled = !top5 && seedApi && seedApi.scaleAvgFirst
+      ? seedApi.scaleAvgFirst(block.avgFirst, block.firstOf, mine.firstOf)
+      : null;
     const avgFirst = top5
       ? `${Math.round(Number(block.avgFirst) * 100)}% hit first`
-      : `avg ${Number(block.avgFirst).toFixed(1)}/${block.firstOf || mine.firstOf}`;
+      : `avg ${(scaled ? scaled.avg : Number(block.avgFirst)).toFixed(1)}/${scaled ? scaled.firstOf : (block.firstOf || mine.firstOf)}`;
     const pair2 = document.createElement("div");
     pair2.className = "you-vs-pair";
     pair2.innerHTML = `<b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span>`;
@@ -2670,7 +2672,9 @@ function syncFabPad() {
 function parkFab() {
   const f = $("#fab"); if (!f) return;
   if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
-  const hit = [$("#shareChallengeBtn"), $("#shareChallengeTop"), document.querySelector(".share-row")].some(el => boxesOverlap(f, el));
+  const targets = [$("#shareChallengeBtn"), $("#shareChallengeTop"), document.querySelector("#result .share-row"), $("#youVs")];
+  document.querySelectorAll("#youVs .platform-pct").forEach(el => targets.push(el));
+  const hit = targets.some(el => boxesOverlap(f, el));
   f.classList.toggle("fab-clear", hit);
 }
 function syncPlaying() {
