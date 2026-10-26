@@ -61,6 +61,13 @@ test("Top 1 dailies sit at the end of the queue with a real #1", () => {
   assert.deepEqual(age.countries.slice(0, 3).map(c => [c.name, c.value]), [
     ["Japan", 49.4], ["Italy", 47.8], ["Hong Kong", 46.8],
   ]);
+  const tea = puzzles.find(p => p.id === "top1-tea");
+  const teaRank = puzzles.find(p => p.id === "top5-tea");
+  assert.equal(tea.unit, "kg/yr per capita");
+  assert.equal(teaRank.unit, "kg/yr per capita");
+  for (const id of ["top5-wine", "top5-potatoes"]) {
+    assert.equal(puzzles.find(p => p.id === id).unit, "kg/yr per capita", id);
+  }
   const roads = puzzles.find(p => p.id === "top1-road-deaths");
   assert.match(roads.question, /1 million/);
   assert.deepEqual(roads.countries.slice(0, 3).map(c => [c.name, c.value]), [
