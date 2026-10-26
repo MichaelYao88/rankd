@@ -123,6 +123,37 @@
     const [lo, hi] = seedBand(accuracyTries, false);
     return Math.round((lo + hi) / 2 - 4);
   }
+  /* Top 1: the try count picks the band. Inside it, each wrong guess loses
+     one point per rank away from #1, and the loss stops at the band floor.
+     1 try = 100, 2 = 80–99, 3 = 60–79, 4 = 40–59, 5 = 20–39.
+     An unfinished game is 1–19 from the closest rank reached (#2 = 19). */
+  function top1Mark(rank) {
+    const r = Math.round(Number(rank));
+    if (!Number.isFinite(r) || r <= 1) return "good";
+    if (r <= 5) return "near";
+    if (r <= 15) return "warm";
+    return "bad";
+  }
+  function top1Accuracy(ranks, solved, total) {
+    const list = (ranks || []).map(n => Math.max(1, Math.round(Number(n) || 1))).filter(n => Number.isFinite(n));
+    const nCountries = Math.max(2, Math.round(Number(total) || 2));
+    if (!list.length) return solved ? 100 : 1;
+    if (solved) {
+      const tries = list.length;
+      if (tries <= 1) return 100;
+      const bands = { 2: [80, 99], 3: [60, 79], 4: [40, 59], 5: [20, 39] };
+      const band = bands[Math.min(5, tries)] || [20, 39];
+      const floor = band[0], ceil = band[1], span = ceil - floor;
+      let penalty = 0;
+      for (let i = 0; i < list.length - 1; i++) penalty += Math.max(0, list[i] - 1);
+      if (penalty > span) penalty = span;
+      return ceil - penalty;
+    }
+    const best = Math.min.apply(null, list);
+    const span = Math.max(1, nCountries - 2);
+    const raw = 19 - (Math.max(2, best) - 2) * (18 / span);
+    return Math.max(1, Math.min(19, Math.round(raw)));
+  }
   function combineAccuracy(distances, solved, kind) {
     const ds = (distances || []).map(rawSpots);
     if (!solved) return dnfScore(ds.length ? ds[ds.length - 1] : 18);
@@ -146,10 +177,11 @@
   function standingBlock(puzzleId, players, type, firstOf) {
     const n = Math.max(0, Math.round(Number(players) || 0));
     const rng = rngFor(String(puzzleId) + ":standing");
-    // Top 5 locks five slots. Name it is one country, so the first-guess scale is 1.
+    // Top 5 locks five slots. Name it and Top 1 are one country, so the first-guess scale is 1.
     // A country-list length passed in by mistake is not the Top 5 denominator.
     const nameIt = type === "name";
-    const of = type === "top5" ? 5 : nameIt ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
+    const top1 = type === "top1";
+    const of = type === "top5" ? 5 : (nameIt || top1) ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
     const tryKeys = [1, 2, 3, 4, 5];
     const base = [10, 28, 28, 16, 8, 10];
     const counts = distribute(n, base.map(w => w * (0.84 + rng() * 0.32)));
@@ -186,7 +218,7 @@
     return {
       n,
       seeded: true,
-      kind: nameIt ? "name" : type === "top5" ? "top5" : "order",
+      kind: nameIt ? "name" : top1 ? "top1" : type === "top5" ? "top5" : "order",
       avgTries: Math.round(avgTries * 100) / 100,
       avgFirst: Math.round(avgFirst * 100) / 100,
       firstOf: of,
@@ -491,8 +523,8 @@
       const row = puzzles[pid];
       if (row.seeded === false) return;
       const type = row.type || "rank";
-      const named = type === "name" ? 1 : (row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0);
-      const width = type === "top5" ? 5 : type === "name" ? 1 : (Number(row.rowCount) || named);
+      const named = type === "name" || type === "top1" ? 1 : (row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0);
+      const width = type === "top5" ? 5 : (type === "name" || type === "top1") ? 1 : (Number(row.rowCount) || named);
       row.countryBoard = countryBoard(pid, type);
       row.standing = standingBlock(pid, row.players || 0, type, width);
       delete row.rowCount;
@@ -527,7 +559,7 @@
   }
 
   return {
-    standingBlock, countryBoard, topCountries, betterThan, combineAccuracy, ACCURACY_TIP,
+    standingBlock, countryBoard, topCountries, betterThan, combineAccuracy, top1Accuracy, top1Mark, ACCURACY_TIP,
     platformCount, platformWindow, platformTopPercent, pedestalTopPercent, scaleAvgFirst,
     MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
   };

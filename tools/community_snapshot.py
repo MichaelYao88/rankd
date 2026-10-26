@@ -194,10 +194,10 @@ def rotate_top5(guesses: list[dict], salt: int) -> list[dict]:
 
 
 def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
-    """Rows the player locks. Top 5 is five slots, not the country list. Name it is one country."""
+    """Rows the player locks. Top 5 is five slots, not the country list. Name it and Top 1 are one country."""
     if kind == "top5":
         return 5
-    if kind == "name":
+    if kind == "top1" or kind == "name":
         return 1
     if not isinstance(puzzle, dict):
         return None

@@ -204,7 +204,7 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
   const scheduled = appBox.window.RankdShared.puzzles;
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
-  const tail = scheduled.slice(-8).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 8 + i), order: Math.round(p.order) }));
+  const tail = scheduled.slice(-14).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 14 + i), order: Math.round(p.order) }));
   assert.equal(JSON.stringify(tail), JSON.stringify([
     { id: "name-hdi-s", date: "2027-03-18", order: 164 },
     { id: "name-pop-stan-land-m", date: "2027-03-19", order: 165 },
@@ -214,6 +214,12 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
     { id: "cocaine-use", date: "2027-03-23", order: 169 },
     { id: "ipsos-gender-identity", date: "2027-03-24", order: 170 },
     { id: "ipsos-gender-identity-b", date: "2027-03-25", order: 171 },
+    { id: "top1-potatoes", date: "2027-03-26", order: 172 },
+    { id: "top1-tea", date: "2027-03-27", order: 173 },
+    { id: "top1-co2", date: "2027-03-28", order: 174 },
+    { id: "top1-pop-2100", date: "2027-03-29", order: 175 },
+    { id: "top1-median-age", date: "2027-03-30", order: 176 },
+    { id: "top1-road-deaths", date: "2027-03-31", order: 177 },
   ]));
   const high = scheduled.find(p => p.id === "cannabis-use");
   assert.equal(high.sensitive, true);
