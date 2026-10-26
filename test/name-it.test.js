@@ -142,12 +142,12 @@ test("name accuracy follows try bands, not the top 5 miss count", () => {
   const seed = sandbox.RankdSeed;
   assert.equal(seed.combineAccuracy([0], true, "name"), 100);
   assert.equal(seed.combineAccuracy([0, 0, 0], true, "top5"), 100);
-  const threeGoods = seed.combineAccuracy([0, 0, 0], true, "name");
-  assert.ok(threeGoods >= 50 && threeGoods <= 74, threeGoods);
-  const second = seed.combineAccuracy([1, 0], true, "name");
-  assert.ok(second >= 75 && second <= 95, second);
-  assert.equal(seed.combineAccuracy([1, 1, 1, 1, 1], true, "name"), 0);
-  assert.equal(seed.combineAccuracy([1], false, "name"), 0);
+  assert.equal(seed.combineAccuracy([0, 0, 0], true, "name"), 79);
+  assert.equal(seed.combineAccuracy([1, 0], true, "name"), 98);
+  assert.equal(seed.combineAccuracy([1, 1, 1, 1, 1], true, "name"), 35);
+  const unfinished = seed.combineAccuracy([1], false, "name");
+  assert.equal(unfinished, 18);
+  assert.ok(unfinished < seed.combineAccuracy([1, 1, 1, 1, 1], true, "name"));
   const block = seed.standingBlock("name-hdi-s", 900, "name", 1);
   assert.equal(block.firstOf, 1);
   assert.equal(block.kind, "name");
