@@ -580,6 +580,9 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 .board.n6 .arrows{gap:2px}.board.n6 .arrows button{height:16px}
 .board.n6.vcol .card{height:56px}
 .board.n6 .vchip{height:56px}
+/* Phone rows are 52px. A two-line unit ("hours/yr per worker") plus the world rank still has to fit. */
+body.fit .board.n6 .vchip .vgloss{margin-top:1px;line-height:1.05}
+body.fit .board.n6 .vchip .grank{margin-top:0;line-height:1.05}
 @media (max-width:560px){.board.n6 .card{min-height:52px}.board.n6 .name{font-size:14px}}
 /* 7-item rankers: tighter than n6. 6-item boards never get .n7, so their rows stay as above. */
 .board.n7 .card{min-height:46px;padding-top:4px;padding-bottom:4px}
