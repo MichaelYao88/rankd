@@ -118,7 +118,7 @@ Daily puzzles mix several types into one rotation:
   `homicide-women` (past) keeps 🇮🇳🇺🇸 via `TITLE_PIN`.
 * **Swings Both Ways** (`ipsos-bisexual`, #044 Nov 18, sensitive): Ipsos LGBT+ Pride 2021 (27 countries), adults who identify as bisexual:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
-  The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
+  Gender identity was added later from the Ipsos 2023 per-country chart (`ipsos-gender-identity`, `ipsos-gender-identity-b`). A 2021 six-country cut tied, and the 2024 and 2025 reports do not publish that chart.
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
   `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 129 puzzles (116 Rank it, 7 Top 5, 5 Match it, 1 Tier it), ends Feb 11 2027.
 * **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;

@@ -616,7 +616,7 @@ function sheetTypeOf(headers) {
 }
 
 const FAMOUS = ["United States", "China", "India", "Japan", "Brazil", "Russia", "United Kingdom", "Germany", "France", "Mexico", "Italy", "Canada", "Australia", "South Korea", "Spain", "Turkey", "Saudi Arabia", "Egypt", "Nigeria", "South Africa", "Argentina", "Indonesia", "Sweden", "Israel", "Iran", "Netherlands", "Switzerland", "Norway", "Poland", "Ukraine", "Pakistan", "Thailand", "Vietnam", "Kenya", "Ireland", "Greece", "Cuba", "Jamaica", "New Zealand", "Portugal", "Denmark", "Finland", "England"];   // v11: preferred (recognizable) countries for title flags, same list as build.py
-const MIN_TOP5_COUNTRIES = 38;   // Top 5 needs >= 38 countries to draw a decoy from (else auto Rank it)
+const MIN_TOP5_COUNTRIES = 6;   // Top 5 is six cards (the top 5 plus one decoy). Shorter lists become a sampled Rank it.
 function countryBeats(a, b) {
   return a.value > b.value || (a.value === b.value && a.exact != null && b.exact != null && a.exact > b.exact);
 }
@@ -754,10 +754,18 @@ function attachNamePuzzles(list) {
   if (!extra.length) return base;
   const ids = new Set(base.map(p => p && p.id));
   const fresh = extra.filter(p => p && p.id && !ids.has(p.id)).map(p => Object.assign({}, p));
-  let max = 0;
-  base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000 && o > max) max = o; });
-  fresh.forEach((p, i) => { p.order = max + 1 + i; });
-  return base.concat(fresh);
+  // Name it keeps the first free orders after the contiguous daily prefix, so a later
+  // sheet order does not push those days. Then sort: puzzleForDay uses array index.
+  const taken = new Set();
+  base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000) taken.add(o); });
+  let cursor = 1;
+  fresh.forEach(p => {
+    while (taken.has(cursor)) cursor++;
+    p.order = cursor;
+    taken.add(cursor);
+    cursor++;
+  });
+  return base.concat(fresh).sort((a, b) => (Math.round(a.order) || 0) - (Math.round(b.order) || 0));
 }
 let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : attachNamePuzzles(window.RANKD_PUZZLES || []);
 
@@ -2024,8 +2032,12 @@ function renderHints() {
 }
 function decoyLine(p) {
   const d = resolveDecoy(p); if (!d) return "";
-  const unit = p.unit ? " " + p.unit : "";
-  return `Not top 5: ${d.name} is actually #${tieRank(p, d)} (${fmt(d.value)}${unit})`;
+  let shown;
+  if (isPercent(p)) {
+    const rest = String(p.unit || "").startsWith("%") ? String(p.unit).slice(1).trim() : "";
+    shown = `${fmt1(d.value)}%${rest ? " " + rest : ""}`;
+  } else shown = `${fmt(d.value)}${p.unit ? " " + p.unit : ""}`;
+  return `Not top 5: ${d.name} is actually #${tieRank(p, d)} (${shown})`;
 }
 function shakeTop5() {
   $$("#guessGame .t5chip:not(.pinned)").forEach(el => { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); });

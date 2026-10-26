@@ -164,17 +164,20 @@ test("name puzzles are appended after the existing daily queue", () => {
     assert.equal(ids.has(puzzle.id), false, puzzle.id);
     assert.equal(/homicide|suicide|murder|overdose|cannabis|marijuana|penis|pornograph|sex|drug/i.test(`${puzzle.id} ${puzzle.headline} ${puzzle.question} ${puzzle.stat}`), false);
   }
-  let max = 0;
-  base.forEach(p => { const order = Math.round(p.order) || 0; if (order > 0 && order < 10000 && order > max) max = order; });
-  assert.equal(max, 163);
+  const taken = new Set(base.map(p => Math.round(p.order)));
+  let cursor = 1;
+  while (taken.has(cursor)) cursor++;
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = order => new Date(epoch + (order - 1) * 864e5).toISOString().slice(0, 10);
+  // Name it keeps the first free orders. Later sheet orders must not push 2027-03-18..21.
+  assert.equal(cursor, 164);
   puzzles.forEach((puzzle, i) => {
-    const order = max + 1 + i;
-    assert.equal(dateOf(164), "2027-03-18");
+    const order = cursor + i;
+    assert.equal(taken.has(order), false, puzzle.id);
     assert.ok(dateOf(order) > "2026-11-03", puzzle.id);
-    assert.equal(dateOf(167), "2027-03-21");
   });
+  assert.equal(dateOf(164), "2027-03-18");
+  assert.equal(dateOf(167), "2027-03-21");
 });
 
 test("about one practice seed in eight deals Name it without touching the other seeds' roll", () => {
