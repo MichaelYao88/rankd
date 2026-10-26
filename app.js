@@ -1078,6 +1078,7 @@ const HOME_DEMO = Object.freeze({
 const PUZZLE_TYPE_LABEL = Object.freeze({
   rank: "Rank it",
   top5: "Top 5",
+  top1: "Top 1",
   match: "Match it",
   tier: "Tier it",
   name: "Name it",

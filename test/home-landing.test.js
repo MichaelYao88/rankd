@@ -138,7 +138,8 @@ test("the play card reads its label from the puzzle type map", () => {
   }, "2026-10-08");
   assert.equal(spoiled.title, "");
   assert.equal(shared.homeCardCopy({ type: "top5", headline: "Powder" }, "2026-10-08").kind, shared.PUZZLE_TYPE_LABEL.top5);
-  assert.equal(shared.homeCardCopy({ type: "top1", headline: "Soon" }, "2026-10-08").kind, "Daily");
+  assert.equal(shared.homeCardCopy({ type: "top1", headline: "Soon" }, "2026-10-08").kind, shared.PUZZLE_TYPE_LABEL.top1);
+  assert.equal(shared.homeCardCopy({ type: "top99", headline: "Soon" }, "2026-10-08").kind, "Daily");
 });
 
 test("the landing sample starts in the same order as the in-game overlay", () => {
