@@ -193,12 +193,29 @@ def rotate_top5(guesses: list[dict], salt: int) -> list[dict]:
     return bars
 
 
+def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
+    """Rows the player locks. Top 5 is five slots, not the country list. Name it is one country."""
+    if kind == "top5":
+        return 5
+    if kind == "name":
+        return 1
+    if not isinstance(puzzle, dict):
+        return None
+    rows = puzzle.get("people") if kind == "match" else puzzle.get("items")
+    if not isinstance(rows, list) or not rows:
+        return None
+    return len(rows)
+
+
 def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None) -> dict:
     """Add firstGuessWorld / firstGuessByCountry without changing existing scores."""
     puzzles_by_id = puzzles_by_id or {}
     for pid, row in (doc.get("puzzles") or {}).items():
         puzzle = puzzles_by_id.get(pid)
         kind = row.get("type") or "rank"
+        width = puzzle_row_count(puzzle, kind)
+        if width:
+            row["rowCount"] = width
         counts = consensus_counts()
         if kind == "top5":
             world = [dict(g) for g in (row.get("firstGuess") or [])]
@@ -232,6 +249,18 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
                 "players": SEED_CONSENSUS_PLAYS,
                 "bars": match_bars(names, 0, rng_for(pid + ":world"), puzzle),
             }
+        elif kind == "name":
+            bars = [dict(bar) for bar in ((row.get("firstGuessWorld") or {}).get("bars") or [])]
+            if not bars:
+                pick = str((puzzle or {}).get("seedPick") or "")
+                if pick:
+                    bar = {"name": pick, "pct": 100}
+                    for country in (puzzle or {}).get("countries") or []:
+                        if country.get("name") == pick and country.get("emoji"):
+                            bar["emoji"] = country["emoji"]
+                    bars = [bar]
+            buckets = {code: [dict(bar) for bar in bars] for code in ("US", "TW", "SG")}
+            row["firstGuessWorld"] = {"players": SEED_CONSENSUS_PLAYS, "bars": bars}
         else:
             names = list((row.get("perItemCorrect") or {}).keys())
             emojis = emoji_map(puzzle)
@@ -251,7 +280,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
             if counts.get(code)
         }
     doc["version"] = 6
-    doc["updatedAt"] = "2026-10-26T19:06:00Z"
+    doc["updatedAt"] = "2026-10-26T19:45:00Z"
     doc["source"] = doc.get("source") or "seed"
     doc["note"] = (
         "Seeded distributions until live aggregates exist. Stable per puzzle id. "
@@ -362,6 +391,39 @@ def aggregate_plays(rows: list[dict]) -> dict:
                 code: {"players": country_n[code], "bars": _top_bars(by_country[code], country_n[code], country_emoji[code])}
                 for code in country_n
             }
+        elif kind == "name":
+            counter: Counter[str] = Counter()
+            emojis: dict[str, str] = {}
+            world_n = 0
+            by_country: dict[str, Counter[str]] = defaultdict(Counter)
+            country_emoji: dict[str, dict[str, str]] = defaultdict(dict)
+            country_n: Counter[str] = Counter()
+            for play in plays:
+                if not play.get("solved"):
+                    continue
+                pick = str(_payload(play).get("pick") or "").strip()
+                if not pick:
+                    continue
+                world_n += 1
+                counter[pick] += 1
+                emoji = ""
+                for guess in _payload(play).get("guesses") or []:
+                    if isinstance(guess, dict) and guess.get("name") == pick and guess.get("emoji"):
+                        emoji = str(guess["emoji"])
+                if emoji:
+                    emojis[pick] = emoji
+                code = _country(play.get("country_code"))
+                if code:
+                    country_n[code] += 1
+                    by_country[code][pick] += 1
+                    if emoji:
+                        country_emoji[code][pick] = emoji
+            bars = _top_bars(counter, world_n, emojis, 20)
+            snap["firstGuessWorld"] = {"players": world_n, "bars": bars}
+            snap["firstGuessByCountry"] = {
+                code: {"players": country_n[code], "bars": _top_bars(by_country[code], country_n[code], country_emoji[code], 20)}
+                for code in country_n
+            }
         else:
             item_good: Counter[str] = Counter()
             item_seen: Counter[str] = Counter()
@@ -412,6 +474,12 @@ def _number(value: Any) -> float | None:
 def play_tries(row: dict) -> float | None:
     payload = _payload(row)
     if row.get("puzzle_type") == "top5":
+        attempts = payload.get("attempts")
+        if isinstance(attempts, list) and attempts:
+            tries = _number(payload.get("tries"))
+            if tries is not None and tries > 0:
+                return tries
+            return float(len(attempts))
         guesses = payload.get("guesses")
         if isinstance(guesses, list) and guesses:
             return float(len(guesses))
@@ -490,7 +558,7 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             group = by_tries if solved else failed
             hist = group.setdefault(str(tries), [0] * 10)
             hist[_acc_bin(accuracy)] += 1
-        of = Counter(first_of).most_common(1)[0][0] if first_of else (1 if top5 else 0)
+        of = Counter(first_of).most_common(1)[0][0] if first_of else (5 if top5 else 0)
         out["standing"] = {
             "n": len(acc_pairs),
             "seeded": False,
@@ -822,6 +890,7 @@ def _self_test() -> None:
     for code in ("TW", "US", "SG"):
         assert block["firstGuessByCountry"][code]["players"] == SEED_CONSENSUS_PLAYS
     assert block["firstGuessWorld"]["bars"][0]["name"] != block["firstGuessByCountry"]["US"]["bars"][0]["name"]
+    assert block["rowCount"] == 3
 
     mix_seed = {
         "version": 6,
@@ -890,6 +959,31 @@ def _self_test() -> None:
     assert board["SG"]["players"] < MIN_COUNTRY_PLAYERS
     assert board["DE"]["players"] >= MIN_COUNTRY_PLAYERS
     assert "standing" not in mix_live["puzzles"]["work"]
+    named = aggregate_plays([
+        {
+            "puzzle_id": "name-demo", "puzzle_type": "name", "mode": "daily", "solved": True, "perfect": False,
+            "country_code": "US", "payload": {"tries": 2, "accuracy": 75, "pick": "Sweden", "guesses": [
+                {"name": "Sudan", "emoji": "🇸🇩"}, {"name": "Sweden", "emoji": "🇸🇪"},
+            ]},
+        },
+        {
+            "puzzle_id": "name-demo", "puzzle_type": "name", "mode": "daily", "solved": True, "perfect": True,
+            "country_code": "DE", "payload": {"tries": 1, "accuracy": 100, "pick": "Sweden", "guesses": [
+                {"name": "Sweden", "emoji": "🇸🇪"},
+            ]},
+        },
+        {
+            "puzzle_id": "name-demo", "puzzle_type": "name", "mode": "archive", "solved": False, "perfect": False,
+            "country_code": "FR", "payload": {"tries": 5, "accuracy": 0, "pick": None, "guesses": []},
+        },
+    ])
+    name_row = named["puzzles"]["name-demo"]
+    assert name_row["type"] == "name"
+    assert name_row["firstGuessWorld"]["players"] == 2
+    assert name_row["firstGuessWorld"]["bars"][0]["name"] == "Sweden"
+    assert name_row["firstGuessWorld"]["bars"][0]["pct"] == 100
+    assert name_row["firstGuessByCountry"]["US"]["players"] == 1
+    assert "FR" not in name_row["firstGuessByCountry"]
     print("community_snapshot self-test ok")
 
 
