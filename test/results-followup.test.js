@@ -15,8 +15,8 @@ test("seeded first-guess average uses every row count", () => {
   assert.equal(seed.standingBlock("match-pew-meaning", 900, "match", 5).firstOf, 5);
   assert.equal(seed.standingBlock("match-age-of-consent", 900, "match", 6).firstOf, 6);
   const top = seed.standingBlock("top5-demo", 900, "top5", 120);
-  assert.equal(top.firstOf, 1);
-  assert.ok(top.avgFirst >= 0.15 && top.avgFirst <= 0.55, String(top.avgFirst));
+  assert.equal(top.firstOf, 5);
+  assert.ok(top.avgFirst >= 1.2 && top.avgFirst <= 3.5, String(top.avgFirst));
 });
 
 test("a short stored average stretches onto the puzzle's rows", () => {

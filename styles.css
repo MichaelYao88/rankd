@@ -570,7 +570,33 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 @media (max-width:560px){.t5grid{grid-template-columns:minmax(86px,34%) minmax(0,1fr);gap:8px}.t5vals .vchip{padding:0 7px}.t5vals .vchip b{font-size:14px}.t5vals .vchip small{font-size:9px}}
 /* Long units ("cm taller since 1985") need the values column wide enough to read on one or two lines. */
 #t5board.long-unit .t5grid{grid-template-columns:minmax(168px,48%) minmax(0,1fr)}
-@media (max-width:560px){#t5board.long-unit .t5grid{grid-template-columns:minmax(148px,52%) minmax(0,1fr)}}
+@media (max-width:560px){#t5board.long-unit .t5grid{grid-template-columns:minmax(132px,48%) minmax(0,1fr)}}
+/* Top 5 slot board: chip pool + five drop slots. Pointer drag, tap-to-place as a fallback. */
+#guessGame{margin-top:18px}
+.t5pool{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;padding:8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
+.t5pool.over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
+.t5pool:empty{display:none}
+.t5chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:inherit;font:inherit;font-size:14px;font-weight:700;line-height:1.2;cursor:grab;user-select:none;touch-action:none;max-width:100%}
+.t5chip .tc-flag{font-size:18px;line-height:1;flex:none}
+.t5chip .tc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t5chip.sel{border-color:#FFD84D;background:rgba(255,216,77,.22)}
+.t5chip.good{background:var(--good);border-color:rgba(255,255,255,.35);cursor:default}
+.t5chip.bad{background:var(--bad);border-color:rgba(255,255,255,.35)}
+.t5chip.pinned{cursor:default}
+.t5chip.dragging{opacity:.35}
+.t5chip.pop{animation:pop .45s ease}
+.t5chip.shake{animation:shake .5s cubic-bezier(.36,.07,.19,.97) both}
+.t5-ghost{position:fixed;z-index:80;pointer-events:none;margin:0;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:.96;background:var(--brand);color:#fff}
+.t5slot{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:6px;padding:4px 8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.38);background:transparent}
+.t5slot.over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
+.t5slot.good{border-style:solid;border-color:var(--good);background:rgba(22,179,100,.18)}
+.t5slot.bad{border-style:solid;border-color:var(--bad)}
+.t5slot .t5r{font-weight:800;font-size:13px;opacity:.75;width:28px;flex:none}
+.t5slot .t5ph{opacity:.55;font-weight:700;font-size:12px;letter-spacing:.04em}
+.t5slot .t5chip{flex:1;min-width:0;justify-content:flex-start}
+.t5out{margin:8px 0 0;font-size:13.5px;font-weight:700;line-height:1.35}
+.t5out-line{margin:0 0 8px;font-weight:700}
+#guessGame .game-bar{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tienote{display:block;font-size:11px;opacity:.75;font-weight:600}.t5.tied .t5n{font-size:13px}
 /* v10: 6-item rankers: compact rows so all 6 cards (and the values column) fit on a phone */
 .board.n6 .card{min-height:54px;padding-top:6px;padding-bottom:6px}
@@ -682,7 +708,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 @media (max-width:560px){
   body.fit{min-height:0}
   body.fit .wrap{padding:8px 10px 0}
-  body.fit .under-card,body.fit .foot,body.fit #guessExtra,body.fit .art,body.fit .hero-date,body.fit #hint{display:none!important}
+  body.fit .under-card,body.fit .foot,body.fit #guessExtra,body.fit .art,body.fit .hero-date,body.fit #hint,body.fit #t5Hint{display:none!important}
   body.fit .t5more{display:inline-block}
   body.fit .hero{display:flex;flex-direction:column;max-height:calc(100svh - 116px);max-height:calc(100dvh - 116px);padding:12px 14px 12px;border-radius:20px;overflow:hidden}
   body.fit .hero-top{font-size:12.5px;flex:none}
@@ -716,31 +742,32 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .tries-below{margin-top:8px;flex:none}
   body.fit .pill-btn.outline{padding:13px 22px;font-size:12.5px;border-width:2.5px}
   body.fit .pill-btn.outline{padding:10px 18px}
-  /* Top 5 */
-  body.fit #tries{margin:0 0 6px;flex:none;row-gap:3px}
+  /* Top 5: chip pool above five shrinking slots. Lock stays inside the card. */
   body.fit .tries i{width:8px;height:8px}
-  body.fit .hero .t5board{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 0 6px;padding:8px 10px}
-  body.fit .t5h{margin-bottom:2px;flex:none;align-items:center;font-size:12px}
-  body.fit .t5grid{flex:1 1 auto;min-height:0;margin-top:2px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
-  body.fit .t5vals .vp-list{gap:5px}
-  body.fit .t5h{flex-wrap:nowrap;white-space:nowrap}
+  body.fit .hero.is-top5{padding:10px 12px 10px}
+  body.fit .hero.is-top5 h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
+  body.fit .hero.is-top5 #question{font-size:12px;line-height:1.2;margin:0 0 2px}
+  body.fit .hero.is-top5.q-drop #question,
+  body.fit .hero.is-top5.q-drop #statLabel,
+  body.fit .hero.is-top5.q-drop .lasthint{display:none!important}
+  body.fit .hero.is-top5 .game-bar{margin:0 0 6px}
+  body.fit .t5pool{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;flex:0 1 auto;max-height:30%;min-height:0;overflow:auto}
+  body.fit .t5pool:empty{display:none}
+  body.fit .t5chip{padding:4px 8px;font-size:12px;gap:4px}
+  body.fit .t5chip .tc-flag{font-size:14px}
+  body.fit .hero .t5board{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 0 6px;padding:6px 8px;overflow:hidden}
+  body.fit .t5grid{flex:1 1 auto;min-height:0;margin-top:0;align-items:stretch}
   body.fit .t5vals{margin-top:0;min-height:0;overflow:hidden}
-  body.fit .t5vals .vp-list,body.fit .t5slots{display:grid;grid-template-rows:repeat(5,minmax(0,42px));gap:5px;height:100%;max-height:100%}
-  body.fit .t5vals .vchip{max-height:46px}
-  body.fit .t5slots .t5{height:auto;max-height:46px;margin:0!important;min-height:0;overflow:hidden}
-  body.fit .lastmiss,body.fit .lasthint{flex:none;margin:0 0 6px;padding:6px 10px;font-size:12.5px;flex-wrap:nowrap;overflow:hidden}
-  body.fit .lastmiss .lm-n,body.fit .lasthint>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  body.fit .lasthint{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-  body.fit .lasthint.hidden,body.fit .lastmiss.hidden{display:none!important}
-  body.fit .guess-form{display:flex;gap:8px;align-items:stretch;flex:none}
-  body.fit .guess-form.hidden{display:none!important}
-  body.fit .combo{flex:1;min-width:0}
-  body.fit #guessInput{height:48px;font-size:17px;padding:0 12px;border-radius:13px}
-  body.fit .combo-unit{display:none}
-  body.fit .guess-form .card-foot{margin:0}
-  body.fit .guess-form .card-foot>span{display:none}
-  body.fit #guessBtn{height:48px;padding:0 16px;white-space:nowrap}
-  body.fit .suggest{top:auto;bottom:54px;max-height:min(260px,45dvh)}
+  body.fit .t5vals .vp-list{display:flex;flex-direction:column;justify-content:space-between;gap:4px;height:100%}
+  body.fit .t5vals .vchip{height:auto;max-height:40px;min-height:0;flex:1 1 0}
+  body.fit .t5slots{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:0;height:100%}
+  body.fit .t5slot{flex:1 1 0;min-height:0;max-height:44px;margin:0;padding:2px 6px;overflow:hidden}
+  body.fit .t5slot .t5chip{padding:2px 6px;font-size:11.5px}
+  body.fit .lasthint,body.fit .t5out{flex:none;margin:0 0 6px;padding:6px 10px;font-size:12.5px;overflow:hidden}
+  body.fit .lasthint>span:last-child,body.fit .t5out{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  body.fit .lasthint{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+  body.fit .lasthint.hidden,body.fit .t5out.hidden{display:none!important}
+  body.fit #guessGame .card-foot{margin-top:6px}
   /* on-screen keyboard open: drop everything above the card + the subtitle */
   body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top{display:none!important}
   body.kb .wrap{padding-top:4px}

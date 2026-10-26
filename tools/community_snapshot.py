@@ -194,9 +194,9 @@ def rotate_top5(guesses: list[dict], salt: int) -> list[dict]:
 
 
 def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
-    """Rows the player locks. Top 5 is a single first-guess rate, not the country list."""
+    """Rows the player locks. Top 5 is five slots, not the country list and not one named guess."""
     if kind == "top5":
-        return 1
+        return 5
     if not isinstance(puzzle, dict):
         return None
     rows = puzzle.get("people") if kind == "match" else puzzle.get("items")
@@ -427,6 +427,12 @@ def _number(value: Any) -> float | None:
 def play_tries(row: dict) -> float | None:
     payload = _payload(row)
     if row.get("puzzle_type") == "top5":
+        attempts = payload.get("attempts")
+        if isinstance(attempts, list) and attempts:
+            tries = _number(payload.get("tries"))
+            if tries is not None and tries > 0:
+                return tries
+            return float(len(attempts))
         guesses = payload.get("guesses")
         if isinstance(guesses, list) and guesses:
             return float(len(guesses))
@@ -505,7 +511,7 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             group = by_tries if solved else failed
             hist = group.setdefault(str(tries), [0] * 10)
             hist[_acc_bin(accuracy)] += 1
-        of = Counter(first_of).most_common(1)[0][0] if first_of else (1 if top5 else 0)
+        of = Counter(first_of).most_common(1)[0][0] if first_of else (5 if top5 else 0)
         out["standing"] = {
             "n": len(acc_pairs),
             "seeded": False,

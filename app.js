@@ -1,5 +1,5 @@
-/* Rankd prototype: daily stats game. Two puzzle types: "rank" (Rank it: drag to order) and "top5" (Guess the top 5:
-   name the top 5 before running out of misses; hits are free; score = found X/5, plus average world rank of all guesses).
+/* Rankd prototype: daily stats game. "rank" (Rank it: drag to order) and "top5" (Top 5: six cards,
+   the real top 5 plus one decoy, dragged into five slots; leave the odd one out; 5 lock-in tries).
    v7 retired "Guess the #1".
    No build step; works from file://. */
 (() => {
@@ -170,6 +170,15 @@ function attemptGuess(type, attempt, p) {
     });
     return pairs.length ? { kind: "match", pairs } : null;
   }
+  if (type === "top5" && Array.isArray(attempt.slots) && p.countries) {
+    const order = [];
+    for (const key of attempt.slots) {
+      const c = p.countries.find(x => (x.iso3 && x.iso3 === key) || x.name === key);
+      const piece = namedPiece(c);
+      if (piece) order.push(piece);
+    }
+    return order.length ? { kind: "top5", order } : null;
+  }
   return null;
 }
 function top5Piece(p, key) {
@@ -217,6 +226,25 @@ function rankDistance01(p, order) {
   if (!max) return 0;
   return Math.max(0, Math.min(1, sum / max));
 }
+// Top 5: value-matched slots. A decoy has no home slot — placing it at #5 is a near miss, #1 costs more.
+function top5Distance01(p, attempt) {
+  const placed = attempt.slots || [];
+  const n = 5;
+  if (!p || !p.countries || placed.length !== n) return null;
+  const need = slotsOf(p);
+  if (!need || need.length !== n) return null;
+  const max = Math.floor(n * n / 2);
+  if (!max) return 0;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const c = placed[i] && findCountry(p, placed[i]);
+    if (!c) { sum += n; continue; }
+    if (c.value === need[i].value) continue;
+    const home = need.findIndex(s => s.value === c.value);
+    sum += home < 0 ? (n - i) : Math.abs(i - home);
+  }
+  return Math.max(0, Math.min(1, sum / max));
+}
 function attemptDistance(p, type, attempt) {
   const marks = attempt.marks || [];
   if (marks.length && marks.every(m => m === "good")) return 0;
@@ -236,6 +264,7 @@ function attemptDistance(p, type, attempt) {
     for (let i = 0; i < n; i++) sum += Math.abs((attempt.assign[i] ?? i) - i);
     return Math.max(0, Math.min(1, sum / max));
   }
+  if (type === "top5" && attempt.slots) return top5Distance01(p, attempt);
   return null;
 }
 // Plain results plus accuracy. The try count sets the band; rank distance
@@ -243,7 +272,7 @@ function attemptDistance(p, type, attempt) {
 function resultCard(p, result) {
   if (!p || !result || !window.RankdSeed) return null;
   const type = result.type || p.type;
-  if (type === "top5") {
+  if (type === "top5" && !(result.attempts && result.attempts.length)) {
     const keys = result.guesses || [];
     const span = (p.countries || []).length - 5;
     if (!keys.length || span <= 0) return null;
@@ -277,7 +306,12 @@ function resultCard(p, result) {
   const marks = (attempts[0] && attempts[0].marks) || [];
   if (!marks.length) return null;
   const tip = "Accuracy starts at 100 and drops with each extra try, less if your guesses were close.";
-  const tips = { rank: tip, tier: tip, match: tip };
+  const tips = {
+    rank: tip,
+    tier: tip,
+    match: tip,
+    top5: "Accuracy starts at 100 and drops with each extra try, less if the cards were close. Placing the decoy higher costs more.",
+  };
   return {
     tries: result.tries,
     solved: !!result.solved,
@@ -293,7 +327,7 @@ function resultCard(p, result) {
 function placementScore(result) {
   if (!result) return null;
   const type = result.type;
-  if (type === "top5") {
+  if (type === "top5" && !(result.attempts && result.attempts.length)) {
     const n = (result.guesses || []).length;
     if (!n || result.hits == null || Number.isNaN(Number(result.hits))) return null;
     return Math.max(0, Math.min(1, Number(result.hits) / n));
@@ -334,8 +368,20 @@ function communityPlayRow(result) {
     const attempts = Array.isArray(result.attempts) ? result.attempts : [];
     first = attemptGuess(type, attempts[0], p);
     second = attempts.length > 1 ? attemptGuess(type, attempts[1], p) : null;
+  } else if (type === "top5" && Array.isArray(result.attempts) && result.attempts.length) {
+    solved = !!(result.solved || result.won);
+    perfect = solved && tries === 1;
+    const attempts = result.attempts;
+    const lastTry = attempts[attempts.length - 1] || {};
+    const marks = result.marks || lastTry.marks || [];
+    payload.items = (lastTry.slots || []).map((key, n) => {
+      const c = p && p.countries && p.countries.find(x => (x.iso3 && x.iso3 === key) || x.name === key);
+      return { name: c ? c.name : null, mark: marks[n] || null };
+    });
+    first = attemptGuess(type, attempts[0], p);
+    second = attempts.length > 1 ? attemptGuess(type, attempts[1], p) : null;
   } else if (type === "top5") {
-    solved = !!result.won;   // found all 5
+    solved = !!result.won;   // legacy: found all 5 by naming countries
     const misses = result.misses ?? null;
     perfect = solved && misses === 0;   // flawless full clear (same bar as FLAWLESS)
     const keys = result.guesses || [];
@@ -516,7 +562,7 @@ const SHEET_COLS = {
   country_lists: ["puzzle_id","country","iso3","emoji","value","year","tiebreak"],
   country_info: ["iso3","country","region","continent","capital","landlocked","part_of","population","population_year","gdp_per_capita_usd","gdp_year","source"],
   hint_bank: ["puzzle_id","rank","country","iso3","hint_no","auto_hint","override_hint","source"],
-  top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url","headline"],
+  top5_puzzles: ["puzzle_id","daily_order","puzzle_emoji","question","stat_label","unit","data_from","max_misses","data_year","source_name","source_url","fun_fact","art","support_url","headline","decoy_country","decoy_iso3","decoy_emoji","decoy_value","decoy_rank"],
   match_puzzles: ["puzzle_id","daily_order","puzzle_emoji","headline","subtitle","item_name","country_iso","item_emoji","country_name","clue","fact","source_name","source_url","art","original_clue","flag_img"],
   tier_puzzles: ["puzzle_id","daily_order","puzzle_emoji","headline","subtitle","stat_label","unit","source_name","source_url","fun_fact","art","tier_value","tier_label","item_name","item_emoji","country_iso","item_value","data_year","dataset","support_url","note"],
 };
@@ -538,7 +584,31 @@ function sheetTypeOf(headers) {
 }
 
 const FAMOUS = ["United States", "China", "India", "Japan", "Brazil", "Russia", "United Kingdom", "Germany", "France", "Mexico", "Italy", "Canada", "Australia", "South Korea", "Spain", "Turkey", "Saudi Arabia", "Egypt", "Nigeria", "South Africa", "Argentina", "Indonesia", "Sweden", "Israel", "Iran", "Netherlands", "Switzerland", "Norway", "Poland", "Ukraine", "Pakistan", "Thailand", "Vietnam", "Kenya", "Ireland", "Greece", "Cuba", "Jamaica", "New Zealand", "Portugal", "Denmark", "Finland", "England"];   // v11: preferred (recognizable) countries for title flags, same list as build.py
-const MIN_TOP5_COUNTRIES = 38;   // v9: Guess the top 5 needs >= 38 countries to guess from (else auto Rank it)
+const MIN_TOP5_COUNTRIES = 38;   // Top 5 needs >= 38 countries to draw a decoy from (else auto Rank it)
+function countryBeats(a, b) {
+  return a.value > b.value || (a.value === b.value && a.exact != null && b.exact != null && a.exact > b.exact);
+}
+function countryRank(list, c) { return 1 + list.filter(x => countryBeats(x, c)).length; }
+function rankedCountryList(countries) {
+  return (countries || []).slice().sort((a, b) => b.value - a.value || (b.exact ?? 0) - (a.exact ?? 0));
+}
+// The decoy is the most famous country outside the top 5 (and outside a tie for #5). Same list, real value.
+function pickDecoyCountry(countries) {
+  const sorted = rankedCountryList(countries);
+  if (sorted.length < 6) return null;
+  const fifth = sorted[4];
+  const inSlot = c => { const i = sorted.indexOf(c); return i >= 0 && (i < 4 || (c.value === fifth.value && (c.exact ?? null) === (fifth.exact ?? null))); };
+  const outside = sorted.filter(c => !inSlot(c));
+  const famous = new Set(FAMOUS);
+  return outside.find(c => famous.has(c.name)) || outside[0] || null;
+}
+function decoyFromRow(row, countries) {
+  const name = str(row.decoy_country || ""), iso = str(row.decoy_iso3 || "");
+  let c = (name || iso) ? countries.find(x => (iso && x.iso3 === iso) || x.name === name) : null;
+  if (!c) c = pickDecoyCountry(countries);
+  if (!c) return null;
+  return { name: c.name, iso3: c.iso3 || "", emoji: c.emoji || "", value: c.value, rank: countryRank(countries, c), year: c.year || "" };
+}
 function parseTables(t) {
   const out = [], by = {}, orderOf = (v, i) => num(v) ?? 10000 + i;
   for (const raw of t.puzzles || []) {
@@ -577,9 +647,10 @@ function parseTables(t) {
     }
     const c5 = countries[4], cut = c => countries.indexOf(c) < 4 || (c.value === c5.value && (c.exact ?? null) === (c5.exact ?? null));
     countries = countries.map(c => { const b = bank[id + "|" + (c.iso3 || c.name)]; return cut(c) && b ? { ...c, hints: b.filter(Boolean) } : c; });
+    const decoy = decoyFromRow(r, countries);
     out.push({ type: "top5", id, order: orderOf(r.daily_order, out.length + i), emoji: str(r.puzzle_emoji), question: str(r.question) || id,
       stat: str(r.stat_label), unit: str(r.unit), maxMisses: Math.round(num(r.max_misses) || 10), year: str(r.data_year),
-      source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), headline: str(r.headline), countries });
+      source: str(r.source_name), sourceUrl: str(r.source_url), fact: str(r.fun_fact), art: str(r.art), support: str(r.support_url), headline: str(r.headline), ...(decoy ? { decoy } : {}), countries });
   });
   const mby = {};   // v12 Match it (same rules as build.py: 4 to 7 rows, distinct clues)
   for (const raw of t.match_puzzles || []) { const r = lowerKeys(raw), id = str(r.puzzle_id); if (!id) continue;
@@ -690,15 +761,15 @@ function freshRound(saved) {
   if (!saved) return true;
   if (isDone(saved)) return false;
   if (Array.isArray(saved.attempts) && saved.attempts.length) return false;
-  if (Array.isArray(saved.guesses) && saved.guesses.length) return false;
+  // An unfinished type-to-guess Top 5 is restarted on the slot board.
+  if (Array.isArray(saved.guesses) && saved.guesses.length) return !(saved.attempts && saved.attempts.length);
   return true;
 }
 function trackGameCompleted(res) {
   const type = (state.puzzle && state.puzzle.type) || res.type;
-  const guesses = type === "top5"
-    ? (Array.isArray(res.guesses) ? res.guesses.length : Number(res.tries) || 0)
-    : (Number(res.tries) || (Array.isArray(res.attempts) ? res.attempts.length : 0));
-  track("game_completed", { won: type === "top5" ? !!res.won : !!res.solved, guesses, mode: state.mode, puzzle_type: type });
+  const legacyGuesses = type === "top5" && Array.isArray(res.guesses) && !(res.attempts && res.attempts.length);
+  const guesses = legacyGuesses ? res.guesses.length : (Number(res.tries) || (Array.isArray(res.attempts) ? res.attempts.length : 0));
+  track("game_completed", { won: type === "top5" ? !!(res.won || res.solved) : !!res.solved, guesses, mode: state.mode, puzzle_type: type });
 }
 const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
@@ -827,8 +898,12 @@ const Practice = {
     const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
       source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null,
       ...(ds.valueGloss ? { valueGloss: String(ds.valueGloss) } : {}) };
-    if (rows.length >= PR.minTop5 && ds.hints && +rows[0].value !== 100 && R() < 0.5)   // v12.2: no Top 5 when #1 is 100% (ties at the cap)
-      return { ...base, type: "top5", maxMisses: 10, countries: rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) })) };
+    if (rows.length >= PR.minTop5 && ds.hints && +rows[0].value !== 100 && R() < 0.5) {   // no Top 5 when #1 is 100% (ties at the cap)
+      const countries = rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) }));
+      const picked = pickDecoyCountry(countries);
+      const decoy = picked ? { name: picked.name, iso3: picked.iso3, emoji: picked.emoji, value: picked.value, rank: countryRank(countries, picked), year: picked.year || "" } : null;
+      return { ...base, type: "top5", maxMisses: CONFIG.rankMaxTries, ...(decoy ? { decoy } : {}), countries };
+    }
     const k = R() < ru.sixShare ? 6 : 5, N = rows.length, gapR = ru.rankGap(N, k), gapV = (rows[0].value - rows[N - 1].value) * ru.minGapShare;
     const cand = rows.filter(r => r.pop >= ru.minPopM || tier(r.name));
     const has1 = cand.some(r => tier(r.name) === 1), has2 = cand.some(r => tier(r.name) === 2);
@@ -1075,7 +1150,7 @@ function renderHero() {
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
   document.querySelector(".hero-top").classList.toggle("practice", state.mode === "practice");
   $("#heroNo").textContent = state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
-  $("#heroKind").textContent = p.type === "top5" ? `🖐️ Guess the top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
+  $("#heroKind").textContent = p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = p.headline || p.question;
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
   // label — hide it when it only repeats the subtitle (e.g. Share the Tape had both).
@@ -1119,7 +1194,7 @@ function openPuzzle(p) {
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
   const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
-  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
+  const g = p.type === "top5"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top5", p.type === "top5"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", !g);
   $("#t5board").classList.toggle("hidden", !g); $("#hints").classList.toggle("hidden", !g);
   setHash(linkHash());
   const saved = getResult();
@@ -1638,155 +1713,318 @@ function isIdentityTier(p) {
 })();
 window.RankdTier = { state: () => state.tier, assign: (i, t) => tierAssign(i, t), submit: submitTier };
 
-// ================================================================ GUESS THE TOP 5
-// Name as many of the top 5 as you can. Hits are free; the game ends at 5 found or after maxMisses misses.
-// Score = found (X/5); secondary "closeness" stat = average world rank of ALL guesses (lower = closer).
+// ================================================================ TOP 5
+// Six cards: the real top 5 plus one decoy from the same list. Drag (or tap) them into
+// slots #1–#5, highest first, and leave the decoy out. Lock it in up to CONFIG.rankMaxTries
+// times. Right slots turn green and pin; wrong ones turn red. One hint per failed lock.
+// Result: { type:"top5", attempts:[{slots:[key|null x5], marks:["good"|"bad" x5]}], cur, pinned:[slot indexes], hand:[6 keys], done, solved, won, tries }
+// A finished pre-slot game (guesses, no attempts) still opens on the old result screen.
 function renderTop5(saved) {
-  const p = state.puzzle, g = saved || { type: p.type, guesses: [], done: false, won: false };
-  state.guess = g;
-  $("#guessInput").value = ""; closeSuggest();
-  $("#guesses").innerHTML = ""; g.guesses.forEach(code => addGuessRow(findCountry(p, code), false));
-  renderTries(); renderHints(); renderTop5Board();
-  $("#guessForm").classList.toggle("hidden", g.done);
-  if (g.done) showResult(g);
+  const p = state.puzzle;
+  const legacy = saved && saved.type === "top5" && saved.done && Array.isArray(saved.guesses) && !(saved.attempts && saved.attempts.length);
+  if (legacy) {
+    state.guess = saved; state.t5Sel = null;
+    $("#guessGame").classList.add("locked");
+    const btn = $("#t5Submit"); if (btn) btn.parentElement.classList.add("hidden");
+    const hint = $("#t5Hint"); if (hint) hint.classList.add("hidden");
+    showResult(saved);
+    fitLayout();
+    return;
+  }
+  const fresh = !(saved && saved.type === "top5" && Array.isArray(saved.attempts));
+  const g = state.guess = fresh ? { type: "top5", attempts: [], cur: [null, null, null, null, null], pinned: [], hand: shuffledHand(p), done: false, solved: false, won: false, tries: 0 } : saved;
+  if (!Array.isArray(g.cur) || g.cur.length !== 5) g.cur = [null, null, null, null, null];
+  if (!Array.isArray(g.hand) || !g.hand.length) g.hand = shuffledHand(p);
+  if (!Array.isArray(g.pinned)) g.pinned = [];
+  state.t5Sel = null;
+  $("#guessGame").classList.toggle("locked", !!g.done);
+  const more = $("#t5More"); if (more) more.onclick = extraSheet;
+  paintTop5();
+  renderTop5Tries();
+  renderHints();
+  updateTop5Hint();
+  const sub = $("#t5Submit"); if (sub) sub.parentElement.classList.toggle("hidden", !!g.done);
+  if (g.done) revealTop5(g, false);
+  fitLayout();
 }
 const findCountry = (p, key) => p.countries.find(c => (c.iso3 && c.iso3 === key) || c.name === key);
 const cKey = c => c.iso3 || c.name;
-// v10: ALWAYS exactly 5 slots. Countries are sorted by value (then by the optional unrounded "exact" tiebreak value).
-// If #5 is still tied (same value and no tiebreak that separates them), slot #5 is shared: either tied country counts.
 const isTop5 = p => p.type === "top5";
 const sameRank = (a, b) => a.value === b.value && (a.exact ?? null) === (b.exact ?? null);
 const beats = (a, b) => a.value > b.value || (a.value === b.value && a.exact != null && b.exact != null && a.exact > b.exact);
 const SLOTS = new WeakMap();
 function slotsOf(p) {
   if (SLOTS.has(p)) return SLOTS.get(p);
-  const cs = p.countries, sl = cs.slice(0, 4).map(c => [c]);
+  const cs = p.countries.slice().sort((a, b) => b.value - a.value || (b.exact ?? 0) - (a.exact ?? 0)), sl = cs.slice(0, 4).map(c => [c]);
   sl.push(cs.slice(4).filter(c => sameRank(c, cs[4])));
   const out = sl.map((group, i) => ({ i, group, value: group[0].value, tied: group.length > 1 })); SLOTS.set(p, out); return out;
 }
 const slotOf = (p, c) => c && slotsOf(p).find(s => s.group.includes(c));
 const inTop = (p, c) => !!slotOf(p, c);
-const topSet = p => slotsOf(p).map(s => s.group[0]);   // one representative per slot (always 5)
+const topSet = p => slotsOf(p).map(s => s.group[0]);
 const slotFound = (p, s, keys) => s.group.find(c => keys.has(cKey(c)));
-const hitsOf = (p, g) => { const k = new Set(g.guesses); return slotsOf(p).filter(s => slotFound(p, s, k)).length; };   // max 5
+const hitsOf = (p, g) => { const k = new Set(g.guesses || []); return slotsOf(p).filter(s => slotFound(p, s, k)).length; };
 const tieRank = (p, c) => 1 + p.countries.filter(x => beats(x, c)).length;
-const missesOf = (p, g) => g.guesses.length - g.guesses.filter(k => inTop(p, findCountry(p, k))).length;
-const missesLeft = (p, g) => Math.max(0, p.maxMisses - missesOf(p, g));
+const missesOf = (p, g) => (g.guesses || []).length - (g.guesses || []).filter(k => inTop(p, findCountry(p, k))).length;
+const missesLeft = (p, g) => Math.max(0, (p.maxMisses || 10) - missesOf(p, g));
 const plural = (n, w, pl = w + "es") => `${n} ${n === 1 ? w : pl}`;
-const avgRank = (p, g) => { const r = g.guesses.map(k => findCountry(p, k)).filter(Boolean).map(c => tieRank(p, c));
+const avgRank = (p, g) => { const r = (g.guesses || []).map(k => findCountry(p, k)).filter(Boolean).map(c => tieRank(p, c));
   return r.length ? Math.round(r.reduce((a, b) => a + b, 0) / r.length) : null; };
-function renderTop5Board() {   // v8: inside the blue card: hits in their #1-#5 slots + the most recent miss
+function resolveDecoy(p) {
+  const cs = p.countries || [];
+  const named = p.decoy;
+  let c = named ? cs.find(x => (named.iso3 && x.iso3 === named.iso3) || x.name === named.name) : null;
+  if (!c) c = pickDecoyCountry(cs);
+  return c || null;
+}
+function shuffledHand(p) {
+  const reps = slotsOf(p).map(s => cKey(s.group[0]));
+  const d = resolveDecoy(p);
+  const keys = reps.concat(d ? [cKey(d)] : []);
+  const right = reps.join("|");
+  const seed = (state.mode === "daily" || state.mode === "archive" || state.mode === "preview" ? state.dateKey : "t" + (p.seed || "x")) + p.id;
+  const r = rng(seed);
+  for (let t = 0; t < 24; t++) {
+    for (let i = keys.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [keys[i], keys[j]] = [keys[j], keys[i]]; }
+    if (keys.slice(0, 5).join("|") !== right) break;
+  }
+  return keys;
+}
+function t5ChipHtml(c, opts) {
+  const cls = ["t5chip"];
+  if (opts.sel) cls.push("sel");
+  if (opts.mark === "good" || opts.mark === "bad") cls.push(opts.mark);
+  if (opts.pinned) cls.push("pinned");
+  return `<button type="button" class="${cls.join(" ")}" data-key="${esc(cKey(c))}"${opts.pinned ? ' aria-disabled="true"' : ""}><span class="tc-flag">${esc(c.emoji || "🏳️")}</span><span class="tc-name">${esc(c.name)}</span></button>`;
+}
+function paintTop5(marks) {
   const p = state.puzzle, g = state.guess;
-  const found = new Set(g.guesses), show = g.done;
-  // v9: ONE dashed values box on the LEFT (all top-5 values, sorted high to low, with units, one per row) and the
-  // #1-#5 slots on the right; country names fill in as they're found (all of them at the end).
+  if (!g || !Array.isArray(g.cur)) return;
   const sl = slotsOf(p);
   const t5v = v => isPercent(p) ? `${fmt1(v)}%` : fmt1(v);
-  const t5u = unitAside(p);   // same player-facing unit as rank reveals ("8.0 cm taller since 1985")
-  $("#t5board").classList.toggle("long-unit", (p.unit || "").length > 12);
-  $("#t5board").innerHTML = `<div class="t5h">${hitsOf(p, g)} of 5 found${g.guesses.length && !g.done ? `<button type="button" class="t5more" id="extraBtn" aria-label="Hints and guesses so far">💡 Hints</button>` : ""}<span>${g.done ? "Final" : `${plural(missesLeft(p, g), "miss")} left`}</span></div>`
-    + `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map((s, i) => `<li class="vchip t5val${slotFound(p, s, found) ? " hit" : ""}" data-slot="${i + 1}"><b>${t5v(s.value)}</b>${t5u}</li>`).join("")}</ol></div>`
-    + `<div class="t5slots">` + sl.map((s, i) => {
-    const f = slotFound(p, s, found), c = f || s.group[0], open = !!f || show;
-    const name = f ? esc(f.name) : s.tied ? s.group.map(x => esc(x.name)).join(" = ") : esc(c.name);
-    return `<div class="t5 ${f ? "hit" : open ? "missed" : ""}${s.tied ? " tied" : ""}" data-slot="${i + 1}"><span class="t5r">#${i + 1}</span>${open ? `<span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="t5n">${name}</span>` : `<span class="t5n q">?</span>`}</div>`; }).join("") + `</div></div>`;
-  const xb = $("#extraBtn"); if (xb) xb.onclick = extraSheet;
-  const lastKey = [...g.guesses].reverse().find(k => !inTop(p, findCountry(p, k))), lm = $("#lastMiss");
-  const c = lastKey && findCountry(p, lastKey);
-  lm.classList.toggle("hidden", !c);
-  requestAnimationFrame(fitLayout);
-  lm.innerHTML = c ? `<span class="lm-k">Last miss</span><span class="emoji">${esc(c.emoji || "🏳️")}</span><span class="lm-n">${esc(c.name)}</span><span class="lm-v">${isPercent(p) ? fmt1(c.value) + "%" : fmt1(c.value) + (p.unit ? " " + esc(p.unit) : "")}</span><span class="lm-r">#${tieRank(p, c)} of ${p.countries.length}</span>` : "";
+  const t5u = unitAside(p);
+  const board = $("#t5board");
+  board.classList.toggle("long-unit", (p.unit || "").length > 12);
+  board.classList.remove("hidden");
+  const pin = new Set(g.pinned || []);
+  const slotsHtml = sl.map((s, i) => {
+    const key = g.cur && g.cur[i];
+    const c = key && findCountry(p, key);
+    const mark = marks && marks[i] ? marks[i] : (pinned ? "good" : "");
+    const pinned = pin.has(i);
+    const chip = c ? t5ChipHtml(c, { sel: state.t5Sel === cKey(c), mark, pinned }) : `<span class="t5ph">${state.t5Sel ? "Tap to place" : ""}</span>`;
+    return `<div class="t5slot${pinned ? " pinned" : ""}${mark ? " " + mark : ""}" data-slot="${i}" tabindex="0"><span class="t5r">#${i + 1}</span>${chip}</div>`;
+  }).join("");
+  board.innerHTML = `<div class="t5grid"><div class="t5vals" aria-label="The top-5 values"><ol class="vp-list">${sl.map(s => `<li class="vchip"><b>${t5v(s.value)}</b>${t5u}</li>`).join("")}</ol></div><div class="t5slots">${slotsHtml}</div></div>`;
+  const placed = new Set((g.cur || []).filter(Boolean));
+  const pool = $("#t5pool");
+  pool.innerHTML = (g.hand || []).filter(k => !placed.has(k)).map(k => {
+    const c = findCountry(p, k); return c ? t5ChipHtml(c, { sel: state.t5Sel === k }) : "";
+  }).join("");
+  const dir = $("#t5Dir"); if (dir) dir.textContent = g.done ? "The top 5" : "Highest at #1 · leave one out";
 }
-function renderTries() {
-  const p = state.puzzle, g = state.guess, h = hitsOf(p, g), m = missesOf(p, g), a = avgRank(p, g);
-  const dots = Array.from({ length: p.maxMisses }, (_, i) => `<i class="${i < m ? "used" : ""}"></i>`).join("");
-  $("#tries").innerHTML = `${dots}<span style="margin-left:6px">${h}/5 found · ${g.done ? plural(m, "miss") : `${plural(missesLeft(p, g), "miss")} left`}${a ? ` · avg rank #${a}` : ""}</span>`;
+function renderTop5Tries() {
+  const g = state.guess; if (!g || !g.attempts) return;
+  const max = CONFIG.rankMaxTries;
+  const dots = Array.from({ length: max }, (_, n) => { const a = g.attempts[n]; if (!a) return "<i></i>";
+    return `<i class="${a.marks.every(m => m === "good") ? "win" : "used"}"></i>`; }).join("");
+  const left = max - g.attempts.length;
+  const el = $("#t5Tries"); if (!el) return;
+  el.innerHTML = `${dots}<span>${g.done ? (g.solved ? `Solved in ${g.tries}` : "Out of tries") : `${left} ${left === 1 ? "try" : "tries"} left`}</span>`;
 }
-function addGuessRow(c, animate = true) {
-  const p = state.puzzle, li = document.createElement("li"), hit = inTop(p, c);
-  li.className = "g-row t5row " + (hit ? "win" : ""); if (!animate) li.style.animation = "none";
-  li.innerHTML = `<span class="emoji">${esc(c.emoji || "🏳️")}</span><div><div class="gn">${esc(c.name)}</div><div class="gv">${isPercent(p) ? fmt1(c.value) + "%" : fmt1(c.value) + (p.unit ? " " + esc(p.unit) : "")}${c.year && c.year !== p.year ? ` (${esc(c.year)})` : ""}</div></div>
-    <div class="gr">${hit ? `#${slotOf(p, c).i + 1}<span class="of"> of 5</span><small>✅ In the top 5!${slotOf(p, c).tied ? " (tied #5)" : ""}</small>` : `#${tieRank(p, c)}<span class="of"> of ${p.countries.length}</span><small>⬜ Miss</small>`}</div>`;
-  $("#guesses").prepend(li);
+function updateTop5Hint() {
+  const g = state.guess, el = $("#t5Hint"); if (!el) return;
+  if (!g || !g.attempts || !g.attempts.length || g.done) { el.textContent = ""; el.classList.add("hidden"); return; }
+  el.classList.remove("hidden");
+  el.innerHTML = `<b>${(g.pinned || []).length} of 5</b> in the right spot. Green cards are locked. Move the others and try again.`;
 }
-// --- hints: every incorrect guess reveals the next unused hint for ONE still-unfound top-5 country.
-// The highest-ranked unfound country gets its next unused hint from the puzzle's hint bank (5 per country,
-// vague -> specific; from the hint_bank sheet, built by build.py from country_info). Hits, duplicates and
-// empty submits do not spend a hint. Found it? Later hints move to the next unfound country. When no unfound
-// country has a hint left, later misses add nothing. Derived from the guess sequence, so a reload matches.
-const bankOf = c => (c.hints && c.hints.length ? c.hints : [`Its name starts with “${c.name.normalize("NFD")[0].toUpperCase()}”.`]);
+function scoreTop5(p, slots) {
+  const need = slotsOf(p);
+  return (slots || []).map((key, i) => {
+    const c = key && findCountry(p, key);
+    return c && need[i] && c.value === need[i].value ? "good" : "bad";
+  });
+}
+function t5Place(key, slot) {
+  const g = state.guess; if (!g || g.done || !key) return;
+  const from = (g.cur || []).indexOf(key);
+  if (from >= 0 && (g.pinned || []).includes(from)) return;
+  if (slot != null && (g.pinned || []).includes(slot)) return;
+  if (slot == null) { if (from >= 0) g.cur[from] = null; }
+  else if (from !== slot) {
+    const occupant = g.cur[slot];
+    g.cur[slot] = key;
+    if (from >= 0) g.cur[from] = occupant || null;
+  }
+  state.t5Sel = null;
+  if (g.attempts.length) setResult(g);
+  paintTop5();
+  updateTop5Hint();
+}
+function t5TapChip(key) {
+  const g = state.guess; if (!g || g.done) return;
+  const from = g.cur.indexOf(key);
+  if (from >= 0 && g.pinned.includes(from)) return;
+  if (state.t5Sel === key) { state.t5Sel = null; paintTop5(); return; }
+  if (state.t5Sel) {
+    const selFrom = g.cur.indexOf(state.t5Sel);
+    if (from >= 0) { t5Place(state.t5Sel, from); return; }
+    if (selFrom >= 0) { t5Place(key, selFrom); return; }
+  }
+  state.t5Sel = key;
+  paintTop5();
+}
+function t5TapSlot(i) {
+  const g = state.guess; if (!g || g.done || g.pinned.includes(i)) return;
+  if (state.t5Sel) t5Place(state.t5Sel, i);
+}
+function t5TapPool() {
+  const g = state.guess; if (!g || g.done || !state.t5Sel) return;
+  if (g.cur.includes(state.t5Sel)) t5Place(state.t5Sel, null);
+  else { state.t5Sel = null; paintTop5(); }
+}
+const bankOf = c => (c && c.hints && c.hints.length ? c.hints : [`Its name starts with “${(c && c.name ? c.name : "?").normalize("NFD")[0].toUpperCase()}”.`]);
 function hintPlan(p, g) {
-  const sl = slotsOf(p), found = new Set(), used = {}, given = []; let misses = 0;   // found = slot indexes
-  g.guesses.forEach(k => { const c = findCountry(p, k); if (!c) return;
-    const s = slotOf(p, c); if (s) { found.add(s.i); return; }   // hit: free
-    misses++;
-    const ts = sl.find(x => !found.has(x.i) && (used[x.i] || 0) < bankOf(x.group[0]).length);   // tied slot: hints describe its first country
-    if (!ts) return;   // banks exhausted: no blank card
-    const n = used[ts.i] = (used[ts.i] || 0) + 1, t = ts.group[0], text = bankOf(t)[n - 1];
-    if (!text) return;
-    given.push({ at: misses, target: t, slot: ts.i + 1, n, text }); });
+  if (!g || !Array.isArray(g.attempts)) return [];
+  const sl = slotsOf(p), used = {}, given = [];
+  g.attempts.forEach(a => {
+    if (!a.marks || a.marks.every(m => m === "good")) return;
+    const ts = sl.find(s => a.marks[s.i] !== "good" && (used[s.i] || 0) < bankOf(s.group[0]).length);
+    if (!ts) return;
+    const n = used[ts.i] = (used[ts.i] || 0) + 1, text = bankOf(ts.group[0])[n - 1];
+    if (text) given.push({ target: ts.group[0], slot: ts.i + 1, n, text });
+  });
   return given;
 }
 function renderHints() {
-  const p = state.puzzle, plan = hintPlan(p, state.guess), keys = new Set(state.guess.guesses);
-  const found = { has: k => { const c = findCountry(p, k), s = slotOf(p, c); return !!(s && slotFound(p, s, keys)); } };   // slot filled by either tied country
-  $("#hints").innerHTML = plan.filter(h => h.text).map(h =>
-    `<div class="hint-card open${found.has(cKey(h.target)) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${found.has(cKey(h.target)) ? ` <span class="hf">✓ found</span>` : ""}</div>`).join("");
-  const cur = [...plan].reverse().find(h => h.text && h.target && !found.has(cKey(h.target))), lh = $("#lastHint");   // newest still-useful hint, in the blue card
-  lh.classList.toggle("hidden", !cur || state.guess.done);
-  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : ""; requestAnimationFrame(fitLayout);
+  const p = state.puzzle, g = state.guess, box = $("#hints"), lh = $("#lastHint");
+  if (!box) return;
+  if (!g || !Array.isArray(g.attempts)) { box.innerHTML = ""; if (lh) lh.classList.add("hidden"); return; }
+  const plan = hintPlan(p, g), pin = new Set(g.pinned || []);
+  box.innerHTML = plan.map(h =>
+    `<div class="hint-card open${pin.has(h.slot - 1) ? " found" : ""}" data-slot="${h.slot}" data-n="${h.n}"><span class="hk">Hint for #${h.slot}:</span> <span class="ht">${esc(h.text)}</span>${pin.has(h.slot - 1) ? ` <span class="hf">✓ found</span>` : ""}</div>`).join("");
+  const cur = [...plan].reverse().find(h => !pin.has(h.slot - 1));
+  if (!lh) return;
+  lh.classList.toggle("hidden", !cur || g.done);
+  lh.innerHTML = cur ? `<span class="lm-k">💡 Hint for #${cur.slot}</span><span>${esc(cur.text)}</span>` : "";
+  requestAnimationFrame(fitLayout);
 }
-function submitGuess(c) {
-  const p = state.puzzle, g = state.guess; if (!c || g.done || state.busy) return;
-  if (g.guesses.includes(cKey(c))) { toast(`You already guessed ${c.name}`); $("#guessInput").value = ""; closeSuggest(); return; }
-  g.guesses.push(cKey(c)); addGuessRow(c);
-  const h = hitsOf(p, g); g.hits = h; g.misses = missesOf(p, g); g.won = h >= 5; g.avgRank = avgRank(p, g);   // "won" = found all 5 (stats only)
-  if (g.won || g.misses >= p.maxMisses) { g.done = true; g.tries = g.guesses.length; }
-  setResult(g); renderTries(); renderHints(); renderTop5Board();
-  if (!inTop(p, c) && !g.done && hintPlan(p, g).some(h => h.at === g.misses)) toast("💡 New hint unlocked");
-  $("#guessInput").value = ""; closeSuggest();
-  if (g.done) {
-    g.marks = g.guesses.map(k => inTop(p, findCountry(p, k)) ? "good" : "miss");
+function decoyLine(p) {
+  const d = resolveDecoy(p); if (!d) return "";
+  const unit = p.unit ? " " + p.unit : "";
+  return `Not top 5: ${d.name} is actually #${tieRank(p, d)} (${fmt(d.value)}${unit})`;
+}
+function shakeTop5() {
+  $$("#guessGame .t5chip:not(.pinned)").forEach(el => { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); });
+}
+function submitTop5() {
+  const p = state.puzzle, g = state.guess;
+  if (!g || state.busy || g.done || !Array.isArray(g.attempts)) return;
+  if (g.cur.some(k => !k)) { toast("Fill all 5 slots"); return; }
+  const last = g.attempts[g.attempts.length - 1];
+  if (last && last.slots.join("|") === g.cur.join("|")) { toast("Move a red card first"); shakeTop5(); return; }
+  const marks = scoreTop5(p, g.cur);
+  g.attempts.push({ slots: g.cur.slice(), marks });
+  g.tries = g.attempts.length;
+  g.pinned = marks.map((m, i) => m === "good" ? i : -1).filter(i => i >= 0);
+  const solved = marks.every(m => m === "good");
+  g.solved = solved; g.won = solved; g.hits = g.pinned.length;
+  paintTop5(marks);
+  if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
+    g.done = true; g.marks = marks;
     setResult(g); if (isToday()) recordStats(g);
     CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
     trackGameCompleted(g);
-    $("#guessForm").classList.add("hidden");
+    $("#guessGame").classList.add("locked");
+    $("#t5Submit").parentElement.classList.add("hidden");
+    $("#t5Hint").classList.add("hidden");
+    renderTop5Tries(); renderHints();
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "top5");
-    afterSubmit(() => showResult(g, { scroll: true }), tier);
-  } else $("#guessInput").focus();
+    setTimeout(() => afterSubmit(() => revealTop5(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
+    return;
+  }
+  setResult(g); renderTop5Tries(); renderHints(); updateTop5Hint();
+  const left = CONFIG.rankMaxTries - g.attempts.length;
+  toast(`${g.pinned.length}/5 right · ${left} ${left === 1 ? "try" : "tries"} left`);
 }
-// --- country search box. Typing / clicking a suggestion only FILLS the input; a guess is submitted only by the Guess
-// button or Enter, and only for an exact country name (Enter on a partial name first fills in the highlighted suggestion).
-// v8: suggestions never follow the puzzle's data order (that would leak the ranking). Empty box -> no dropdown;
-// while typing -> best match first (name starts with it, then word starts with it,
-// then contains it), alphabetical within each group.
-let sugg = [], sIdx = -1;
-const byName = (a, b) => a.name.localeCompare(b.name, "en");
-function showSuggest(list, active) {
-  sugg = list; sIdx = active;
-  const ul = $("#suggest");
-  ul.innerHTML = sugg.length ? sugg.map((c, i) => `<li role="option" data-i="${i}" class="${i === sIdx ? "active" : ""}"><span>${esc(c.emoji || "🏳️")}</span>${esc(c.name)}</li>`).join("")
-    : `<li class="empty">No country in this dataset matches</li>`;
-  ul.classList.remove("hidden"); $("#guessInput").setAttribute("aria-expanded", "true");
+function revealTop5(res, animate) {
+  const p = state.puzzle;
+  if (res && Array.isArray(res.attempts) && res.attempts.length) {
+    res.cur = slotsOf(p).map(s => cKey(s.group[0]));
+    res.pinned = [0, 1, 2, 3, 4];
+    paintTop5(res.cur.map(() => "good"));
+    const out = $("#t5Out"), line = decoyLine(p);
+    if (out) { out.textContent = line; out.classList.toggle("hidden", !line); }
+    const dir = $("#t5Dir"); if (dir) dir.textContent = "The top 5";
+  }
+  if (animate) setTimeout(() => showResult(res, { scroll: true }), 420); else showResult(res);
 }
-function updateSuggest() {
-  const p = state.puzzle, q = norm($("#guessInput").value), used = new Set(state.guess.guesses);
-  const pool = p.countries.filter(c => !used.has(cKey(c)));
-  if (!q) { closeSuggest(); return; }   // v8.1: no dropdown until at least one letter is typed
-  const tier = c => { const n = norm(c.name); return n.startsWith(q) ? 0 : n.split(" ").some(w => w.startsWith(q)) ? 1 : n.includes(q) ? 2 : 9; };
-  const list = pool.filter(c => tier(c) < 9).sort((a, b) => tier(a) - tier(b) || byName(a, b)).slice(0, 8);
-  if (list.length === 1 && norm(list[0].name) === q) { closeSuggest(); return; }   // already an exact name: nothing to suggest
-  showSuggest(list, list.length ? 0 : -1);
-}
-function closeSuggest() { $("#suggest").classList.add("hidden"); $("#guessInput").setAttribute("aria-expanded", "false"); sugg = []; sIdx = -1; }
-function fillGuess(c) { $("#guessInput").value = c.name; closeSuggest(); $("#guessInput").focus(); }
-const exactTyped = () => { const q = norm($("#guessInput").value); return q ? state.puzzle.countries.find(c => norm(c.name) === q) || null : null; };
-function onGuessSubmit() {
-  const exact = exactTyped();
-  if (exact) { submitGuess(exact); return; }
-  if (sIdx >= 0 && sugg[sIdx]) { fillGuess(sugg[sIdx]); return; }   // fill only; press Guess / Enter again to submit
-  if ($("#guessInput").value.trim()) toast("Pick a country from the list");
-}
+(function top5Drag() {
+  let d = null, suppressClick = false;
+  const zone = () => $("#guessGame");
+  const root = zone(); if (!root) return;
+  root.addEventListener("pointerdown", e => {
+    const chip = e.target.closest(".t5chip");
+    if (!chip || state.guess?.done || chip.classList.contains("pinned") || e.button > 0) return;
+    d = { chip, key: chip.dataset.key, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
+  });
+  addEventListener("pointermove", e => {
+    if (!d || e.pointerId !== d.id) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 8) return;
+    if (!d.moved) {
+      d.moved = true;
+      const r = d.chip.getBoundingClientRect(), gh = d.chip.cloneNode(true);
+      gh.classList.add("t5-ghost"); gh.classList.remove("sel");
+      gh.style.width = r.width + "px"; gh.style.left = r.left + "px"; gh.style.top = r.top + "px";
+      document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top;
+      d.chip.classList.add("dragging");
+    }
+    e.preventDefault();
+    d.ghost.style.left = (e.clientX - d.ox) + "px"; d.ghost.style.top = (e.clientY - d.oy) + "px";
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest ? under.closest(".t5slot") : null;
+    const pool = under && under.closest ? under.closest("#t5pool") : null;
+    $$("#guessGame .t5slot").forEach(el => el.classList.toggle("over", el === slot && !el.classList.contains("pinned")));
+    const poolEl = $("#t5pool"); if (poolEl) poolEl.classList.toggle("over", !!pool);
+  }, { passive: false });
+  const end = e => {
+    if (!d || e.pointerId !== d.id) return;
+    const cur = d; d = null;
+    $$("#guessGame .t5slot").forEach(el => el.classList.remove("over"));
+    const poolEl = $("#t5pool"); if (poolEl) poolEl.classList.remove("over");
+    if (!cur.moved) { t5TapChip(cur.key); return; }
+    suppressClick = true;
+    setTimeout(() => { suppressClick = false; }, 400);
+    if (cur.ghost) cur.ghost.remove();
+    cur.chip.classList.remove("dragging");
+    if (e.type !== "pointerup") return;
+    const under = document.elementFromPoint(e.clientX, e.clientY);
+    const slot = under && under.closest ? under.closest(".t5slot") : null;
+    const pool = under && under.closest ? under.closest("#t5pool") : null;
+    if (slot && !slot.classList.contains("pinned")) t5Place(cur.key, +slot.dataset.slot);
+    else if (pool) t5Place(cur.key, null);
+    else paintTop5();
+  };
+  addEventListener("pointerup", end);
+  addEventListener("pointercancel", end);
+  root.addEventListener("click", e => {
+    if (suppressClick) { suppressClick = false; return; }
+    if (e.target.closest(".t5chip")) return;
+    const slot = e.target.closest(".t5slot");
+    if (slot) { t5TapSlot(+slot.dataset.slot); return; }
+    if (e.target.closest("#t5pool")) t5TapPool();
+  });
+  root.addEventListener("keydown", e => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const chip = e.target.closest(".t5chip");
+    if (chip && !chip.classList.contains("pinned")) { e.preventDefault(); t5TapChip(chip.dataset.key); return; }
+    const slot = e.target.closest(".t5slot");
+    if (!slot) return;
+    e.preventDefault();
+    t5TapSlot(+slot.dataset.slot);
+  });
+})();
+window.RankdTop5 = { slotsOf, score: scoreTop5, decoy: resolveDecoy, line: decoyLine };
 
 // ================================================================ v11: win celebrations (tiers by attempt number)
 // Rank it:  solved on try 1 = "explosive", try 2 = "big", 3+ (or not solved) = none (plain result, ads as normal).
@@ -1802,8 +2040,8 @@ function isIdentityRank(p) {
   return /\b(men|women|Black|White|Hispanic|Asian|Christian|Jewish|Muslim|Catholic|Protestant|Mixed|Chinese|Indian|Buddhist|Hindu)\b/i.test(blob);
 }
 function winTier(r) {
-  if (r.type === "rank" || r.type === "match" || r.type === "tier") return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
-  const p = state.puzzle; if (hitsOf(p, r) < 5) return null;
+  if (r.type === "rank" || r.type === "match" || r.type === "tier" || (r.type === "top5" && r.attempts)) return !r.solved ? null : r.tries === 1 ? "explosive" : r.tries === 2 ? "big" : null;
+  const p = state.puzzle; if (!r.guesses || hitsOf(p, r) < 5) return null;
   const m = missesOf(p, r); return m === 0 ? "explosive" : m <= 2 ? "big" : null;
 }
 const Fx = (() => {
@@ -1889,7 +2127,7 @@ const EMO = { good: "🟩", near: "🟨", bad: "🟥", miss: "⬜" };
 const rankGrid = r => (r.attempts || []).map(a => a.marks.map(m => EMO[m]).join("")).join("\n");
 function guessSquares(res) {
   if (!res) return "";
-  if (res.type === "rank" || res.type === "match" || res.type === "tier") return rankGrid(res);
+  if (res.type === "rank" || res.type === "match" || res.type === "tier" || (res.type === "top5" && res.attempts && res.attempts.length)) return rankGrid(res);
   return (res.marks || []).map(m => EMO[m]).join("");
 }
 let pendingResultScroll = false;
@@ -1916,11 +2154,15 @@ function showResult(res, opts) {
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
     $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? `All ${nn} matched on the first try! 🎯` : `Matched all ${nn} in ${res.tries} tries`) : `${res.points}/${nn} matched. Tricky one 😅`;
     $("#answerBox").innerHTML = matchAnswers(p, res); $("#answerBox").classList.remove("hidden");
-  } else if (res.type === "rank" || res.type === "tier") {
+  } else if (res.type === "rank" || res.type === "tier" || (res.type === "top5" && res.attempts && res.attempts.length)) {
     const max = CONFIG.rankMaxTries;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
     $("#scoreTitle").textContent = res.solved ? (res.tries === 1 ? "Perfect first try! 🎯" : res.tries <= 2 ? `Sharp! Solved in ${res.tries} tries` : `Solved in ${res.tries} tries`) : "Tricky one 😅";
-    $("#answerBox").classList.add("hidden");
+    if (res.type === "top5") {
+      const line = decoyLine(p);
+      $("#answerBox").innerHTML = line ? `<p class="t5out-line">${esc(line)}</p>` : "";
+      $("#answerBox").classList.toggle("hidden", !line);
+    } else $("#answerBox").classList.add("hidden");
   } else {
     const h = hitsOf(p, res), m = missesOf(p, res), avg = avgRank(p, res);
     $("#scoreBig").textContent = `${h}/5`;
@@ -1941,7 +2183,7 @@ function showResult(res, opts) {
   renderCommunity(p, res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
-  ["#submitBtn", "#matchSubmit", "#tierSubmit"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
+  ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
 }
 function communityCrow(label, pct, emoji) {
@@ -1973,7 +2215,7 @@ function flagEmoji(code) {
 }
 function communityOrderList(bars, p) {
   if (!bars.length) return "";
-  if (p.type === "top5") {
+  if (p.type === "top5" && !bars.some(bar => bar.slot)) {
     const bar = bars[0];
     const emoji = bar.emoji || communityEmojiOf(p, bar.name);
     const name = bar.name || bar.label || "";
@@ -1995,10 +2237,14 @@ function fillCommunitySeed(data, p) {
   // (seeded: false) keeps whatever the snapshot computed, including an empty board.
   if (!data || !p || !seed || data.seeded === false) return data;
   const type = p.type || data.type || "rank";
-  if (!Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, type);
   const standing = data.standing;
-  if (!standing || !standing.byTries || !standing.failed || standing.avgTries == null) {
-    const firstOf = type === "top5" ? 1 : (p.items || p.people || []).length;
+  // Old Top 5 seeds counted guesses (5–15). The slot game is five tries, same scale as Rank it.
+  const staleTop5 = type === "top5" && standing && standing.byTries && (
+    Object.keys(standing.byTries).some(k => Number(k) > 5) || Object.keys(standing.failed || {}).some(k => Number(k) > 5)
+  );
+  if (staleTop5 || !Array.isArray(data.countryBoard)) data.countryBoard = seed.countryBoard(p.id, type);
+  if (staleTop5 || !standing || !standing.byTries || !standing.failed || standing.avgTries == null) {
+    const firstOf = type === "top5" ? 5 : (p.items || p.people || []).length;
     data.standing = seed.standingBlock(p.id, Number(data.players) || 0, type, firstOf);
   }
   return data;
@@ -2022,11 +2268,10 @@ function communityCountrySection(data, code, p) {
 function communityLeaderboard(data, p) {
   const seed = window.RankdSeed;
   const rows = seed ? seed.topCountries(data.countryBoard, COMMUNITY_MIN_COUNTRY, 5) : [];
-  const top5 = p.type === "top5";
-  const note = top5 ? "Fewest guesses on this puzzle" : "Fewest tries on this puzzle";
+  const note = "Fewest tries on this puzzle";
   if (!rows.length) return `<h3 class="community-sec">Top countries</h3><p class="community-empty">Not enough plays from any one country yet.</p>`;
   const items = rows.map(row => {
-    return `<li><span class="fl">${esc(flagEmoji(row.code))}</span><span class="nm">${esc(regionName(row.code))}</span><span class="meta">${esc(triesLabel(row.avgTries, top5, 1))}</span></li>`;
+    return `<li><span class="fl">${esc(flagEmoji(row.code))}</span><span class="nm">${esc(regionName(row.code))}</span><span class="meta">${esc(triesLabel(row.avgTries, false, 1))}</span></li>`;
   }).join("");
   return `<h3 class="community-sec">Top countries</h3><p class="community-note">${esc(note)}</p><ol class="country-board">${items}</ol>`;
 }
@@ -2529,8 +2774,8 @@ function recordStats(res) {
   const s = load(LS.stats, { played: 0, wins: 0, streak: 0, best: 0, lastDay: null, dist: {} });
   const dn = dayNumber(state.dateKey); if (s.lastDay === dn) return;
   s.streak = s.lastDay === dn - 1 ? s.streak + 1 : 1; s.best = Math.max(s.best, s.streak); s.lastDay = dn; s.played++;
-  const win = res.type === "rank" || res.type === "match" || res.type === "tier" ? res.solved : res.won; if (win) s.wins++;
-  const k = res.type === "rank" ? (res.solved ? `Rank in ${res.tries}` : "Rank ✗") : res.type === "match" ? (res.solved ? `Match in ${res.tries}` : "Match ✗") : res.type === "tier" ? (res.solved ? `Tier in ${res.tries}` : "Tier ✗") : `Top 5: ${res.hits}/5`;
+  const win = res.type === "rank" || res.type === "match" || res.type === "tier" || (res.type === "top5" && res.attempts) ? res.solved : res.won; if (win) s.wins++;
+  const k = res.type === "rank" ? (res.solved ? `Rank in ${res.tries}` : "Rank ✗") : res.type === "match" ? (res.solved ? `Match in ${res.tries}` : "Match ✗") : res.type === "tier" ? (res.solved ? `Tier in ${res.tries}` : "Tier ✗") : (res.attempts ? (res.solved ? `Top 5 in ${res.tries}` : "Top 5 ✗") : `Top 5: ${res.hits}/5`);
   s.dist[k] = (s.dist[k] || 0) + 1; save(LS.stats, s);
 }
 function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; const dn = dayNumber(todayKey()); return (s.lastDay === dn || s.lastDay === dn - 1) ? s.streak : 0; }
@@ -2616,7 +2861,7 @@ const fullTitle = p => p.headline && p.question && p.headline !== p.question ? `
 function shareTitle() { return state.mode === "preview" ? `${CONFIG.brand} preview` : state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
 function challengeText() {
   const p = state.puzzle;
-  return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "top5" ? `Guess the top 5: how many of the top 5 can you name before ${p.maxMisses} misses?` : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
+  return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
 }
 function resultText() {
   const p = state.puzzle; let r = getResult(); if (p.type === "rank") r = normRank(r); if (!r || !r.done) return "";
@@ -2624,8 +2869,8 @@ function resultText() {
     const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})`;
     return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
   }
-  if (p.type === "rank" || p.type === "tier") {
-    const kind = p.type === "tier" ? "Tier it" : "";
+  if (p.type === "rank" || p.type === "tier" || (p.type === "top5" && r.attempts && r.attempts.length)) {
+    const kind = p.type === "tier" ? "Tier it" : p.type === "top5" ? "Top 5" : "";
     const line = r.solved ? `${p.emoji || ""} ${kind ? kind + ": " : ""}solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}` : `${p.emoji || ""} ${kind ? kind + ": " : ""}X/${CONFIG.rankMaxTries}`;
     return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
   }
@@ -2705,11 +2950,11 @@ function fitLayout() {
     // Tier it on phone: always hide subtitle + stat (4 rows + chip pool need the room). Match-7: only if still tight.
     if (hero.classList.contains("is-tier")) hero.classList.add("q-drop");
     let natural = hero.scrollHeight;
-    if (natural > avail && hero.classList.contains("is-match7")) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
+    if (natural > avail && (hero.classList.contains("is-match7") || hero.classList.contains("is-top5"))) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
     hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";
     if (b.classList.contains("kb") && scrollY > 0 && !(vv && vv.offsetTop)) window.scrollTo(0, 0);
     const share = $("#shareChallengeTop");
-    const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
+    const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
     if (share && share.closest(".under-card")) share.closest(".under-card").classList.toggle("lock-covered", locks.some(btn => boxesOverlap(btn, share)));
     parkFab();
   } finally {
@@ -2729,7 +2974,8 @@ if (window.ResizeObserver) {
   ["#hero", "#cards", "#mClues", "#mPeople", "#tierBoard", "#t5board", "#art"].forEach(sel => { const el = $(sel); if (el) ro.observe(el); });
 }
 function extraSheet() {
-  openModal(`<h2>Hints &amp; guesses</h2><div class="hints">${$("#hints").innerHTML}</div><ol class="guesses">${$("#guesses").innerHTML}</ol>`);
+  const hints = $("#hints") ? $("#hints").innerHTML : "";
+  openModal(`<h2>Hints</h2><div class="hints">${hints || "<p>No hints yet. Each missed lock reveals one.</p>"}</div>`);
   $("#modal").classList.add("sheet");
 }
 window.RankdFit = { sync: syncPlaying, layout: fitLayout };
@@ -2840,10 +3086,11 @@ function maybeShowHowto() {
 }
 
 // ================================================================ views / navigation
-// Play-board rows. Standard Rank it is 6; 7-row boards (Girlboss) are taller. Top 5 is five slots.
+// Play-board rows. Standard Rank it is 6; 7-row boards (Girlboss) are taller.
+// Top 5 is five slots plus a chip pool, so it is as tall as a 6-row board (archive banner stays off).
 function playRows(p) {
   if (!p) return 6;
-  if (p.type === "top5") return 5;
+  if (p.type === "top5") return 6;
   if (p.type === "match") return (p.people || []).length;
   if (p.type === "tier") return (p.tiers || []).length;
   return (p.items || []).length;
@@ -2889,9 +3136,7 @@ function locksComfortable() {
   const viewTop = vv ? vv.offsetTop : 0;
   const viewBot = viewTop + (vv ? vv.height : innerHeight);
   const share = $("#shareChallengeTop");
-  const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
-  const guess = $("#guessBtn");
-  if (guess && guess.offsetParent && !$("#guessGame").classList.contains("hidden")) locks.push(guess);
+  const locks = ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit"].map(id => $(id)).filter(btn => btn && btn.offsetParent);
   if (!locks.length) return true;
   const phone = document.body.classList.contains("fit");
   for (const btn of locks) {
@@ -3018,12 +3263,13 @@ function goArchive() {
       else if (mine && mine.type === "rank") badge = `<span class="ar">In progress</span>`;
       else if (mine && mine.type === "match") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
       else if (mine && mine.type === "tier") badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
+      else if (mine && mine.type === "top5" && mine.attempts) badge = mine.done ? (mine.solved ? `<span class="ar done">✓ in ${mine.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`) : `<span class="ar">In progress</span>`;
       else if (mine && mine.done) badge = mine.type === "rank" ? ""
         : `<span class="ar ${mine.won ? "done" : ""}">🖐️ ${mine.hits || 0}/5</span>`;
       else if (mine) badge = `<span class="ar">In progress</span>`;
     }
     rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
-      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Guess the top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
+      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(p.headline || p.question)}</span>${p.headline && p.headline !== p.question ? `<span class="asub">${esc(p.question)}</span>` : ""}<small>${p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it"}</small></span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
   $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
@@ -3157,9 +3403,9 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
     <p class="plist-empty hidden" id="plistEmpty" role="status"></p>
     <div class="plist">${PUZZLES.map((p, i) => { const r = all["p:" + p.id];
     const rr = r && r.type === "rank" ? normRank(r) : r, o = Math.round(p.order);
-    const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
+    const b = rr && rr.done ? (rr.type === "rank" || rr.type === "match" || rr.type === "tier" || (rr.type === "top5" && rr.attempts) ? (rr.solved ? `✓ ${rr.tries}` : "✗") : `🖐️ ${rr.hits || 0}/5`) : "";
     const when = o < 10000 ? `#${pad3(o)} · ${prettyDate(keyFromDay(o - 1)).replace(/, \d{4}$/, "")}${o > today ? " · future" : o === today ? " · today" : ""}` : "";
-    const k = kind(p), kl = { rank: "Rank it", rank6: `Rank it · ${p.items.length} countries`, top5: "Guess the top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
+    const k = kind(p), kl = { rank: "Rank it", rank6: `Rank it · ${p.items.length} countries`, top5: "Top 5", match: `Match it · ${(p.people || []).length} pairs`, tier: `Tier it · ${(p.tiers || []).length} tiers`, incountry: "Rank it · groups" }[k];
     return `<button data-i="${i}" data-k="${k}"><span class="pl-main"><b>${esc(p.emoji)} ${esc(p.headline || p.question)}</b>${p.headline && p.headline !== p.question ? `<span class="pl-sub">${esc(p.question)}</span>` : ""}<small class="pl-meta">${kl}${when ? " · " + when : ""}</small></span><span class="done">${b}</span></button>`; }).join("")}</div>`);
   let kf = "any";
   const apply = () => {
@@ -3184,11 +3430,11 @@ function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + futu
 function howModal() {
   openModal(`<h2>How to play</h2>
    <p><b>Rank it:</b> drag the cards (or tap ▲▼) into order and lock it in. Cards in the right spot turn 🟩 green and lock; the rest turn 🟥 red. Rearrange and lock in again. You get ${CONFIG.rankMaxTries} tries. The real numbers are always listed together in a column beside the cards; match each item to its value.</p>
-   <p><b>🖐️ Guess the top 5:</b> name as many of the top 5 countries as you can. Correct guesses are free; you can miss 10 times. Type a country, pick it from the list, then press <i>Guess</i> (or Enter). Each guess shows its real world rank and value: ✅ a hit, ⬜ a miss.</p>
+   <p><b>🖐️ Top 5:</b> six country cards, the real top 5 plus one that does not belong. Drag them into the five slots (highest at #1), or tap a card and then a slot, and leave the odd one out. Lock it in. Right slots turn 🟩 green and lock; wrong ones turn 🟥 red. You get ${CONFIG.rankMaxTries} tries.</p>
    <p><b>🔗 Match it:</b> match each clue (4 to 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
-   <p>Score: how many of the 5 you find (X/5), plus <i>avg rank</i>, the average world rank of all your guesses (lower = closer). Every miss reveals a hint: one fact about the highest-ranked top-5 country you haven't found yet, getting more specific each time (continent, then population, then GDP per person, then its capital, then its first letter). A correct guess doesn't spend a hint.</p>
-   <p>🎉 Solve a Rank it or Match it on the 1st or 2nd try (or find all 5 with at most 2 misses) for a celebration. First try = the big one.</p>
+   <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
+   <p>🎉 Solve on the 1st or 2nd try for a celebration. First try = the big one.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {
@@ -3228,14 +3474,13 @@ async function handleFiles(files) {
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
 
 // ================================================================ wire up
-$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
+$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
 $("#menuBtn").onclick = menuModal;
-$("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); setTimeout(fitLayout, 350); });
-$("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
+$("#modalClose").onclick = closeModal;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
@@ -3253,19 +3498,9 @@ document.addEventListener("keydown", e => {
     if (p.type === "rank" && !$("#submitBtn").parentElement.classList.contains("hidden")) { e.preventDefault(); submitRank(); }
     else if (p.type === "match" && !$("#matchSubmit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitMatch(); }
     else if (p.type === "tier" && !$("#tierSubmit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitTier(); }
+    else if (p.type === "top5" && $("#t5Submit") && !$("#t5Submit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitTop5(); }
   }
 });
-// guess input
-const gi = $("#guessInput");
-gi.addEventListener("input", updateSuggest);
-gi.addEventListener("keydown", e => {
-  if (e.key === "ArrowDown" || e.key === "ArrowUp") { if (!sugg.length) return; e.preventDefault(); sIdx = (sIdx + (e.key === "ArrowDown" ? 1 : -1) + sugg.length) % sugg.length;
-    $$("#suggest li").forEach((li, i) => li.classList.toggle("active", i === sIdx)); }
-  else if (e.key === "Escape") closeSuggest();
-});
-gi.addEventListener("blur", () => setTimeout(closeSuggest, 150));
-$("#suggest").addEventListener("mousedown", e => { const li = e.target.closest("li[data-i]"); if (li) { e.preventDefault(); fillGuess(sugg[+li.dataset.i]); } });   // fill only, never submit
-$("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 
 applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }

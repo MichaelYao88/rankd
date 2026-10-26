@@ -127,15 +127,13 @@
   function standingBlock(puzzleId, players, type, firstOf) {
     const n = Math.max(0, Math.round(Number(players) || 0));
     const rng = rngFor(String(puzzleId) + ":standing");
-    const top5 = type === "top5";
-    const of = top5 ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
-    const tryKeys = top5 ? [5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] : [1, 2, 3, 4, 5];
-    const base = top5
-      ? [1, 2, 4, 7, 10, 12, 11, 9, 6, 4, 8]
-      : [10, 28, 28, 16, 8, 10];
+    // Top 5 locks five slots. A country-list length passed in by mistake is not the denominator.
+    const of = type === "top5" ? 5 : Math.max(2, Math.round(Number(firstOf) || 5));
+    const tryKeys = [1, 2, 3, 4, 5];
+    const base = [10, 28, 28, 16, 8, 10];
     const counts = distribute(n, base.map(w => w * (0.84 + rng() * 0.32)));
-    const failCount = top5 ? counts[counts.length - 1] : counts[5];
-    const solvedCounts = top5 ? counts.slice(0, -1).concat([0]) : counts.slice(0, 5);
+    const failCount = counts[5];
+    const solvedCounts = counts.slice(0, 5);
     const byTries = {};
     const failed = {};
     let tryWeighted = 0, firstWeighted = 0, accWeighted = 0, accN = 0;
@@ -150,37 +148,26 @@
     tryKeys.forEach((tries, i) => {
       const count = solvedCounts[i] || 0;
       let peak;
-      if (!top5 && tries === 1) peak = 100;
-      else if (top5) {
-        /* Guess count → misses past a perfect 5. Centers sit a little under
-           the middle of that try's accuracy band. */
-        const misses = Math.max(0, tries - 5);
-        const center = [100, 84, 60, 36, 12, 6, 4, 3, 3, 2][misses];
-        peak = (center == null ? 2 : center) + (rng() - 0.5) * 3;
-      } else {
+      if (tries === 1) peak = 100;
+      else {
         const center = { 2: 86, 3: 60, 4: 35, 5: 12 }[tries] || 8;
         peak = center + (rng() - 0.5) * 3;
       }
-      if (!top5 && tries === 1) peak = 100;
+      if (tries === 1) peak = 100;
       else peak = Math.max(2, Math.min(96, peak));
-      take(tries, count, peak, byTries, !top5 && tries === 1);
-      let first;
-      if (top5) first = Math.max(0.16, Math.min(0.5, 0.42 - (tries - 8) * 0.02));
-      else if (tries === 1) first = of;
-      else first = Math.max(0.3, of * (0.46 - (tries - 2) * 0.08));
+      take(tries, count, peak, byTries, tries === 1);
+      const first = tries === 1 ? of : Math.max(0.3, of * (0.46 - (tries - 2) * 0.08));
       firstWeighted += count * first;
     });
-    const failTries = top5 ? 15 : 5;
-    take(failTries, failCount, 3, failed, false);
-    if (top5) firstWeighted += failCount * 0.12;
-    else firstWeighted += failCount * Math.max(0.25, of * 0.16);
+    take(5, failCount, 3, failed, false);
+    firstWeighted += failCount * Math.max(0.25, of * 0.16);
     const avgTries = n ? tryWeighted / n : 0;
     const avgFirst = n ? firstWeighted / n : 0;
     const avgAccuracy = accN ? accWeighted / accN : 0;
     return {
       n,
       seeded: true,
-      kind: top5 ? "top5" : "order",
+      kind: type === "top5" ? "top5" : "order",
       avgTries: Math.round(avgTries * 100) / 100,
       avgFirst: Math.round(avgFirst * 100) / 100,
       firstOf: of,
@@ -197,7 +184,6 @@
       const j = Math.floor(rng() * (i + 1));
       const swap = pool[i]; pool[i] = pool[j]; pool[j] = swap;
     }
-    const top5 = type === "top5";
     const rows = [];
     for (let i = 0; i < 8; i++) {
       const thin = i >= 6;
@@ -205,9 +191,9 @@
          stay at 1 or 2 so a tiny real sample cannot take the top spot. */
       const players = thin ? 1 + Math.floor(rng() * 2) : BOARD_SEED_PLAYS + Math.floor(rng() * 3);
       let avg;
-      if (thin && i === 6) avg = top5 ? 6.2 : 1.6;
-      else avg = top5 ? 8.4 + rng() * 5.2 : 2.35 + rng() * 1.75;
-      if (!thin) avg = top5 ? Math.max(7.6, Math.min(14.2, avg)) : Math.max(2.2, Math.min(4.15, avg));
+      if (thin && i === 6) avg = 1.6;
+      else avg = 2.35 + rng() * 1.75;
+      if (!thin) avg = Math.max(2.2, Math.min(4.15, avg));
       rows.push({
         code: pool[i],
         players,
@@ -349,7 +335,7 @@
     const leaders = new Set();
     ids.forEach(id => {
       const type = id.startsWith("top5") ? "top5" : "rank";
-      const block = standingBlock(id, 900, type, type === "top5" ? 1 : 5);
+      const block = standingBlock(id, 900, type, 5);
       const solvedN = Object.values(block.byTries).reduce((a, h) => a + h.reduce((x, y) => x + y, 0), 0);
       const failedN = Object.values(block.failed).reduce((a, h) => a + h.reduce((x, y) => x + y, 0), 0);
       if (solvedN + failedN !== 900) throw new Error(id + " hist sum " + (solvedN + failedN));
@@ -362,22 +348,18 @@
       if (close3 < 50 || close3 > 74 || close3 >= close2) throw new Error("try 3 band " + close3);
       const unfinished = combineAccuracy([0.2, 0.05], false);
       if (unfinished !== 0 || unfinished >= close2) throw new Error("failure not below a finish");
-      if (type === "top5") {
-        if (block.avgTries < 8.5 || block.avgTries > 13) throw new Error(id + " guesses " + block.avgTries);
-        if (block.avgAccuracy < 8 || block.avgAccuracy > 40) throw new Error(id + " acc " + block.avgAccuracy);
-      } else {
-        if (block.avgTries < 2.8 || block.avgTries > 3.6) throw new Error(id + " tries " + block.avgTries);
-        if (block.avgAccuracy < 50 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
-        if (block.avgFirst < 1.2 || block.avgFirst > 3.2) throw new Error(id + " first " + block.avgFirst);
-        const good = betterThan(block, 2, 80, true);
-        const poor = betterThan(block, 5, 30, false);
-        const perfect = betterThan(block, 1, 100, true);
-        const lastTry = betterThan(block, 5, 40, true);
-        if (good < 68 || good > 86) throw new Error(id + " good " + good);
-        if (poor > 25) throw new Error(id + " poor " + poor);
-        if (perfect !== 99) throw new Error(id + " perfect " + perfect);
-        if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
-      }
+      if (block.avgTries < 2.8 || block.avgTries > 3.6) throw new Error(id + " tries " + block.avgTries);
+      if (block.avgAccuracy < 50 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
+      if (block.avgFirst < 1.2 || block.avgFirst > 3.2) throw new Error(id + " first " + block.avgFirst);
+      const good = betterThan(block, 2, 80, true);
+      const poor = betterThan(block, 5, 30, false);
+      const perfect = betterThan(block, 1, 100, true);
+      const lastTry = betterThan(block, 5, 40, true);
+      if (good < 68 || good > 86) throw new Error(id + " good " + good);
+      if (poor > 25) throw new Error(id + " poor " + poor);
+      if (perfect !== 99) throw new Error(id + " perfect " + perfect);
+      if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
+      if (type === "top5" && (block.firstOf !== 5 || Object.keys(block.byTries).some(k => Number(k) > 5))) throw new Error(id + " still counts guesses");
       const mid = platformCount(0.5);
       if (mid.n !== 9 || mid.band !== 4 || mid.winner) throw new Error("platform center " + mid.n + " " + mid.band);
       const high = platformCount(0.9);
@@ -392,9 +374,7 @@
         if (shown[i].avgTries < shown[i - 1].avgTries) throw new Error(id + " not sorted by tries");
       }
       shown.forEach(r => {
-        if (type === "top5") {
-          if (r.avgTries < 7 || r.avgTries > 15) throw new Error(id + " guesses " + r.avgTries);
-        } else if (r.avgTries < 2.1 || r.avgTries > 4.2) throw new Error(id + " tries " + r.avgTries);
+        if (r.avgTries < 2.1 || r.avgTries > 4.2) throw new Error(id + " tries " + r.avgTries);
       });
       const fastestThin = Math.min.apply(null, hidden.map(r => r.avgTries));
       if (!(fastestThin < shown[0].avgTries)) throw new Error(id + " thin country was not faster than the leader");
@@ -476,8 +456,8 @@
     const matchRow = standingBlock("match-foreign-relations", 900, "match", 4);
     if (tierRow.firstOf !== 6 || matchRow.firstOf !== 4) throw new Error("tier/match width");
     const topRow = standingBlock("top5-demo", 900, "top5", 80);
-    if (topRow.firstOf !== 1 || topRow.avgFirst < 0.15 || topRow.avgFirst > 0.55) {
-      throw new Error("top5 first " + topRow.firstOf + " " + topRow.avgFirst);
+    if (topRow.firstOf !== 5 || topRow.avgFirst < 1.2 || topRow.avgFirst > 3.5) {
+      throw new Error("top5 slots " + topRow.firstOf + " " + topRow.avgFirst);
     }
     const scaled = scaleAvgFirst(1.66, 4, 6);
     if (scaled.firstOf !== 6 || scaled.avg !== 2.5) throw new Error("scale " + scaled.avg + "/" + scaled.firstOf);
@@ -495,7 +475,7 @@
       if (row.seeded === false) return;
       const type = row.type || "rank";
       const named = row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0;
-      const width = type === "top5" ? 1 : (Number(row.rowCount) || named);
+      const width = type === "top5" ? 5 : (Number(row.rowCount) || named);
       row.countryBoard = countryBoard(pid, type);
       row.standing = standingBlock(pid, row.players || 0, type, width);
       delete row.rowCount;
