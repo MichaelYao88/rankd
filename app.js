@@ -616,7 +616,7 @@ function sheetTypeOf(headers) {
 }
 
 const FAMOUS = ["United States", "China", "India", "Japan", "Brazil", "Russia", "United Kingdom", "Germany", "France", "Mexico", "Italy", "Canada", "Australia", "South Korea", "Spain", "Turkey", "Saudi Arabia", "Egypt", "Nigeria", "South Africa", "Argentina", "Indonesia", "Sweden", "Israel", "Iran", "Netherlands", "Switzerland", "Norway", "Poland", "Ukraine", "Pakistan", "Thailand", "Vietnam", "Kenya", "Ireland", "Greece", "Cuba", "Jamaica", "New Zealand", "Portugal", "Denmark", "Finland", "England"];   // v11: preferred (recognizable) countries for title flags, same list as build.py
-const MIN_TOP5_COUNTRIES = 38;   // Top 5 needs >= 38 countries to draw a decoy from (else auto Rank it)
+const MIN_TOP5_COUNTRIES = 6;   // Top 5 is six cards (the top 5 plus one decoy). Shorter lists become a sampled Rank it.
 function countryBeats(a, b) {
   return a.value > b.value || (a.value === b.value && a.exact != null && b.exact != null && a.exact > b.exact);
 }
@@ -2102,8 +2102,12 @@ function renderHints() {
 }
 function decoyLine(p) {
   const d = resolveDecoy(p); if (!d) return "";
-  const unit = p.unit ? " " + p.unit : "";
-  return `Not top 5: ${d.name} is actually #${tieRank(p, d)} (${fmt(d.value)}${unit})`;
+  let shown;
+  if (isPercent(p)) {
+    const rest = String(p.unit || "").startsWith("%") ? String(p.unit).slice(1).trim() : "";
+    shown = `${fmt1(d.value)}%${rest ? " " + rest : ""}`;
+  } else shown = `${fmt(d.value)}${p.unit ? " " + p.unit : ""}`;
+  return `Not top 5: ${d.name} is actually #${tieRank(p, d)} (${shown})`;
 }
 function shakeTop5() {
   $$("#guessGame .t5chip:not(.pinned)").forEach(el => { el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); });

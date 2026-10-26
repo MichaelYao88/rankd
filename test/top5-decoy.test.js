@@ -23,7 +23,7 @@ function slots(countries) {
 }
 
 test("every Top 5 puzzle has a same-list decoy outside the top 5", () => {
-  assert.equal(puzzles.length, 8);
+  assert.equal(puzzles.length, 9);
   for (const p of puzzles) {
     assert.ok(p.decoy, p.id + " missing decoy");
     const c = p.countries.find(x => x.iso3 === p.decoy.iso3 || x.name === p.decoy.name);
@@ -46,7 +46,7 @@ test("top5_puzzles.csv and puzzles.xlsx carry the same decoy columns", () => {
   for (const col of ["decoy_country", "decoy_iso3", "decoy_emoji", "decoy_value", "decoy_rank"]) {
     assert.ok(header.split(",").includes(col), col);
   }
-  assert.equal(lines.length, 8);
+  assert.equal(lines.length, 9);
   const { execFileSync } = require("child_process");
   const out = execFileSync("python3", ["-c", `
 import openpyxl
@@ -59,10 +59,10 @@ missing = [c for c in need if c not in head]
 assert not missing, missing
 idx = {h:i for i,h in enumerate(head)}
 body = [r for r in rows[1:] if r[0]]
-assert len(body)==8
+assert len(body)==9
 for r in body:
     assert r[idx["decoy_country"]] and r[idx["decoy_rank"]] >= 6
 print("ok", len(body))
 `], { cwd: root, encoding: "utf8" });
-  assert.match(out, /ok 8/);
+  assert.match(out, /ok 9/);
 });

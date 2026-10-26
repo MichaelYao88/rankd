@@ -204,7 +204,7 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
   const scheduled = appBox.window.RankdShared.puzzles;
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
-  const tail = scheduled.slice(-6).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 6 + i), order: Math.round(p.order) }));
+  const tail = scheduled.slice(-8).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 8 + i), order: Math.round(p.order) }));
   assert.equal(JSON.stringify(tail), JSON.stringify([
     { id: "name-hdi-s", date: "2027-03-18", order: 164 },
     { id: "name-pop-stan-land-m", date: "2027-03-19", order: 165 },
@@ -212,6 +212,8 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
     { id: "name-forest-c", date: "2027-03-21", order: 167 },
     { id: "cannabis-use", date: "2027-03-22", order: 168 },
     { id: "cocaine-use", date: "2027-03-23", order: 169 },
+    { id: "ipsos-gender-identity", date: "2027-03-24", order: 170 },
+    { id: "ipsos-gender-identity-b", date: "2027-03-25", order: 171 },
   ]));
   const high = scheduled.find(p => p.id === "cannabis-use");
   assert.equal(high.sensitive, true);
