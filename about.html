@@ -2,7 +2,12 @@
 <html lang="en">
 <head>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ranki">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ranki.gg">
   <meta property="og:url" content="https://ranki.gg/about.html">
@@ -27,6 +32,7 @@
 <link rel="stylesheet" href="styles.css">
 <script src="site-config.js"></script>
 <script src="pages.js"></script>
+<script src="pwa.js"></script>
 </head>
 <body class="static-page">
 <header class="page-top"><a class="hero-brand" href="index.html">Ranki.gg</a><a class="play-link" href="index.html">Play today's puzzle →</a></header>
@@ -42,7 +48,7 @@ test. Sometimes your gut is right. Often it isn't, and that moment of "wait, rea
 <h2>Three ways to play</h2>
 <ul>
   <li><b>Rank it:</b> put five or six countries or groups in order, from highest to lowest, using the real values shown beside the cards. You get five tries, and right answers lock in place as you go.</li>
-  <li><b>Guess the top 5:</b> name the five countries at the top of a list (say, the biggest tea drinkers) from every country with data. You can miss ten times, and each miss reveals a hint.</li>
+  <li><b>Top 5:</b> six countries from one list — the real top 5 plus a decoy that ranks lower. Put the five in order and leave the decoy out. Five tries, same as Rank it.</li>
   <li><b>Match it:</b> match four to seven clues to the right person or country. The clues are true, sourced and often hard to believe.</li>
   <li><b>Tier it:</b> drop countries onto labeled tiers when several share the same value (for example Pew religion mentions). Right tiers lock green; you get five tries.</li>
 </ul>

@@ -12,7 +12,7 @@ const fmtDate = k => new Date(k + "T12:00:00Z").toLocaleDateString("en-US", { we
 const num = v => typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : esc(v);
 const P = S.puzzles, today = S.todayKey(), tn = S.dayNumber(today);
 
-const modeOf = p => p.type === "match" ? ["Match it", `${p.people.length} pairs`] : p.type === "top5" ? ["Guess the top 5", `${p.countries.length} countries`]
+const modeOf = p => p.type === "match" ? ["Match it", `${p.people.length} pairs`] : p.type === "top5" ? ["Top 5", "6 countries"]
   : p.type === "tier" ? ["Tier it", `${p.tiers.length} tiers · ${p.items.length} items`]
   : ["Rank it", `${p.items.length} ${p.items.every(x => /^(\p{RI}\p{RI}|\u{1F3F4}[\u{E0020}-\u{E007F}]+)$/u.test(x.emoji || "")) ? "countries" : "groups"}`];
 const days = P.map((p, n) => ({ p, n, key: S.keyFromDay(n) }));
