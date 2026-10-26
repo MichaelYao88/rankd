@@ -96,13 +96,20 @@ window.RankdData = RankdData;
 // pctPerfect is "solved perfectly (first-try / full clear)". The results panel does not draw those
 // percents: it shows the consensus ordering, a country board ranked by fewest tries, and the player's
 // tries with a small accuracy line.
-// A country under COMMUNITY_MIN_COUNTRY plays is skipped.
-// Accuracy starts at 100 and drops by the normalized rank distance of every imperfect guess.
-// A perfect guess costs nothing. An unfinished puzzle takes an extra drop so it ranks under
-// every finish. Platforms rank by tries, then accuracy, with failures at the bottom.
+// The leaderboard skips a country under COMMUNITY_MIN_COUNTRY plays. Seeded
+// countries carry about 9 plays and those count, so they still appear. One or
+// two real plays with no seed stay off the board. The per-country ordering is
+// a 1-play seed and shows from the first play, so real submits replace it
+// immediately. "Your score vs average" and "better than" use the full standing
+// crowd, not that 1-play seed — a single seeded play would pin the percentile
+// at 0 or 99.
+// Accuracy starts at 100 and drops with each extra try. How far a miss was only
+// moves the score inside that try's band. An unfinished game scores 0, under
+// every finish of 1 or more; ranking also keeps those games below every finish.
+// Platforms rank by tries, then accuracy, with failures at the bottom.
 // When the snapshot has no countryBoard or standing yet, RankdSeed fills a distribution that
-// sits a little under a typical clear. Real plays replace that puzzle once
-// rebuild_community_snapshot.py sees enough of them.
+// sits a little under a typical clear. Real plays mix into the seed, and replace that
+// puzzle once rebuild_community_snapshot.py sees enough of them for a stable percentile.
 // Practice hides compare and is not inserted. Studio never starts the game.
 // ?preview= is the Loading Zone sandbox ("doesn't count"; ads and the sister-game
 // card already skip it) so those finishes are not inserted either. Streamer mode
@@ -112,7 +119,7 @@ window.RankdData = RankdData;
 // Country is not sent by the client. submit-play derives an ISO code and drops the IP.
 // ================================================================
 const COMMUNITY_STATS_FALLBACK = "community-stats.json";
-const COMMUNITY_MIN_COUNTRY = 20;
+const COMMUNITY_MIN_COUNTRY = (window.RankdSeed && window.RankdSeed.MIN_COUNTRY) || 9;
 const GEO_LS = "rankd.country.v1";
 const GEO_TTL_MS = 12 * 60 * 60 * 1000;
 const GEO_NEG_TTL_MS = 10 * 60 * 1000;
@@ -231,8 +238,8 @@ function attemptDistance(p, type, attempt) {
   }
   return null;
 }
-// Plain results plus accuracy across every guess. A perfect guess costs nothing;
-// each miss subtracts its normalized rank distance from 100.
+// Plain results plus accuracy. The try count sets the band; rank distance
+// only fine-tunes inside it. The (?) copy does not mention unfinished games.
 function resultCard(p, result) {
   if (!p || !result || !window.RankdSeed) return null;
   const type = result.type || p.type;
@@ -254,9 +261,9 @@ function resultCard(p, result) {
       solved,
       firstCorrect: first && inTop(p, first) ? 1 : 0,
       firstOf: 1,
-      accuracy: window.RankdSeed.combineAccuracy(distances, solved),
+      accuracy: window.RankdSeed.combineAccuracy(distances, solved, "top5"),
       kind: "top5",
-      tip: "Accuracy starts at 100 and drops for every miss by how far that country was from the top 5, with an extra drop if you don't find them all.",
+      tip: "Accuracy starts at 100 and drops with each extra miss, less if that miss was close.",
     };
   }
   const attempts = result.attempts || [];
@@ -269,17 +276,14 @@ function resultCard(p, result) {
   }
   const marks = (attempts[0] && attempts[0].marks) || [];
   if (!marks.length) return null;
-  const tips = {
-    rank: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right order, with an extra drop if you don't finish.",
-    tier: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right tiers, with an extra drop if you don't finish.",
-    match: "Accuracy starts at 100 and drops for each imperfect guess by how far it was from the right people, with an extra drop if you don't finish.",
-  };
+  const tip = "Accuracy starts at 100 and drops with each extra try, less if your guesses were close.";
+  const tips = { rank: tip, tier: tip, match: tip };
   return {
     tries: result.tries,
     solved: !!result.solved,
     firstCorrect: marks.filter(m => m === "good").length,
     firstOf: marks.length,
-    accuracy: window.RankdSeed.combineAccuracy(distances, !!result.solved),
+    accuracy: window.RankdSeed.combineAccuracy(distances, !!result.solved, type),
     kind: "order",
     tip: tips[type] || tips.rank,
   };
@@ -1331,7 +1335,7 @@ function revealRank(res, animate) {
     li.querySelector(".yourpick").textContent = res.solved ? (res.tries === 1 ? "✓ first try" : "✓ solved") : markOf[i] === "good" ? "✓ you had it right" : `you put it #${userPos[i] + 1}`;
     li.classList.add("revealed"); if (animate) li.classList.add("pop");
   }, animate ? 200 + n * 160 : 0));
-  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => showResult(res), 1150 + right.length * 160); }
+  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => showResult(res, { scroll: true }), 1150 + right.length * 160); }
   else { doMove(); fill(); showResult(res); }
 }
 
@@ -1429,7 +1433,7 @@ function revealMatch(res, animate) {
     li.querySelector(".m-target").innerHTML = `${flagHtml(p.people[k])}<span class="tn"> ${esc(shortName(p.people[k]))}</span>${ok ? "" : ` <s>${flagHtml(p.people[last.assign[k]])}<span class="tn">${esc(shortName(p.people[last.assign[k]]))}</span></s>`}`;
     if (animate) setTimeout(() => li.classList.add("pop"), 120 * n); });
   $$("#mPeople .m-person").forEach(b => { const i = +b.dataset.p; b.querySelector(".m-got").textContent = letterOf(i); b.classList.toggle("good", last.marks[i] === "good"); b.classList.toggle("bad", last.marks[i] !== "good"); b.disabled = true; });
-  if (animate) setTimeout(() => showResult(res), 300 + 120 * p.people.length); else showResult(res);
+  if (animate) setTimeout(() => showResult(res, { scroll: true }), 300 + 120 * p.people.length); else showResult(res);
 }
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
   return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
@@ -1600,7 +1604,7 @@ function revealTier(res, animate) {
   g.cur = right.slice();
   paintTier(res.marks || scoreTier(p, right));
   if (animate) $$(".tier-chip").forEach(c => { c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); });
-  showResult(res); fitLayout();
+  showResult(res, animate ? { scroll: true } : null); fitLayout();
 }
 function isIdentityTier(p) {
   if (!p || p.type !== "tier" || !p.items || !p.items.length) return false;
@@ -1748,7 +1752,7 @@ function submitGuess(c) {
     trackGameCompleted(g);
     $("#guessForm").classList.add("hidden");
     const tier = winTier(g); if (tier) Fx.celebrate(tier, "top5");
-    afterSubmit(() => showResult(g), tier);
+    afterSubmit(() => showResult(g, { scroll: true }), tier);
   } else $("#guessInput").focus();
 }
 // --- country search box. Typing / clicking a suggestion only FILLS the input; a guess is submitted only by the Guess
@@ -1883,8 +1887,28 @@ function showInterstitial(done, skipNext) {   // skipNext (v12.2): shown before 
 // ================================================================ result panel
 const EMO = { good: "🟩", near: "🟨", bad: "🟥", miss: "⬜" };
 const rankGrid = r => (r.attempts || []).map(a => a.marks.map(m => EMO[m]).join("")).join("\n");
-function showResult(res) {
+function guessSquares(res) {
+  if (!res) return "";
+  if (res.type === "rank" || res.type === "match" || res.type === "tier") return rankGrid(res);
+  return (res.marks || []).map(m => EMO[m]).join("");
+}
+let pendingResultScroll = false;
+function scrollResultIntoView() {
+  const share = document.querySelector("#result .share-row");
+  if (!share) return;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  share.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "end" });
+}
+function settleResultScroll() {
+  if (!pendingResultScroll) return;
+  pendingResultScroll = false;
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced) requestAnimationFrame(scrollResultIntoView);
+  else setTimeout(scrollResultIntoView, 650);
+}
+function showResult(res, opts) {
   const p = state.puzzle;
+  pendingResultScroll = !!(opts && opts.scroll);
   if (res.type === "match") {
     const max = CONFIG.rankMaxTries, nn = p.people.length;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
@@ -1906,18 +1930,17 @@ function showResult(res) {
       <span>${s.group.map(c => esc(c.name) + (guessed.has(cKey(c)) ? " ✓" : "")).join(" = ")}${s.tied ? `<small class="tienote"> tied at ${fmt1(s.value)}: either one counted</small>` : ""}</span><span class="tv">${fmt1(s.value)}${unitAside(p)}</span></div>`; }).join("");
     $("#answerBox").classList.remove("hidden");
   }
-  $("#emojiRow").textContent = res.type === "rank" || res.type === "match" || res.type === "tier" ? rankGrid(res) : (res.marks || []).map(m => EMO[m]).join("");
   $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   $("#sourceName").textContent = p.source || "source";
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
+  renderYouVs(p, null, res);
   renderCommunity(p, res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
-  setTimeout(() => $("#result").scrollIntoView({ behavior: "smooth", block: "nearest" }), 60);
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
@@ -1989,7 +2012,8 @@ function communityCountrySection(data, code, p) {
   if (!code) return "";
   const bucket = data.firstGuessByCountry && data.firstGuessByCountry[code];
   const players = bucket ? Number(bucket.players) || 0 : 0;
-  const bars = players >= COMMUNITY_MIN_COUNTRY ? communityBars(bucket) : [];
+  // One seeded play is enough to show the ordering. The leaderboard cutoff is separate.
+  const bars = players >= 1 ? communityBars(bucket) : [];
   if (!bars.length) return "";
   return `<h3 class="community-sec">What players in ${esc(regionName(code))} thought</h3>` + communityOrderList(bars, p);
 }
@@ -2246,57 +2270,114 @@ function PlayerFigure(you, look) {
   }
   return el;
 }
-function renderPlatforms(percentile, castSeed) {
+function pfSparks(fig) {
+  const bits = [
+    ["-12px", "-18px", "-32deg", "var(--brand)", "0ms", false],
+    ["-1px", "-22px", "18deg", "#F2B441", "45ms", true],
+    ["12px", "-16px", "42deg", "#3CB7A4", "20ms", false],
+    ["-16px", "-9px", "-18deg", "#F2B441", "70ms", true],
+    ["7px", "-20px", "12deg", "var(--brand)", "30ms", false],
+    ["16px", "-11px", "58deg", "#E25B45", "55ms", true],
+  ];
+  const hop = fig.querySelector(".pf-hop");
+  if (!hop) return;
+  bits.forEach(bit => {
+    const spark = document.createElement("i");
+    spark.className = "pf-spark" + (bit[5] ? " is-round" : "");
+    spark.style.setProperty("--dx", bit[0]);
+    spark.style.setProperty("--dy", bit[1]);
+    spark.style.setProperty("--rot", bit[2]);
+    spark.style.setProperty("--spark", bit[4]);
+    spark.style.background = bit[3];
+    hop.appendChild(spark);
+  });
+}
+function renderWinnerPlatforms(castSeed) {
+  const n = 9, center = 4;
+  const platforms = document.createElement("div");
+  platforms.className = "platforms is-winner";
+  platforms.setAttribute("aria-hidden", "true");
+  platforms.style.setProperty("--n", "9");
+  const looks = pfCast(n, castSeed || "winner");
+  for (let i = 0; i < n; i++) {
+    const yours = i === center;
+    const col = document.createElement("div");
+    col.className = "platform" + (yours ? " is-you" : "");
+    col.style.setProperty("--step", String(i));
+    // One figure per step. The centre step's own figure is You!; nothing else stands above it.
+    const fig = PlayerFigure(yours, looks[i * 2]);
+    fig.style.setProperty("--land-delay", (0.06 + Math.abs(i - center) * 0.05).toFixed(2) + "s");
+    if (yours) {
+      fig.classList.add("celebrate");
+      fig.style.setProperty("--cheer-delay", ".85s");
+      pfSparks(fig);
+    } else {
+      fig.classList.add("celebrate-soft", "is-cheer");
+      fig.style.setProperty("--cheer-delay", (0.7 + (i % 5) * 0.07).toFixed(2) + "s");
+    }
+    col.appendChild(fig);
+    const step = document.createElement("i");
+    step.className = "platform-step";
+    col.appendChild(step);
+    if (yours) {
+      const label = document.createElement("span");
+      label.className = "platform-pct is-yours";
+      label.textContent = "Top 1%";
+      col.appendChild(label);
+    }
+    platforms.appendChild(col);
+  }
+  return platforms;
+}
+function renderPlatforms(percentile, castSeed, opts) {
+  if (opts && opts.winner) return renderWinnerPlatforms(castSeed);
   const seed = window.RankdSeed;
   if (!seed || percentile == null) return null;
   const pick = seed.platformCount(percentile / 100);
+  const view = seed.platformWindow ? seed.platformWindow(pick.n, pick.band) : { lo: 0, hi: pick.n - 1 };
   const platforms = document.createElement("div");
   platforms.className = "platforms";
   platforms.setAttribute("aria-hidden", "true");
-  platforms.style.setProperty("--n", String(pick.n));
+  platforms.style.setProperty("--n", String(view.hi - view.lo + 1));
   const soft = pick.band < Math.ceil(pick.n * 0.45);
-  const looks = pfCast(pick.n, castSeed || ("band" + pick.band));
+  const topBand = pick.n - 1;
+  if (pick.band !== topBand && topBand - pick.band === 1) platforms.classList.add("has-stack");
+  const looks = pfCast(view.hi - view.lo + 1, castSeed || ("band" + pick.band));
   let lookI = 0;
-  for (let i = 0; i < pick.n; i++) {
+  for (let i = view.lo; i <= view.hi; i++) {
+    const yours = i === pick.band;
     const col = document.createElement("div");
-    col.className = "platform" + (i === pick.band ? " is-you" : "");
+    col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
+    if (yours && topBand - i === 1) col.classList.add("pct-stack");
     // Equal percentile bands hold about the same number of players, so the
-    // crowd on each step is the same size.
+    // crowd on each step is the same size. The player's step keeps its own
+    // regular figure and styles that one as You!. The second figure, the one
+    // that stands above the regular crowd, is not drawn there.
     for (let f = 0; f < 2; f++) {
-      const you = i === pick.band && f === 1;
-      const fig = PlayerFigure(you, looks[lookI++]);
+      const look = looks[lookI++];
+      if (yours && f === 1) continue;
+      const you = yours;
+      const fig = PlayerFigure(you, look);
       fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + " + (0.08 + f * 0.11).toFixed(2) + "s)");
       if (!you && f === 1) fig.classList.add("extra");
       if (you) {
         fig.classList.add(soft ? "celebrate-soft" : "celebrate");
-        if (!soft) {
-          const bits = [
-            ["-12px", "-18px", "-32deg", "var(--brand)", "0ms", false],
-            ["-1px", "-22px", "18deg", "#F2B441", "45ms", true],
-            ["12px", "-16px", "42deg", "#3CB7A4", "20ms", false],
-            ["-16px", "-9px", "-18deg", "#F2B441", "70ms", true],
-            ["7px", "-20px", "12deg", "var(--brand)", "30ms", false],
-            ["16px", "-11px", "58deg", "#E25B45", "55ms", true],
-          ];
-          const hop = fig.querySelector(".pf-hop");
-          bits.forEach(bit => {
-            const spark = document.createElement("i");
-            spark.className = "pf-spark" + (bit[5] ? " is-round" : "");
-            spark.style.setProperty("--dx", bit[0]);
-            spark.style.setProperty("--dy", bit[1]);
-            spark.style.setProperty("--rot", bit[2]);
-            spark.style.setProperty("--spark", bit[4]);
-            spark.style.background = bit[3];
-            hop.appendChild(spark);
-          });
-        }
+        if (!soft) pfSparks(fig);
       }
       col.appendChild(fig);
     }
     const step = document.createElement("i");
     step.className = "platform-step";
     col.appendChild(step);
+    // Rightmost pedestal is the top slice. The player's pedestal gets the
+    // same kind of label. One label when those are the same step.
+    if ((yours || i === topBand) && seed.platformTopPercent) {
+      const label = document.createElement("span");
+      label.className = "platform-pct" + (yours ? " is-yours" : "");
+      label.textContent = "Top " + seed.platformTopPercent(pick.n, i) + "%";
+      col.appendChild(label);
+    }
     platforms.appendChild(col);
   }
   return platforms;
@@ -2305,27 +2386,54 @@ function renderYouVs(p, data, res) {
   const el = $("#youVs");
   if (!el) return;
   const mine = resultCard(p, res);
+  const squares = guessSquares(res);
+  if (!mine && !squares) { el.classList.add("hidden"); el.innerHTML = ""; return; }
   const block = data && data.standing;
-  if (!mine || !block || block.avgTries == null) { el.classList.add("hidden"); el.innerHTML = ""; return; }
-  const top5 = mine.kind === "top5";
-  const better = block.byTries && window.RankdSeed ? window.RankdSeed.betterThan(block, mine.tries, mine.accuracy, mine.solved) : null;
-  const yoursFirst = top5
-    ? (mine.firstCorrect ? "First guess in the top 5" : "First guess missed")
-    : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
-  const avgFirst = top5
-    ? `${Math.round(Number(block.avgFirst) * 100)}% hit first`
-    : `avg ${Number(block.avgFirst).toFixed(1)}/${block.firstOf || mine.firstOf}`;
-  const caption = better == null ? "" : `Better than ${better}% of players`;
+  const hasStanding = !!(mine && block && block.avgTries != null);
+  const top5 = !!(mine && mine.kind === "top5");
+  const seedApi = window.RankdSeed;
+  const better = hasStanding && block.byTries && seedApi ? seedApi.betterThan(block, mine.tries, mine.accuracy, mine.solved) : null;
+  // A perfect first Lock is its own podium, even before a crowd exists.
+  const perfectFirst = !!(mine && mine.kind !== "top5" && mine.solved && mine.tries === 1);
   el.classList.remove("hidden");
-  el.innerHTML = `<div class="you-vs-pair"><div class="you-vs-main"><b>${esc(triesLabel(mine.tries, top5))}</b><div class="acc-line">Accuracy ${mine.accuracy} <span class="tip-wrap"><button type="button" class="tip-btn" aria-expanded="false" aria-label="How accuracy is calculated">?</button><span class="tip-pop" role="tooltip">${esc(mine.tip)}</span></span></div></div><span class="avg">${esc("avg " + triesLabel(block.avgTries, top5, 1))}</span></div>`
-    + `<div class="you-vs-pair"><b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span></div>`;
-  const platforms = better == null ? null : renderPlatforms(better, p.id + "|" + mine.tries + "|" + mine.accuracy + "|" + (mine.solved ? 1 : 0));
+  el.innerHTML = "";
+  if (squares) {
+    const grid = document.createElement("div");
+    grid.className = "emoji-row";
+    grid.id = "emojiRow";
+    grid.textContent = squares;
+    el.appendChild(grid);
+  }
+  if (!mine) return;
+  const pair = document.createElement("div");
+  pair.className = "you-vs-pair";
+  const avgTries = hasStanding ? `<span class="avg">${esc("avg " + triesLabel(block.avgTries, top5, 1))}</span>` : "";
+  pair.innerHTML = `<div class="you-vs-main"><b>${esc(triesLabel(mine.tries, top5))}</b><div class="acc-line">Accuracy ${mine.accuracy} <span class="tip-wrap"><button type="button" class="tip-btn" aria-expanded="false" aria-label="How accuracy is calculated">?</button><span class="tip-pop" role="tooltip">${esc(mine.tip)}</span></span></div></div>${avgTries}`;
+  el.appendChild(pair);
+  if (hasStanding) {
+    const yoursFirst = top5
+      ? (mine.firstCorrect ? "First guess in the top 5" : "First guess missed")
+      : `${mine.firstCorrect}/${mine.firstOf} correct first guess`;
+    const avgFirst = top5
+      ? `${Math.round(Number(block.avgFirst) * 100)}% hit first`
+      : `avg ${Number(block.avgFirst).toFixed(1)}/${block.firstOf || mine.firstOf}`;
+    const pair2 = document.createElement("div");
+    pair2.className = "you-vs-pair";
+    pair2.innerHTML = `<b>${esc(yoursFirst)}</b><span class="avg">${esc(avgFirst)}</span>`;
+    el.appendChild(pair2);
+  }
+  const castSeed = p.id + "|" + mine.tries + "|" + mine.accuracy + "|" + (mine.solved ? 1 : 0);
+  const platforms = perfectFirst
+    ? renderPlatforms(better == null ? 99 : better, castSeed, { winner: true })
+    : (better == null ? null : renderPlatforms(better, castSeed));
   if (platforms) {
     el.appendChild(platforms);
-    const note = document.createElement("p");
-    note.className = "platforms-caption";
-    note.textContent = caption;
-    el.appendChild(note);
+    if (better != null) {
+      const note = document.createElement("p");
+      note.className = "platforms-caption";
+      note.textContent = `Better than ${better}% of players`;
+      el.appendChild(note);
+    }
   }
   const wrap = el.querySelector(".tip-wrap");
   const btn = el.querySelector(".tip-btn");
@@ -2352,12 +2460,13 @@ if (!document.documentElement.dataset.accTip) {
 async function renderCommunity(p, res) {
   const wrap = document.querySelector(".community"), body = $("#communityBody"), badge = $("#communityBadge");
   const headLabel = wrap && wrap.querySelector(".community-head > span:first-child");
-  const you = $("#youVs");
   // Practice doesn't count toward community compare
   if (state.mode === "practice") {
     if (wrap) wrap.classList.add("hidden");
-    if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
-    scheduleFit(); return;
+    renderYouVs(p, null, res);
+    scheduleFit();
+    settleResultScroll();
+    return;
   }
   if (wrap) wrap.classList.remove("hidden");
   if (wrap) track("compare_viewed", { mode: state.mode, puzzle_type: p && p.type });
@@ -2368,13 +2477,15 @@ async function renderCommunity(p, res) {
       ViewerGeo.country().catch(() => null),
     ]);
   } catch { data = null; countryCode = null; }
-  if (!state.puzzle || state.puzzle.id !== p.id) { scheduleFit(); return; }
+  if (!state.puzzle || state.puzzle.id !== p.id) { pendingResultScroll = false; scheduleFit(); return; }
   if (!data) {
     badge.textContent = "Coming soon";
     if (headLabel) headLabel.textContent = "What most players thought";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
-    if (you) { you.classList.add("hidden"); you.innerHTML = ""; }
-    scheduleFit(); return;
+    renderYouVs(p, null, res || getResult());
+    scheduleFit();
+    settleResultScroll();
+    return;
   }
   fillCommunitySeed(data, p);
   const n = Number(data.players) || 0;
@@ -2392,6 +2503,7 @@ async function renderCommunity(p, res) {
   body.innerHTML = html;
   renderYouVs(p, data, res || getResult());
   scheduleFit();
+  settleResultScroll();
 }
 window.RankdCommunity = {
   row: communityPlayRow,

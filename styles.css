@@ -216,7 +216,8 @@ a{color:var(--link)}
 .country-board .meta{flex:none;color:var(--muted);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
 .you-vs{margin-top:14px;padding:14px 18px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
 .you-vs-pair{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
-.you-vs-pair:first-child{border-top:0;padding-top:2px}
+.you-vs-pair:first-child,.you-vs .emoji-row + .you-vs-pair{border-top:0;padding-top:2px}
+.you-vs .emoji-row{margin:0 0 4px}
 .you-vs-main{min-width:0}
 .you-vs-pair b{font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.25;color:var(--ink)}
 .you-vs-pair .avg{flex:none;margin-top:3px;color:var(--muted);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -229,7 +230,8 @@ a{color:var(--link)}
   .tip-wrap:hover .tip-pop{display:block}
 }
 .tip-wrap.open .tip-pop{display:block}
-.platforms{display:flex;align-items:flex-end;gap:3px;margin-top:8px;padding:36px 0 0;min-height:128px;--cheer-delay:calc((var(--n, 12) - 1) * 35ms + .78s)}
+.platforms{display:flex;align-items:flex-end;gap:3px;margin-top:8px;padding:36px 0 18px;min-height:128px;--cheer-delay:calc((var(--n, 12) - 1) * 35ms + .78s)}
+.platforms.has-stack{padding-bottom:32px}
 .platform{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;animation:plat-rise .45s ease both;animation-delay:calc(var(--step) * 35ms)}
 .platform.is-you{z-index:2}
 .platform-step{display:block;width:100%;height:calc(8px + var(--step) * 4.5px);border-radius:5px 5px 2px 2px;background:rgba(var(--brand-rgb),calc(.16 + var(--step) * .05))}
@@ -237,6 +239,7 @@ a{color:var(--link)}
 .player-figure{position:relative;z-index:2;width:22px;height:32px;flex:none;line-height:0}
 .platform .player-figure:first-child{left:-5px;z-index:1}
 .platform .player-figure:nth-child(2){left:5px;margin-top:-15px;z-index:2}
+.platform.is-you .player-figure.is-you{left:0;margin-top:0;z-index:3}
 .pf-hop,.pf-bob{display:block;width:100%;height:100%;transform-origin:50% 100%}
 .pf-hop{position:relative}
 .pf-svg{display:block;width:100%;height:100%;overflow:visible}
@@ -260,9 +263,19 @@ a{color:var(--link)}
 .player-figure.is-you .pf-hop{animation:pf-land .42s cubic-bezier(.2,.75,.3,1) var(--land-delay, .1s) both,pf-cheer 1.85s cubic-bezier(.33,.7,.32,1) var(--cheer-delay, .9s) forwards,pf-jump var(--hop-dur, 4.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.85s + var(--hop-phase, .2s)) infinite}
 .player-figure.wave-l .pf-arm-l,.player-figure.wave-both .pf-arm-l{animation:pf-wave-l var(--wave-dur, 6s) ease-in-out var(--wave-delay, .6s) infinite}
 .player-figure.wave-r .pf-arm-r,.player-figure.wave-both .pf-arm-r{animation:pf-wave-r var(--wave-dur, 6s) ease-in-out var(--wave-delay, .8s) infinite}
-.player-figure.is-you .pf-arm-l{animation:pf-cheer-arm-l 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-l var(--wave-dur, 6.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.9s) infinite}
-.player-figure.is-you .pf-arm-r{animation:pf-cheer-arm-r 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-r var(--wave-dur, 6.8s) ease-in-out calc(var(--cheer-delay, .9s) + 2.35s) infinite}
+.player-figure.is-you .pf-arm-l,.player-figure.is-cheer .pf-arm-l{animation:pf-cheer-arm-l 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-l var(--wave-dur, 6.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.9s) infinite}
+.player-figure.is-you .pf-arm-r,.player-figure.is-cheer .pf-arm-r{animation:pf-cheer-arm-r 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-r var(--wave-dur, 6.8s) ease-in-out calc(var(--cheer-delay, .9s) + 2.35s) infinite}
+.player-figure.is-cheer .pf-hop{animation:pf-land .42s cubic-bezier(.2,.75,.3,1) var(--land-delay, .1s) both,pf-cheer 1.85s cubic-bezier(.33,.7,.32,1) var(--cheer-delay, .9s) forwards,pf-jump var(--hop-dur, 4.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.85s + var(--hop-phase, .2s)) infinite}
+.platforms.is-winner{padding-top:40px}
+.platforms.is-winner .platform-step{height:10px}
+.platforms.is-winner .platform.is-you .platform-step{height:58px}
+.platforms.is-winner .player-figure{left:0;margin-top:0}
 .you-marker{position:absolute;z-index:4;left:50%;bottom:calc(100% + 20px);transform:translateX(-50%);color:var(--brand);font-size:10px;font-weight:800;letter-spacing:-.02em;line-height:1;white-space:nowrap}
+.platform-pct{position:absolute;z-index:3;left:50%;top:calc(100% + 3px);transform:translateX(-50%);color:var(--ink);font-size:10px;font-weight:800;letter-spacing:-.03em;line-height:1.15;white-space:nowrap;pointer-events:none}
+.platform-pct.is-yours{color:var(--brand)}
+.platform:first-child .platform-pct{left:0;transform:none}
+.platform:last-child .platform-pct{left:auto;right:0;transform:none}
+.platform.pct-stack .platform-pct{top:calc(100% + 16px)}
 .you-marker::after{content:"";display:block;margin:2px auto 0;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--brand)}
 .pf-spark{position:absolute;left:50%;top:18%;width:3px;height:5px;border-radius:1px;opacity:0;pointer-events:none;animation:pf-confetti .9s ease-out calc(var(--cheer-delay, .9s) + var(--spark, 0ms)) forwards}
 .pf-spark.is-round{width:4px;height:4px;border-radius:50%}
@@ -280,20 +293,25 @@ a{color:var(--link)}
 @keyframes pf-confetti{0%{opacity:0;transform:translate3d(0,0,0) rotate(0deg) scale(.4)}14%{opacity:1;transform:translate3d(calc(var(--dx) * .25),calc(var(--dy) * .2),0) rotate(16deg) scale(1)}100%{opacity:0;transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(.65)}}
 @media (max-width:560px){
   .platforms{gap:2px;padding-top:30px;min-height:108px}
+  .platforms.has-stack{padding-bottom:30px}
   .platform-step{height:calc(6px + var(--step) * 3.4px)}
   .player-figure{width:18px;height:26px}
   .platform .player-figure:first-child{left:0}
-  .platform .player-figure.is-you{left:3px;margin-top:-12px}
+  .platform.is-you .player-figure.is-you{left:0;margin-top:0}
   .player-figure.extra{display:none}
   .you-marker{bottom:calc(100% + 14px);font-size:9px}
+  .platform-pct{font-size:9px;letter-spacing:-.04em}
+  .platforms.is-winner{padding-top:32px}
+  .platforms.is-winner .platform-step{height:8px}
+  .platforms.is-winner .platform.is-you .platform-step{height:46px}
 }
 @media (prefers-reduced-motion:reduce){
-  .platform,.pf-hop,.pf-bob,.pf-arm,.pf-hair-tail,.pf-spark,.player-figure.celebrate,.player-figure.celebrate-soft{animation:none}
+  .platform,.pf-hop,.pf-bob,.pf-arm,.pf-hair-tail,.pf-spark,.player-figure.celebrate,.player-figure.celebrate-soft,.player-figure.is-cheer{animation:none}
   .pf-spark{display:none}
 }
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
-.share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
 .share-row .pill-btn{padding:15px 10px;font-size:11px}
 /* WhereIsShe suggestion: same surface card as the score / community blocks, pill actions, not a banner. */
 .crosspromo{margin-top:14px;padding:14px 16px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}

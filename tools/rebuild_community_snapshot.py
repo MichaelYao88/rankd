@@ -3,8 +3,11 @@
 
 Live volume is still tiny, so the default merge keeps community-stats.json
 (the seed) unless a puzzle has at least 20 real Daily/Archive plays. Those
-puzzles are replaced with counts from plays. Everyone else stays on the seed
-so the results panel does not go blank.
+puzzles are replaced with counts from plays. Below that, real plays mix in:
+the world and per-country orderings are a 1-play seed (the first real
+first-guess replaces them) and each leaderboard country keeps about 9 seeded
+plays in its average. The tries/accuracy crowd stays on the seed until the
+20-play replace, so "better than" does not collapse to one seeded play.
 
 First guesses come from plays.first_guess when that column exists, otherwise
 payload.firstGuess. second_guess is counted and left for a later bias pass;
@@ -108,7 +111,7 @@ def main() -> int:
     parser.add_argument("--seed", type=Path, default=ROOT / "community-stats.json")
     parser.add_argument("--publish", action="store_true", help="insert into community_snapshots")
     parser.add_argument("--from-plays-only", action="store_true", help="do not keep the seed")
-    parser.add_argument("--min-players", type=int, default=cs.MIN_COUNTRY_PLAYERS)
+    parser.add_argument("--min-players", type=int, default=cs.MIN_STANDING_PLAYERS)
     args = parser.parse_args()
 
     if args.self_test:
@@ -146,10 +149,11 @@ def main() -> int:
         seed = json.loads(args.seed.read_text(encoding="utf-8"))
         doc = cs.overlay_seed(seed, live, min_players=args.min_players)
         replaced = doc.get("livePuzzlesReplaced") or []
+        blended = doc.get("livePuzzlesBlended") or []
         print(
-            f"source={doc.get('source')} replaced={len(replaced)} "
-            f"(threshold {args.min_players} plays). "
-            "Seeded puzzles stay in place while live volume is small."
+            f"source={doc.get('source')} replaced={len(replaced)} blended={len(blended)} "
+            f"(full replace at {args.min_players} plays). "
+            "Fewer real plays mix into the 1-play ordering seed and the ~9-play country averages."
         )
     if args.out:
         args.out.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
