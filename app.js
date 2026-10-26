@@ -893,9 +893,94 @@ function archiveListHeaderHtml(unlocked, lastDayNumber) {
   const shown = Math.min(unlocked, lastDayNumber + 1);
   return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
 }
+// Home-page sample: three countries from puzzle homicide-women (United States 2.81,
+// India 2.37, South Korea 0.5 per 100k women, 2022, UNODC via World Bank).
+// The stored South Korea figure is 0.5; the column label is 0.50 so it lines up.
+// Germany (0.82) and Jordan (0.7) stay in the daily puzzle and are not on this card.
+// The first-visit overlay stays the Nicest People sample.
+const HOME_DEMO = Object.freeze({
+  id: "homicide-women",
+  title: "Female homicide rate",
+  unit: "per 100k women",
+  year: "2022",
+  sourceName: "UNODC via World Bank",
+  sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5",
+  items: Object.freeze([
+    Object.freeze({ name: "United States", emoji: "🇺🇸", value: 2.81, label: "2.81" }),
+    Object.freeze({ name: "India", emoji: "🇮🇳", value: 2.37, label: "2.37" }),
+    Object.freeze({ name: "South Korea", emoji: "🇰🇷", value: 0.5, label: "0.50" }),
+  ]),
+});
+const SUBMISSION_LIMITS = Object.freeze({
+  question: 280, countries: 200, source_url: 300, handle: 40, user_agent: 240, anon_id: 80,
+});
+function puzzleNames(p) {
+  if (!p) return [];
+  const names = [];
+  const push = it => { if (it && it.name) names.push(String(it.name)); };
+  (p.items || []).forEach(push);
+  (p.people || []).forEach(push);
+  return names;
+}
+function nameInTitle(title, name) {
+  const n = String(name || "").trim().toLowerCase();
+  if (n.length < 2) return false;
+  const escName = n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp("(?:^|[^a-z0-9])" + escName + "(?:[^a-z0-9]|$)").test(title);
+}
+function headlineSpoils(p) {
+  const title = String((p && p.headline) || "").trim().toLowerCase();
+  if (!title) return false;
+  return puzzleNames(p).some(name => nameInTitle(title, name));
+}
+function homeCardCopy(p, key) {
+  const n = dayNumber(key) + 1;
+  const type = p && p.type;
+  const kind = type === "top5" ? "Guess the top 5" : type === "match" ? "Match it" : type === "tier" ? "Tier it" : type === "rank" ? "Rank it" : "Daily";
+  const title = p && p.headline && !headlineSpoils(p) ? String(p.headline).trim() : "";
+  return { no: "No. " + pad3(n), date: longDate(key), title, kind };
+}
+function cleanLine(value) {
+  return String(value ?? "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
+}
+function validHttpUrl(value) {
+  if (!value || value.length > SUBMISSION_LIMITS.source_url || /\s/.test(value) || !/^https?:\/\//i.test(value)) return false;
+  try {
+    if (typeof URL !== "function") return true;
+    const u = new URL(value);
+    return (u.protocol === "http:" || u.protocol === "https:") && !!u.hostname;
+  } catch (e) { return false; }
+}
+function validatePuzzleSubmission(input) {
+  const src = input || {};
+  if (cleanLine(src.company || src.honeypot || "")) return { ok: true, spam: true };
+  const question = cleanLine(src.question);
+  const countries = cleanLine(src.countries);
+  const source = cleanLine(src.source_url || src.source || "");
+  const handle = cleanLine(src.handle);
+  if (!question) return { ok: false, field: "question", message: "Add the question or stat." };
+  if (question.length > SUBMISSION_LIMITS.question) return { ok: false, field: "question", message: "Keep the question under " + SUBMISSION_LIMITS.question + " characters." };
+  if (countries.length > SUBMISSION_LIMITS.countries) return { ok: false, field: "countries", message: "Keep the country list under " + SUBMISSION_LIMITS.countries + " characters." };
+  if (handle.length > SUBMISSION_LIMITS.handle) return { ok: false, field: "handle", message: "Keep the name under " + SUBMISSION_LIMITS.handle + " characters." };
+  if (source.length > SUBMISSION_LIMITS.source_url) return { ok: false, field: "source_url", message: "That source link is too long." };
+  if (source && !validHttpUrl(source)) return { ok: false, field: "source_url", message: "Source link should be an http or https URL." };
+  return { ok: true, spam: false, row: { question, countries: countries || null, source_url: source || null, handle: handle || null } };
+}
+function submissionErrorKind(status, text) {
+  const body = String(text || "");
+  if (status === 404 || /PGRST205|42P01|schema cache|Could not find the table/i.test(body)) return "missing";
+  return "fail";
+}
+function submissionErrorMessage(kind) {
+  const mail = (window.RANKD_SITE && window.RANKD_SITE.CONTACT_EMAIL) || "mikelyaps@gmail.com";
+  if (kind === "missing") return "Puzzle suggestions aren't open yet. Email " + mail + " and we'll take it from there.";
+  if (kind === "network") return "That didn't send. Check your connection and try again.";
+  return "That didn't send. Try again in a moment, or email " + mail + ".";
+}
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
-    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf };
+    keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf,
+    HOME_DEMO, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage };
   window.RankdArchive = {
     baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
     getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
@@ -928,7 +1013,10 @@ const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { 
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
 const isToday = () => state.mode === "daily";
-function linkHash() { return state.mode === "preview" ? "" : state.mode === "all" ? `#p=${encodeURIComponent(state.puzzle.id)}` : state.mode === "practice" ? `#r=${state.puzzle.seed}` : `#d=${state.dateKey}`; }
+function linkHash() {
+  if (state.mode === "home" || state.mode === "preview") return "";
+  return state.mode === "all" ? `#p=${encodeURIComponent(state.puzzle.id)}` : state.mode === "practice" ? `#r=${state.puzzle.seed}` : `#d=${state.dateKey}`;
+}
 function setHash(h) { try { history.replaceState(null, "", h || location.pathname + location.search); } catch { location.hash = h; } }
 
 // ================================================================ card art (v5)
@@ -2696,6 +2784,7 @@ function runHowtoDemo() {
   cycle();
 }
 function maybeShowHowto() {
+  if (state.mode === "home") return;
   if (howtoSeen()) return;
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.remove("hidden");
@@ -2786,11 +2875,45 @@ function syncTopBanner() {
 }
 function showView(v) {
   if (v !== "play") showFab(false);
-  $("#playView").classList.toggle("hidden", v !== "play"); $("#archiveView").classList.toggle("hidden", v !== "archive");
-  const tab = v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
+  const play = $("#playView"), arch = $("#archiveView"), home = $("#homeView");
+  if (play) play.classList.toggle("hidden", v !== "play");
+  if (arch) arch.classList.toggle("hidden", v !== "archive");
+  if (home) home.classList.toggle("hidden", v !== "home");
+  document.body.classList.toggle("mode-home", v === "home");
+  if (v === "home") document.body.classList.remove("mode-practice");
+  const tab = v === "home" ? "today" : v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
   $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
   syncTopBanner();
   syncPlaying();
+  if (v === "home") syncHomeMotion();
+}
+function fillHomeCard() {
+  const key = todayKey();
+  let p = null;
+  try { p = puzzleForDay(dayNumber(key)); } catch (e) { p = null; }
+  const copy = homeCardCopy(p, key);
+  const no = $("#homeNo"), when = $("#homeWhen"), title = $("#homePuzzleTitle"), kind = $("#homeKind");
+  if (no) no.textContent = copy.no;
+  if (kind) kind.textContent = copy.kind;
+  if (when) when.textContent = copy.date;
+  if (title) { title.textContent = copy.title || ""; title.classList.toggle("hidden", !copy.title); }
+}
+function syncHomeMotion() {
+  const root = $("#homeHow");
+  if (!root) return;
+  let reduce = false;
+  try { reduce = matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+  try { if (new URLSearchParams(location.search).get("motion") === "reduce") reduce = true; } catch (e) {}
+  root.classList.toggle("is-static", !!reduce);
+}
+function goHome() {
+  if (!$("#homeView")) return goToday();
+  state.mode = "home";
+  state.view = "home";
+  fillHomeCard();
+  showView("home");
+  setHash("");
+  window.scrollTo({ top: 0 });
 }
 function goToday() { state.mode = "daily"; state.dateKey = todayKey(); openPuzzle(puzzleForDay(dayNumber(state.dateKey))); }
 function goDate(key) {
@@ -3103,7 +3226,102 @@ $("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); se
 $("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
-$("#homeLink").onclick = e => { e.preventDefault(); goToday(); };
+$("#homeLink").onclick = e => { e.preventDefault(); goHome(); };
+if ($("#homePlay")) $("#homePlay").addEventListener("click", () => goToday());
+function anonAnalyticsId() {
+  try {
+    const ph = window.posthog;
+    if (!ph || typeof ph.get_distinct_id !== "function") return null;
+    const id = ph.get_distinct_id();
+    if (typeof id !== "string") return null;
+    const trimmed = id.trim();
+    return trimmed ? trimmed.slice(0, SUBMISSION_LIMITS.anon_id) : null;
+  } catch (e) { return null; }
+}
+async function sendPuzzleSubmission(row) {
+  const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = CONFIG.SUPABASE_ANON_KEY;
+  if (!base || !key) { const err = new Error("missing"); err.kind = "missing"; throw err; }
+  const payload = {
+    question: row.question,
+    countries: row.countries,
+    source_url: row.source_url,
+    handle: row.handle,
+    user_agent: (typeof navigator !== "undefined" && navigator.userAgent) ? String(navigator.userAgent).slice(0, SUBMISSION_LIMITS.user_agent) : null,
+    anon_id: anonAnalyticsId(),
+  };
+  let res;
+  try {
+    res = await fetch(base + "/rest/v1/puzzle_submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key, Prefer: "return=minimal" },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    const err = new Error("network"); err.kind = "network"; throw err;
+  }
+  if (res.ok) return;
+  let text = "";
+  try { text = await res.text(); } catch (e) {}
+  const kind = submissionErrorKind(res.status, text);
+  const err = new Error(kind); err.kind = kind; throw err;
+}
+function showPuzzleError(message) {
+  const err = $("#puzzleFormError");
+  if (!err) return;
+  err.textContent = message;
+  err.classList.remove("hidden");
+}
+function showPuzzleThanks() {
+  const form = $("#puzzleForm"), thanks = $("#puzzleThanks"), err = $("#puzzleFormError");
+  if (err) { err.textContent = ""; err.classList.add("hidden"); }
+  if (form) form.classList.add("hidden");
+  if (thanks) thanks.classList.remove("hidden");
+}
+function resetPuzzleForm() {
+  const form = $("#puzzleForm"), thanks = $("#puzzleThanks"), btn = $("#puzzleFormSend"), err = $("#puzzleFormError");
+  if (form) { form.reset(); form.classList.remove("hidden"); }
+  if (thanks) thanks.classList.add("hidden");
+  if (err) { err.textContent = ""; err.classList.add("hidden"); }
+  if (btn) btn.disabled = false;
+}
+function wirePuzzleForm() {
+  const form = $("#puzzleForm");
+  if (!form || form.dataset.wired) return;
+  form.dataset.wired = "1";
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const result = validatePuzzleSubmission({
+      question: form.question.value,
+      countries: form.countries.value,
+      source_url: form.source_url.value,
+      handle: form.handle.value,
+      company: form.company.value,
+    });
+    if (!result.ok) {
+      showPuzzleError(result.message);
+      const field = form.elements[result.field];
+      if (field && field.focus) field.focus();
+      return;
+    }
+    if (result.spam) { showPuzzleThanks(); return; }
+    const btn = $("#puzzleFormSend");
+    if (btn) btn.disabled = true;
+    const err = $("#puzzleFormError");
+    if (err) err.classList.add("hidden");
+    try {
+      await sendPuzzleSubmission(result.row);
+      track("puzzle_submitted");
+      showPuzzleThanks();
+    } catch (ex) {
+      if (btn) btn.disabled = false;
+      showPuzzleError(submissionErrorMessage(ex && ex.kind));
+    }
+  });
+  if ($("#puzzleAnother")) $("#puzzleAnother").onclick = resetPuzzleForm;
+}
+wirePuzzleForm();
+try { matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncHomeMotion); } catch (e) {}
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
 $$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : practiceNext());   // v12.1: no top-bar "All" tab (the All puzzles list is in the menu)
 $("#newRandomTop").onclick = () => practiceNext();
@@ -3141,7 +3359,8 @@ function route() {
   if (d) return goDate(d[1]);
   if (rs && Practice.ok()) return goPractice(+rs[1]);
   if (p && CONFIG.SHOW_ALL_PUZZLES) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i); }
-  goToday();
+  if (h === "#today" || h === "#play") return goToday();
+  goHome();
 }
 window.addEventListener("hashchange", () => { if (!PREVIEW && (location.hash !== linkHash() || $("#playView").classList.contains("hidden"))) route(); });
 route();

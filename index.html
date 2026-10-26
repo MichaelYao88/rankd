@@ -73,8 +73,156 @@
 
 
 <main class="wrap">
+  <!-- ======== HOME ======== -->
+  <section id="homeView">
+    <article class="hero home-play" id="homePlay">
+      <div class="hero-top">
+        <span class="hero-brand">Ranki.gg</span>
+        <span class="hero-kind" id="homeKind">Daily</span>
+        <span class="hero-right"><span id="homeNo">Today</span></span>
+      </div>
+      <h1 id="homeHeadline">Play today's puzzle</h1>
+      <p class="home-puzzle hidden" id="homePuzzleTitle"></p>
+      <p class="hero-date" id="homeWhen">A new puzzle every day</p>
+      <button type="button" class="pill-btn outline" id="homePlayBtn">Play today's puzzle</button>
+    </article>
+
+    <section class="home-how" id="homeHow" aria-labelledby="homeHowTitle">
+      <h2 class="section-title" id="homeHowTitle"><span class="hl">How to play!</span></h2>
+      <p class="section-sub">A sample card, one step at a time. Today's puzzle works the same way.</p>
+      <ol class="how-steps">
+        <li class="how-step">
+          <h3>Step 1</h3>
+          <p>Drag the countries into order. Highest value at the top.</p>
+          <div class="mini mini-step1" data-demo="homicide-women" aria-hidden="true">
+            <div class="mini-kicker"><span>Rank it</span><span>Sample</span></div>
+            <p class="mini-title">Female homicide rate</p>
+            <p class="mini-unit">per 100k women · 2022</p>
+            <div class="mini-board">
+              <ol class="mini-vals"><li>2.81</li><li>2.37</li><li>0.50</li></ol>
+              <ol class="mini-cards">
+                <li class="c-ind"><span class="mini-flag">🇮🇳</span><span class="mini-name">India</span><span class="mini-handle">⋮⋮</span></li>
+                <li class="c-kor"><span class="mini-flag">🇰🇷</span><span class="mini-name">South Korea</span><span class="mini-handle">⋮⋮</span></li>
+                <li class="c-usa"><span class="mini-flag">🇺🇸</span><span class="mini-name">United States</span><span class="mini-handle">⋮⋮</span></li>
+              </ol>
+            </div>
+            <span class="mini-finger finger-1">👆</span>
+          </div>
+        </li>
+        <li class="how-step">
+          <h3>Step 2</h3>
+          <p>Tap Lock it in!</p>
+          <div class="mini mini-step2" aria-hidden="true">
+            <div class="mini-kicker"><span>Rank it</span><span>Sample</span></div>
+            <p class="mini-title">Female homicide rate</p>
+            <p class="mini-unit">per 100k women · 2022</p>
+            <div class="mini-board">
+              <ol class="mini-vals"><li>2.81</li><li>2.37</li><li>0.50</li></ol>
+              <ol class="mini-cards">
+                <li><span class="mini-flag">🇺🇸</span><span class="mini-name">United States</span><span class="mini-handle">⋮⋮</span></li>
+                <li><span class="mini-flag">🇮🇳</span><span class="mini-name">India</span><span class="mini-handle">⋮⋮</span></li>
+                <li><span class="mini-flag">🇰🇷</span><span class="mini-name">South Korea</span><span class="mini-handle">⋮⋮</span></li>
+              </ol>
+            </div>
+            <span class="pill-btn outline mini-lock">Lock it in ↵</span>
+            <span class="mini-finger finger-2">👆</span>
+          </div>
+        </li>
+        <li class="how-step">
+          <h3>Step 3</h3>
+          <p>Green is the right spot. Red is wrong.</p>
+          <div class="mini mini-step3" aria-hidden="true">
+            <div class="mini-kicker"><span>Rank it</span><span>Sample</span></div>
+            <p class="mini-title">Female homicide rate</p>
+            <div class="mini-board">
+              <ol class="mini-vals"><li>2.81</li><li>2.37</li><li>0.50</li></ol>
+              <ol class="mini-cards">
+                <li class="is-good"><span class="mini-flag">🇺🇸</span><span class="mini-name">United States</span></li>
+                <li class="is-bad"><span class="mini-flag">🇰🇷</span><span class="mini-name">South Korea</span></li>
+                <li class="is-bad"><span class="mini-flag">🇮🇳</span><span class="mini-name">India</span></li>
+              </ol>
+            </div>
+            <div class="mini-squares"><i class="sq sq-good"></i><i class="sq sq-bad"></i><i class="sq sq-bad"></i></div>
+          </div>
+        </li>
+        <li class="how-step">
+          <h3>Step 4</h3>
+          <p>You get more tries, and a hint about what's left.</p>
+          <div class="mini mini-step4" aria-hidden="true">
+            <div class="mini-kicker"><span>Rank it</span><span>4 tries left</span></div>
+            <div class="mini-board">
+              <ol class="mini-vals"><li>2.81</li><li>2.37</li><li>0.50</li></ol>
+              <ol class="mini-cards">
+                <li class="is-good"><span class="mini-flag">🇺🇸</span><span class="mini-name">United States</span></li>
+                <li class="c-kor is-bad"><span class="mini-flag">🇰🇷</span><span class="mini-name">South Korea</span></li>
+                <li class="c-ind is-bad"><span class="mini-flag">🇮🇳</span><span class="mini-name">India</span></li>
+              </ol>
+            </div>
+            <p class="mini-hint"><b>1 of 3</b> in the right spot. Green stays locked. Move the others and try again.</p>
+            <div class="mini-tries" aria-hidden="true"><i class="used"></i><i class="dot2"></i><i></i><i></i><i></i><span>4 tries left</span></div>
+          </div>
+        </li>
+        <li class="how-step how-step-source">
+          <h3>Step 5</h3>
+          <p>When you finish, tap the source to see where the data comes from.</p>
+          <div class="mini mini-step5" aria-hidden="true">
+            <div class="mini-kicker"><span>Rank it</span><span>Solved</span></div>
+            <div class="mini-board">
+              <ol class="mini-vals"><li>2.81</li><li>2.37</li><li>0.50</li></ol>
+              <ol class="mini-cards">
+                <li class="is-good"><span class="mini-flag">🇺🇸</span><span class="mini-name">United States</span></li>
+                <li class="is-good"><span class="mini-flag">🇮🇳</span><span class="mini-name">India</span></li>
+                <li class="is-good"><span class="mini-flag">🇰🇷</span><span class="mini-name">South Korea</span></li>
+              </ol>
+            </div>
+          </div>
+          <a class="mini-source" href="https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5" target="_blank" rel="noopener">
+            <span class="mini-source-line">Data: UNODC via World Bank ↗</span>
+            <span class="mini-open-wrap">
+              <span class="mini-opened">
+                <b>UNODC via World Bank</b>
+                <span>per 100k women, 2022</span>
+                <span class="mini-url">data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5</span>
+              </span>
+            </span>
+          </a>
+          <span class="mini-finger finger-5" aria-hidden="true">👆</span>
+        </li>
+      </ol>
+    </section>
+
+    <section class="home-submit" id="homeSubmit" aria-labelledby="homeSubmitTitle">
+      <h2 class="section-title" id="homeSubmitTitle"><span class="hl">Submit your own puzzle</span></h2>
+      <p class="section-sub">Suggest a stat to rank. Countries, a source, and your name are optional.</p>
+      <div class="submit-card">
+        <form id="puzzleForm" class="puzzle-form" novalidate>
+          <label for="puzzleQuestion">Question or stat <span class="req">Required</span></label>
+          <textarea id="puzzleQuestion" name="question" maxlength="280" required placeholder="What should players rank?"></textarea>
+          <label for="puzzleCountries">Suggested countries <span class="opt">Optional</span></label>
+          <input id="puzzleCountries" name="countries" type="text" maxlength="200" placeholder="Japan, France, Brazil" autocomplete="off">
+          <label for="puzzleSource">Source link <span class="opt">Optional</span></label>
+          <input id="puzzleSource" name="source_url" type="url" inputmode="url" maxlength="300" placeholder="https://" autocomplete="off" spellcheck="false">
+          <label for="puzzleHandle">Name or handle <span class="opt">Optional</span></label>
+          <input id="puzzleHandle" name="handle" type="text" maxlength="40" placeholder="How should we credit you?" autocomplete="nickname">
+          <div class="hp" aria-hidden="true">
+            <label for="puzzleCompany">Company</label>
+            <input id="puzzleCompany" name="company" type="text" tabindex="-1" autocomplete="off">
+          </div>
+          <p class="form-error hidden" id="puzzleFormError" role="alert"></p>
+          <button type="submit" class="pill-btn primary" id="puzzleFormSend">Send puzzle</button>
+          <p class="form-note">We read these by hand. Don't include anything private.</p>
+        </form>
+        <div class="puzzle-thanks hidden" id="puzzleThanks" role="status">
+          <h3>Thanks. We'll read it.</h3>
+          <p>Your suggestion is in. It may take a while before a puzzle uses it.</p>
+          <button type="button" class="pill-btn ghost" id="puzzleAnother">Send another</button>
+        </div>
+      </div>
+    </section>
+  </section>
+
   <!-- ======== PLAY VIEW ======== -->
-  <section id="playView">
+  <section id="playView" class="hidden">
     <!-- The whole game lives inside one bold card -->
     <article class="hero" id="hero">
       <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="Ranki.gg home">Ranki.gg</a><span class="hero-kind" id="heroKind">Rank it</span><span class="hero-right"><span id="heroNo">No. 001</span><button class="hero-new hidden" id="newRandomTop" aria-label="New random puzzle" title="New random puzzle">🎲 New</button></span></div>
