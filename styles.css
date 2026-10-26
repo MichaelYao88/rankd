@@ -157,7 +157,11 @@ a{color:var(--link)}
 .g-row{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:12px 18px;animation:slideIn .35s ease both;position:relative}
 .g-row+.g-row{border-top:1px solid var(--line)}
 .g-row::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--bad)}
-.g-row.near::before{background:var(--near)}.g-row.win::before{background:var(--good)}.g-row.win{background:var(--good-soft)}
+.g-row.near::before{background:var(--near)}.g-row.warm::before{background:#F08A24}.g-row.win::before{background:var(--good)}.g-row.win{background:var(--good-soft)}
+.top1-guesses{margin:8px 0 10px;background:rgba(255,255,255,.1);color:inherit;box-shadow:none}
+.top1-guesses .g-row{color:inherit}
+.top1-guesses .g-row .gv,.top1-guesses .g-row .gr small{color:inherit;opacity:.75}
+.hero .suggest{color:var(--ink)}
 @keyframes slideIn{from{opacity:0;transform:translateY(-8px)}}
 .g-row .emoji{font-size:24px;width:34px}
 .g-row .gn{font-weight:700;letter-spacing:-.01em}
@@ -763,6 +767,13 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .pill-btn.outline{padding:10px 18px}
   /* Top 5: chip pool above five shrinking slots. Lock stays inside the card. */
   body.fit .tries i{width:8px;height:8px}
+  body.fit .hero.is-top1{padding:10px 12px 10px}
+  body.fit .hero.is-top1 h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
+  body.fit .hero.is-top1 #question{font-size:12px;line-height:1.25;margin:0 0 2px}
+  body.fit .hero.is-top1 #guessInput{height:48px;font-size:18px;padding-right:16px}
+  body.fit .hero.is-top1 .top1-guesses{max-height:34vh;overflow:auto;margin:4px 0}
+  body.fit .hero.is-top1 .g-row{padding:8px 12px}
+  body.fit .hero.is-top1 .card-foot{margin-top:6px}
   body.fit .hero.is-top5{padding:10px 12px 10px}
   body.fit .hero.is-top5 h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
   body.fit .hero.is-top5 #question{font-size:12px;line-height:1.2;margin:0 0 2px}

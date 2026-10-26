@@ -156,21 +156,22 @@
         </form>
       </section>
 
-      <!-- TOP 5: six cards (the real top 5 plus one decoy) into five slots -->
+      <!-- TOP 1: type a country. Each guess shows that country's real rank. -->
       <section id="guessGame" class="hidden">
         <div class="game-bar">
-          <span class="direction" id="t5Dir">Highest at #1 · leave one out</span>
-          <button type="button" class="t5more" id="t5More">💡 Hints</button>
+          <span class="direction" id="t5Dir">Which country is #1?</span>
         </div>
-        <div class="t5pool" id="t5pool" role="list" aria-label="Countries. Leave one out."></div>
-        <div class="t5board" id="t5board" aria-live="polite"></div>
-        <p class="hint" id="t5Hint"></p>
-        <div class="lasthint hidden" id="lastHint" aria-live="polite"></div>
-        <p class="t5out hidden" id="t5Out"></p>
-        <div class="card-foot actions">
-          <button class="pill-btn outline" id="t5Submit" type="button">Lock it in ↵</button>
-        </div>
-        <div class="tries tries-below" id="t5Tries" aria-live="polite"></div>
+        <div class="tries tries-below" id="guessTries" aria-live="polite"></div>
+        <ol class="guesses top1-guesses" id="top1Guesses" aria-live="polite"></ol>
+        <form class="guess-form" id="guessForm" autocomplete="off">
+          <div class="combo">
+            <input id="guessInput" type="text" placeholder="type a country…" aria-label="Country" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest" enterkeyhint="done">
+            <ul class="suggest hidden" id="suggest" role="listbox"></ul>
+          </div>
+          <div class="card-foot actions">
+            <button class="pill-btn outline" id="guessBtn" type="submit">Guess ↵</button>
+          </div>
+        </form>
       </section>
     </article>
     <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button></div>

@@ -17,7 +17,7 @@
     s = s.replace(/<[^>]*>/g, "");
     s = s.replace(/[<>&"'`|\\]/g, "");
     // The banner is spoiler-free. A name can't smuggle the square grid.
-    s = s.replace(/[🟩🟥⬜🟨✅❌]/g, "");
+    s = s.replace(/[🟩🟥⬜🟨🟧✅❌]/g, "");
     s = s.replace(/\s+/g, " ").trim();
     const chars = Array.from(s);
     if (chars.length > NAME_MAX) s = chars.slice(0, NAME_MAX).join("").trim();
@@ -57,7 +57,7 @@
 
   function validGrid(grid) {
     if (!Array.isArray(grid) || grid.length < 1 || grid.length > 8) return false;
-    return grid.every(row => typeof row === "string" && /^[GRMY]{1,20}$/.test(row));
+    return grid.every(row => typeof row === "string" && /^[GRMYO]{1,20}$/.test(row));
   }
 
   function encode(data) {
@@ -147,7 +147,7 @@
       : "I solved this Ranki puzzle in " + score.tries + " " + word + " (" + acc + "). Can you beat me?";
   }
 
-  const SQUARE = { G: "🟩", R: "🟥", M: "⬜", Y: "🟨" };
+  const SQUARE = { G: "🟩", R: "🟥", M: "⬜", Y: "🟨", O: "🟧" };
   function gridText(grid) {
     return (grid || []).map(row => Array.from(row).map(ch => SQUARE[ch] || "").join("")).join("\n");
   }
