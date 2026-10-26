@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v1";
+var CACHE = "ranki-shell-v2";
 
 var PRECACHE = [
   "/",
@@ -189,10 +189,17 @@ async function matchFallback(request) {
   return null;
 }
 
+function networkFetch(request) {
+  // Reload skips the HTTP cache. GitHub Pages can hold a JS file for minutes;
+  // without this, network-first would still serve yesterday's puzzle.
+  try { return fetch(request, { cache: "reload" }); }
+  catch (e) { return fetch(request); }
+}
+
 async function networkFirst(request) {
   var cache = await caches.open(CACHE);
   try {
-    var fresh = await fetch(request);
+    var fresh = await networkFetch(request);
     if (fresh && fresh.status === 200 && fresh.type === "basic") {
       await store(cache, request, fresh);
       return fresh;
@@ -211,7 +218,7 @@ async function networkFirst(request) {
 async function staleWhileRevalidate(request) {
   var cache = await caches.open(CACHE);
   var cached = await cache.match(request);
-  var refresh = fetch(request).then(function (fresh) {
+  var refresh = networkFetch(request).then(function (fresh) {
     if (fresh && fresh.status === 200 && fresh.type === "basic") return store(cache, request, fresh).then(function () { return fresh; });
     return fresh;
   }).catch(function () { return null; });
