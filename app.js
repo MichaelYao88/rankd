@@ -2150,19 +2150,25 @@ function submitTop1(c) {
   setResult(g); top1Paint();
   if (input) input.focus();
 }
+function top1MarkHtml(g) {
+  if (!g) return "";
+  if (g.mark === "good") return " ✓";
+  const tone = g.mark === "near" || g.mark === "warm" ? g.mark : "bad";
+  return `<i class="t1-dot ${tone}" aria-hidden="true"></i>`;
+}
 function top1RevealHtml(p, res) {
-  const guessed = new Set((res.guesses || []).map(g => g.key));
+  const byKey = new Map((res.guesses || []).map(g => [g.key, g]));
   const ranked = top1List(p).slice().sort((a, b) => b.value - a.value || a.name.localeCompare(b.name));
   const top = ranked.slice(0, 5);
   const inTop = new Set(top.map(top1Key));
   const extra = (res.guesses || []).filter(g => !inTop.has(g.key));
   const row = c => {
-    const key = top1Key(c), hit = guessed.has(key);
-    return `<div class="top-row${hit ? " ans" : ""}"><span class="tr">#${top1RankOf(p, c)}</span><span>${esc(c.emoji || "")}</span><span>${esc(c.name)}${hit ? " ✓" : ""}</span><span class="tv">${fmt1(c.value)}${unitAside(p)}</span></div>`;
+    const g = byKey.get(top1Key(c));
+    return `<div class="top-row${g ? " ans" : ""}"><span class="tr">#${top1RankOf(p, c)}</span><span>${esc(c.emoji || "")}</span><span class="t1-name">${esc(c.name)}${top1MarkHtml(g)}</span><span class="tv">${fmt1(c.value)}${unitAside(p)}</span></div>`;
   };
   const more = extra.length ? `<h3>Your other guesses</h3>` + extra.map(g => {
     const c = top1Find(p, g.key) || g;
-    return `<div class="top-row ans"><span class="tr">#${g.rank}</span><span>${esc(c.emoji || g.emoji || "")}</span><span>${esc(g.name)} ✓</span><span class="tv">${fmt1(g.value)}${unitAside(p)}</span></div>`;
+    return `<div class="top-row ans"><span class="tr">#${g.rank}</span><span>${esc(c.emoji || g.emoji || "")}</span><span class="t1-name">${esc(g.name)}${top1MarkHtml(g)}</span><span class="tv">${fmt1(g.value)}${unitAside(p)}</span></div>`;
   }).join("") : "";
   return `<h3>The top 5 of ${ranked.length} countries${p.unit ? " · " + esc(p.unit) : ""}</h3>` + top.map(row).join("") + more;
 }
@@ -2622,14 +2628,16 @@ function settleResultScroll() {
 function showResult(res, opts) {
   const p = state.puzzle;
   pendingResultScroll = !!(opts && opts.scroll);
+  $("#scoreBig").classList.remove("is-words");
   if (res.type === "match") {
     const max = CONFIG.rankMaxTries, nn = p.people.length;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
     $("#scoreTitle").textContent = ratingShout(res) || (res.solved ? (res.tries === 1 ? `All ${nn} matched on the first try! 🎯` : `Matched all ${nn} in ${res.tries} tries`) : `${res.points}/${nn} matched. Tricky one 😅`);
     $("#answerBox").innerHTML = matchAnswers(p, res); $("#answerBox").classList.remove("hidden");
   } else if (res.type === "top1") {
-    const max = CONFIG.rankMaxTries;
-    $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
+    const n = res.tries || (res.guesses || []).length;
+    $("#scoreBig").textContent = res.solved ? `#1 in ${n}` : `${n} ${n === 1 ? "try" : "tries"}`;
+    $("#scoreBig").classList.add("is-words");
     $("#scoreTitle").textContent = ratingShout(res) || (res.solved ? (res.tries === 1 ? "Nailed #1 on the first try! 🎯" : `Found #1 in ${res.tries} tries`) : "Out of tries 😅");
     $("#answerBox").innerHTML = top1RevealHtml(p, res);
     $("#answerBox").classList.remove("hidden");
