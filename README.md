@@ -8,15 +8,13 @@ There are two puzzle types, mixed into one daily rotation:
   Share text: `Rankd #015 🔪 solved in 3 tries` plus one 🟩/🟥 row per try (or `X/5`).
   *Values-visible* variant: all the real values are listed in ONE separate column box beside the cards
   (sorted, one value per row, aligned with the card rows), never on the draggable cards; after the reveal each card shows its own value.
-* **🖐️ Top 5:** six country cards — the real top 5 plus one decoy from the same list and year. Drag them into
-  slots #1–#5 (highest at #1), or tap a card and then a slot, and leave the decoy out. Lock it in. Right slots turn
-  🟩 green and lock; wrong ones turn 🟥 red. Rearrange and lock in again, up to 5 tries. Solved when all 5 slots are correct.
-  * The decoy is a column on `top5_puzzles` (`decoy_country`, `decoy_iso3`, `decoy_emoji`, `decoy_value`, `decoy_rank`),
-    a real #6-or-lower row from that puzzle's `country_lists` list. The game shows its real rank and value on reveal
-    (`Not top 5: Ireland is actually #10 (85.3 kg/yr)`).
-  * Share: `Ranki.gg #016 🥔 Top 5: solved in 3 tries` (or `X/5`) plus one 🟩/🟥 row of 5 squares per try.
-  * **Hints:** each failed lock reveals one hint about the highest-ranked slot that is still wrong, from that country's
-    hint bank (vague → specific). A correct slot does not spend a hint.
+* **🥇 Top 1:** type the country you think is #1. Each guess reveals that country's real rank
+  (`#7 of 120`) with a warm/cold square: 🟩 #1, 🟨 #2–#5, 🟧 #6–#15, 🟥 further away. A name that is not in the
+  list, and a repeat guess, do not cost a try. Five tries. Finding #1 wins.
+  * Accuracy stays in a try band: 1 try = 100, 2 = 80–99, 3 = 60–79, 4 = 40–59, 5 = 20–39. Inside the band, each
+    wrong guess loses a point per rank away from #1, and the score does not fall through the floor of the band.
+  * Share: `Ranki.gg #164 🥔 Top 1: solved in 2 tries` (or `X/5`) plus one 🟩/🟨/🟧/🟥 square per try.
+  * The reveal lists the real top 5, highlights guesses, and keeps the source and fact line.
 
 ## Run it
 * **Easiest:** double-click `index.html`. It works from `file://` with no server and no internet,

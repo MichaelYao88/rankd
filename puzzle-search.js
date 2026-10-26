@@ -62,6 +62,7 @@
   function categoryText(p) {
     if (!p) return "";
     if (p.type === "top5") return "Top 5 Guess the top 5";
+    if (p.type === "top1") return "Top 1 Which country is number 1";
     if (p.type === "match") return "Match it";
     if (p.type === "tier") return "Tier it";
     const items = p.items || [];
@@ -114,5 +115,10 @@
     return run;
   }
 
-  return { normQuery, textMatches, nameMatches, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
+  function aliasExact(name, q) {
+    const aliases = ALIAS_OF.get(normQuery(name));
+    return !!(aliases && aliases.includes(q));
+  }
+
+  return { normQuery, textMatches, nameMatches, aliasExact, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
 });

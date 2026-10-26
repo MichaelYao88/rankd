@@ -197,6 +197,8 @@ def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
     """Rows the player locks. Top 5 is five slots, not the country list and not one named guess."""
     if kind == "top5":
         return 5
+    if kind == "top1":
+        return 1
     if not isinstance(puzzle, dict):
         return None
     rows = puzzle.get("people") if kind == "match" else puzzle.get("items")
