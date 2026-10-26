@@ -309,6 +309,24 @@ a{color:var(--link)}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
 .share-row .pill-btn{padding:15px 10px;font-size:11px}
+.share-row .challenge-friend{grid-column:1 / -1;letter-spacing:.12em;white-space:nowrap}
+.challenge-banner{margin:0 0 12px;padding:12px 14px;border-radius:16px;background:var(--surface2);box-shadow:var(--shadow-soft);font-size:14.5px;font-weight:700;line-height:1.35;letter-spacing:-.01em}
+.h2h{margin-top:14px;padding:14px 16px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
+.h2h-winner{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em}
+.h2h-vs{margin:2px 0 10px;font-size:13px;font-weight:700;color:var(--muted)}
+.h2h-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.h2h-col{min-width:0;padding:10px 10px 12px;border-radius:14px;background:rgba(var(--ink-rgb),.045)}
+.h2h-col b{display:block;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2h-meta{margin-top:4px;color:var(--muted);font-size:12px;font-weight:700;line-height:1.35}
+.h2h-squares{display:block;margin-top:8px;font-size:14px;line-height:1.35;letter-spacing:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (max-width:400px){
+  .challenge-banner{font-size:13.5px;padding:10px 12px}
+  .h2h{padding:12px}
+  .h2h-grid{gap:8px}
+  .h2h-col{padding:8px}
+  .h2h-squares{font-size:12px}
+  .h2h-meta{font-size:11px}
+}
 /* WhereIsShe suggestion: same surface card as the score / community blocks, pill actions, not a banner. */
 .crosspromo{margin-top:14px;padding:14px 16px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
 .crosspromo-title{margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em}
@@ -771,7 +789,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .lasthint.hidden,body.fit .t5out.hidden{display:none!important}
   body.fit #guessGame .card-foot{margin-top:6px}
   /* on-screen keyboard open: drop everything above the card + the subtitle */
-  body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top{display:none!important}
+  body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top,body.kb .challenge-banner{display:none!important}
   body.kb .wrap{padding-top:4px}
   body.kb .hero h1{font-size:17px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   body.kb .lasthint{-webkit-line-clamp:1}
