@@ -644,6 +644,7 @@ body.fit .board.n6 .vchip .grank{margin-top:0;line-height:1.05}
 .fx-explosive .fx-banner{font-size:clamp(54px,17vw,120px);animation-duration:2.4s}
 .fx-big .fx-banner{font-size:clamp(40px,12vw,84px);animation-duration:1.9s}
 .fx-racist .fx-banner{font-size:clamp(48px,14vw,96px);animation-duration:1.9s}   /* slightly bigger than Brilliant!, same family */
+.fx-ignorant .fx-banner{font-size:clamp(40px,12vw,84px);animation-duration:1.7s}
 .fx-normal .fx-banner{font-size:clamp(28px,8vw,48px);animation-name:fxBannerSoft}
 @keyframes fxBanner{0%{transform:scale(.2) rotate(-8deg);opacity:0}18%{transform:scale(1.25) rotate(3deg);opacity:1}30%{transform:scale(1) rotate(-1deg)}80%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.1) translateY(-20px)}}
 @keyframes fxBannerSoft{0%{transform:translateY(20px);opacity:0}25%{transform:none;opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(-10px)}}
@@ -888,6 +889,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 #matchSubmit.ready{background:#fff;color:var(--brand)}
 /* image flags (e.g. SFR Yugoslavia, no emoji exists) */
 .m-flag-img{display:inline-block;width:1.35em;height:.9em;vertical-align:-.08em;border-radius:2px;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.12)}
+.m-flag-img.is-blank{background:#f7f7f7;box-shadow:0 0 0 1px rgba(255,255,255,.9)}
 .m-flag .m-flag-img{width:1.3em;height:.87em}
 .m-target .m-flag-img{width:1.2em;height:.8em}
 #matchGame.m7 .m-person:last-child{grid-column:1 / -1;justify-self:center;width:calc(50% - 3.5px)}
