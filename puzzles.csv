@@ -1,11 +1,11 @@
 ﻿puzzle_id,daily_order,puzzle_emoji,question,stat_label,unit,higher_is,values_visible,item_name,item_emoji,value,data_year,source_name,source_url,fun_fact,global_rank,global_total,global_scope,art,support_url,dataset,series_title,headline
-work-hours,1,⏱️,Who works the most hours per year?,Average annual hours worked per worker,hours/yr,top,no,Indonesia,🇮🇩,1958,2023,Penn World Table 11 via Our World in Data,https://ourworldindata.org/grapher/annual-working-hours-per-worker,Indonesia leads on long informal and farm hours. Greece still beats Germany because part-time work is rare there and common in Germany.,69,129,,clock,,owid-work-hours,Hours Worked per Year,Grindset Nations
+work-hours,1,⏱️,Who works the most hours per year?,Average annual hours worked per worker,hours/yr per worker,top,no,Indonesia,🇮🇩,1958,2023,Penn World Table 11 via Our World in Data,https://ourworldindata.org/grapher/annual-working-hours-per-worker,Indonesia leads on long informal and farm hours. Greece still beats Germany because part-time work is rare there and common in Germany.,69,129,,clock,,owid-work-hours,Hours Worked per Year,Grindset Nations
 work-hours,,,,,,,,South Korea,🇰🇷,1910,2023,,,,73,129,,,,,,
 work-hours,,,,,,,,Greece,🇬🇷,1893,2023,,,,74,129,,,,,,
 work-hours,,,,,,,,United States,🇺🇸,1789,2023,,,,85,129,,,,,,
 work-hours,,,,,,,,Japan,🇯🇵,1654,2023,,,,96,129,,,,,,
 work-hours,,,,,,,,Germany,🇩🇪,1335,2023,,,,129,129,,,,,,
-alcohol,3,🍺,Who drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol",L,top,yes,Romania,🇷🇴,16.8,2020,"WHO Global Health Observatory via World Bank, World Development Indicators",https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Romania leads because WHO counts home-distilled fruit brandy, not just shop bottles. Uganda passes Italy once home brew is included. Note: recorded plus unrecorded alcohol, adults 15+, 2020.",1,185,,beer,,wb-alcohol,Alcohol Consumption,Bottoms Up
+alcohol,3,🍺,Who drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol",L/yr/capita (15+),top,yes,Romania,🇷🇴,16.8,2020,"WHO Global Health Observatory via World Bank, World Development Indicators",https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Romania leads because WHO counts home-distilled fruit brandy, not just shop bottles. Uganda passes Italy once home brew is included. Note: recorded plus unrecorded alcohol, adults 15+, 2020.",1,185,,beer,,wb-alcohol,Alcohol Consumption,Bottoms Up
 alcohol,,,,,,,,Uganda,🇺🇬,11.3,2020,,,,11,185,,,,,,
 alcohol,,,,,,,,Italy,🇮🇹,6.97,2020,,,,59,185,,,,,,
 alcohol,,,,,,,,India,🇮🇳,4.1,2020,,,,98,185,,,,,,
@@ -20,10 +20,12 @@ happiness,,,,,,,,Mexico,🇲🇽,6.97,2025,,,,12,147,,,,,,
 happiness,,,,,,,,United States,🇺🇸,6.82,2025,,,,23,147,,,,,,
 happiness,,,,,,,,United Kingdom,🇬🇧,6.69,2025,,,,29,147,,,,,,
 happiness,,,,,,,,Japan,🇯🇵,6.13,2025,,,,61,147,,,,,,
-homicide,13,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,United States,🇺🇸,5.76,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"The US rate is about twice India's, largely because civilian gun ownership is far higher and most US homicides are shootings. Note: latest years differ by country.",29,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
+homicide,30,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,Mexico,🇲🇽,24.86,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"Mexico's rate is more than four times the United States', because organized crime drives most of the killings. Japan is lower than Indonesia. Note: latest years differ by country.",10,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
+homicide,,,,,,,,United States,🇺🇸,5.76,2023,,,,29,83,,,,,,
 homicide,,,,,,,,India,🇮🇳,2.82,2022,,,,46,105,,,,,,
 homicide,,,,,,,,Finland,🇫🇮,0.98,2023,,,,57,83,,,,,,
 homicide,,,,,,,,Indonesia,🇮🇩,0.3,2022,,,,99,105,,,,,,
+homicide,,,,,,,,Japan,🇯🇵,0.23,2023,,,,81,83,,,,,,
 stem-women,12,🔬,Where are women the biggest share of STEM graduates?,Female share of tertiary STEM graduates,%,top,no,Algeria,🇩🇿,51.1,2024,"UNESCO Institute for Statistics via World Bank, World Development Indicators",https://data.worldbank.org/indicator/SE.TER.GRAD.FE.SI.ZS,"Women are a majority of STEM graduates in Algeria, and under 30% in Germany.",2,44,,flask,,,,Lab Coats
 stem-women,,,,,,,,India,🇮🇳,44.1,2023,,,,17,96,,,,,,
 stem-women,,,,,,,,United States,🇺🇸,38.5,2023,,,,37,96,,,,,,
@@ -34,7 +36,7 @@ life-expectancy,,,,,,,,Costa Rica,🇨🇷,81,2024,,,,47,217,,,,,,
 life-expectancy,,,,,,,,United States,🇺🇸,78.9,2024,,,,61,217,,,,,,
 life-expectancy,,,,,,,,Cuba,🇨🇺,78.3,2024,,,,66,217,,,,,,
 life-expectancy,,,,,,,,China,🇨🇳,78,2024,,,,70,217,,,,,,
-fertility,9,👶,Where do women have the most children?,Total fertility rate (births per woman),births,top,no,Israel,🇮🇱,2.87,2024,"World Bank, World Development Indicators (UN Population Division)",https://data.worldbank.org/indicator/SP.DYN.TFRT.IN,Israel's rate stays high because religious Jewish families have many children. Iran fell to US and French levels after a national family-planning program from 1989.,58,217,,stroller,,wb-fertility,Fertility Rate,Fertility Rate
+fertility,9,👶,Where do women have the most children?,Total fertility rate (births per woman),births/woman,top,no,Israel,🇮🇱,2.87,2024,"World Bank, World Development Indicators (UN Population Division)",https://data.worldbank.org/indicator/SP.DYN.TFRT.IN,Israel's rate stays high because religious Jewish families have many children. Iran fell to US and French levels after a national family-planning program from 1989.,58,217,,stroller,,wb-fertility,Fertility Rate,Fertility Rate
 fertility,,,,,,,,Bangladesh,🇧🇩,2.14,2024,,,,95,217,,,,,,
 fertility,,,,,,,,Iran,🇮🇷,1.68,2024,,,,130,217,,,,,,
 fertility,,,,,,,,United States,🇺🇸,1.63,2024,,,,133,217,,,,,,
@@ -49,12 +51,12 @@ crash-rate,,,,,,,,Female drivers aged 70+,👵,3.4,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Male drivers aged 70+,👴,2.9,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Male drivers (all ages),👨,2.8,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Female drivers (all ages),👩,1.9,2022,,,,,,,,,,,
-homicide-women,15,🔪,Where is the female homicide rate highest?,"Intentional homicide victims, female",per 100k women,top,yes,United States,🇺🇸,2.81,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"The US female rate tops India's. Women killed in the US usually die by gunshot, often a partner. Note: UNODC via World Bank, 2022.",24,98,,candle,,unodc-homicide-female,Female Homicide Rate,Female Homicide
+homicide-women,32,🔪,Where is the female homicide rate highest?,"Intentional homicide victims, female",per 100k women,top,yes,United States,🇺🇸,2.81,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"The US female rate tops India's. Women killed in the US usually die by gunshot, often a partner. Note: UNODC via World Bank, 2022.",24,98,,candle,,unodc-homicide-female,Female Homicide Rate,Female Homicide
 homicide-women,,,,,,,,India,🇮🇳,2.37,2022,,,,30,98,,,,,,
 homicide-women,,,,,,,,Germany,🇩🇪,0.82,2022,,,,61,98,,,,,,
 homicide-women,,,,,,,,Jordan,🇯🇴,0.7,2022,,,,65,98,,,,,,
 homicide-women,,,,,,,,South Korea,🇰🇷,0.5,2022,,,,79,98,,,,,,
-homicide-sex,20,🚻,"Where is the homicide rate highest, by sex?","Intentional homicides per 100,000 of that sex (male or female population)",per 100k,top,yes,Men in India,👨,3.23,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.MA.P5 / VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"US women are killed at a higher rate than men in Germany. In the US that is mostly gun homicide; male homicide in Germany is rare. Note: per 100,000 of that sex, 2022.",45,97,countries · male rate,balance,,,,Homicide by Sex
+homicide-sex,53,🚻,"Where is the homicide rate highest, by sex?","Intentional homicides per 100,000 of that sex (male or female population)",per 100k,top,yes,Men in India,👨,3.23,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.MA.P5 / VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"US women are killed at a higher rate than men in Germany. In the US that is mostly gun homicide; male homicide in Germany is rare. Note: per 100,000 of that sex, 2022.",45,97,countries · male rate,balance,,,,Homicide by Sex
 homicide-sex,,,,,,,,Women in the US,👩,2.81,2022,,,,24,98,countries · female rate,,,,,
 homicide-sex,,,,,,,,Men in Germany,👨,0.81,2022,,,,84,97,countries · male rate,,,,,
 homicide-sex,,,,,,,,Men in South Korea,👨,0.49,2022,,,,92,97,countries · male rate,,,,,
@@ -64,17 +66,17 @@ women-work,,,,,,,,United Arab Emirates,🇦🇪,53.03,2025,,,,93,182,,,,,,
 women-work,,,,,,,,Italy,🇮🇹,40.81,2025,,,,147,182,,,,,,
 women-work,,,,,,,,Saudi Arabia,🇸🇦,33.57,2025,,,,160,182,,,,,,
 women-work,,,,,,,,India,🇮🇳,32.42,2025,,,,162,182,,,,,,
-suicide,17,🕯️,Which country has the highest suicide rate?,"Age-standardized suicide rate, both sexes",per 100k,top,no,South Korea,🇰🇷,23.4,2023,"WHO Global Health Observatory, indicator MH_12 (Global Health Estimates)",https://www.who.int/data/gho/data/indicators/indicator-details/GHO/age-standardized-suicide-rates-(per-100-000-population),"South Korea leads because suicide is far more common among older adults in poverty. Sweden, despite the gloomy reputation, is lowest here. Note: WHO modelled, age-standardized, 2023.",8,185,,sunrise,https://findahelpline.com/,who-suicide,Suicide Rate,Suicide Rates
+suicide,36,🕯️,Which country has the highest suicide rate?,"Age-standardized suicide rate, both sexes",per 100k,top,no,South Korea,🇰🇷,23.4,2023,"WHO Global Health Observatory, indicator MH_12 (Global Health Estimates)",https://www.who.int/data/gho/data/indicators/indicator-details/GHO/age-standardized-suicide-rates-(per-100-000-population),"South Korea leads because suicide is far more common among older adults in poverty. Sweden, despite the gloomy reputation, is lowest here. Note: WHO modelled, age-standardized, 2023.",8,185,,sunrise,https://findahelpline.com/,who-suicide,Suicide Rate,Suicide Rates
 suicide,,,,,,,,India,🇮🇳,15.3,2023,,,,48,185,,,,,,
 suicide,,,,,,,,Japan,🇯🇵,14.4,2023,,,,58,185,,,,,,
 suicide,,,,,,,,United States,🇺🇸,13.3,2023,,,,68,185,,,,,,
 suicide,,,,,,,,Sweden,🇸🇪,12.7,2023,,,,73,185,,,,,,
-co2-consumption,71,🏭,Whose lifestyle emits the most CO₂ per person?,"Consumption-based CO₂ emissions per person (emissions embedded in what a country consumes, incl. imports, minus exports)",t CO₂/person,top,no,Singapore,🇸🇬,32.29,2023,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/consumption-co2-per-capita,"Singapore's footprint is so high because a rich city imports nearly everything it uses. Switzerland looks green on smokestacks but buys the emissions in its imports. Note: consumption-based CO2, 2023.",1,120,,cart,,,,Carbon Shoppers
+co2-consumption,71,🏭,Whose lifestyle emits the most CO₂ per person?,"Consumption-based CO₂ emissions per person (emissions embedded in what a country consumes, incl. imports, minus exports)",t CO₂/yr per capita,top,no,Singapore,🇸🇬,32.29,2023,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/consumption-co2-per-capita,"Singapore's footprint is so high because a rich city imports nearly everything it uses. Switzerland looks green on smokestacks but buys the emissions in its imports. Note: consumption-based CO2, 2023.",1,120,,cart,,,,Carbon Shoppers
 co2-consumption,,,,,,,,United States,🇺🇸,15.81,2023,,,,11,120,,,,,,
 co2-consumption,,,,,,,,Switzerland,🇨🇭,13.34,2023,,,,16,120,,,,,,
 co2-consumption,,,,,,,,China,🇨🇳,7.63,2023,,,,36,120,,,,,,
 co2-consumption,,,,,,,,India,🇮🇳,1.77,2023,,,,94,120,,,,,,
-co2-territorial,50,🌫️,Who emits the most CO₂ per person?,"Territorial fossil CO₂ emissions per person (fossil fuels and industry, excl. land use)",t CO₂/person,top,yes,Saudi Arabia,🇸🇦,20.38,2024,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/co-emissions-per-capita,"Saudi Arabia leads on cheap oil, air conditioning and desalination. Australia slightly tops the US on coal-heavy power. An Indian emits about half what a Briton does. Note: territorial fossil CO2, not imports.",6,213,,smokestack,,,,Smokestacks
+co2-territorial,50,🌫️,Who emits the most CO₂ per person?,"Territorial fossil CO₂ emissions per person (fossil fuels and industry, excl. land use)",t CO₂/yr per capita,top,yes,Saudi Arabia,🇸🇦,20.38,2024,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/co-emissions-per-capita,"Saudi Arabia leads on cheap oil, air conditioning and desalination. Australia slightly tops the US on coal-heavy power. An Indian emits about half what a Briton does. Note: territorial fossil CO2, not imports.",6,213,,smokestack,,,,Smokestacks
 co2-territorial,,,,,,,,Australia,🇦🇺,14.48,2024,,,,11,213,,,,,,
 co2-territorial,,,,,,,,United States,🇺🇸,14.2,2024,,,,12,213,,,,,,
 co2-territorial,,,,,,,,China,🇨🇳,8.66,2024,,,,30,213,,,,,,
@@ -117,7 +119,7 @@ gss-men-gender-roles,41,🏠,Which American men most agree a woman should tend t
 gss-men-gender-roles,,,,,,,,Black men,👨🏿,33.4,2016–2024 pooled,,,,,,,,,,,
 gss-men-gender-roles,,,,,,,,Asian men,👨🏻,27.1,2016–2024 pooled,,,,,,,,,,,
 gss-men-gender-roles,,,,,,,,White men,👨🏼,26.5,2016–2024 pooled,,,,,,,,,,,
-market-economy-age,32,📈,Who approves most of the switch from communism to a market economy?,"% approving the change to a market economy since 1989/1991, by country and age",% approve,top,yes,Bulgarians 18–34,🇧🇬,74,2019,"Pew Research Center, Spring 2019 Global Attitudes Survey (European Public Opinion Three Decades After the Fall of Communism, p.23)",https://www.pewresearch.org/global/2019/10/15/political-and-economic-changes-since-the-fall-of-communism/,"Young Bulgarians approve most. Older Russians, who lived through the 1990s crash, mostly disapprove. Czechs aged 60+, who lived under communism, still approve more than young Russians.",,,,statue,,,,Market Transition
+market-economy-age,15,📈,Who approves most of the switch from communism to a market economy?,"% approving the change to a market economy since 1989/1991, by country and age",% approve,top,yes,Bulgarians 18–34,🇧🇬,74,2019,"Pew Research Center, Spring 2019 Global Attitudes Survey (European Public Opinion Three Decades After the Fall of Communism, p.23)",https://www.pewresearch.org/global/2019/10/15/political-and-economic-changes-since-the-fall-of-communism/,"Young Bulgarians approve most. Older Russians, who lived through the 1990s crash, mostly disapprove. Czechs aged 60+, who lived under communism, still approve more than young Russians.",,,,statue,,,,Market Transition
 market-economy-age,,,,,,,,Czechs 60+,🇨🇿,69,2019,,,,,,,,,,,
 market-economy-age,,,,,,,,Russians 18–34,🇷🇺,51,2019,,,,,,,,,,,
 market-economy-age,,,,,,,,Slovaks 60+,🇸🇰,49,2019,,,,,,,,,,,
@@ -159,17 +161,17 @@ pew-us-socialism,,,,,,,,Asian adults,🧑🏻,49,2022,,,,,,,,,,,
 pew-us-socialism,,,,,,,,Ages 18–29,🧑,44,2022,,,,,,,,,,,
 pew-us-socialism,,,,,,,,Hispanic adults,🧑🏽,41,2022,,,,,,,,,,,
 pew-us-socialism,,,,,,,,Ages 65+,🧓,28,2022,,,,,,,,,,,
-rice,5,🍚,Who eats the most rice per person?,"Rice available for consumption per person, FAO food balance",kg/yr,top,no,Bangladesh,🇧🇩,250.6,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Rice&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,"Bangladesh and the Philippines eat rice at almost every meal. China's average is lower because the north lives on wheat, and Japan eats far less rice than it used to. Note: FAO food supply.",4,187,,bowl,,,,Rice Buckets
+rice,5,🍚,Who eats the most rice per person?,"Rice available for consumption per person, FAO food balance",kg/yr per capita,top,no,Bangladesh,🇧🇩,250.6,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Rice&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,"Bangladesh and the Philippines eat rice at almost every meal. China's average is lower because the north lives on wheat, and Japan eats far less rice than it used to. Note: FAO food supply.",4,187,,bowl,,,,Rice Buckets
 rice,,,,,,,,Philippines,🇵🇭,200.4,2023,,,,9,187,,,,,,
 rice,,,,,,,,China,🇨🇳,130.1,2023,,,,20,187,,,,,,
 rice,,,,,,,,Japan,🇯🇵,72.9,2022,,,,38,187,,,,,,
 rice,,,,,,,,Italy,🇮🇹,9.4,2023,,,,140,187,,,,,,
-tomatoes,8,🍅,Who eats the most tomatoes per person?,"Tomatoes available for consumption per person, FAO food balance",kg/yr,top,no,Turkey,🇹🇷,112.8,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Tomatoes&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,Turkey leads because tomatoes are an everyday food and a huge local crop. Mexico's salsa fame is chiles more than kilos of tomato.,1,187,,tomato,,,,Tomato Towns
+tomatoes,8,🍅,Who eats the most tomatoes per person?,"Tomatoes available for consumption per person, FAO food balance",kg/yr per capita,top,no,Turkey,🇹🇷,112.8,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Tomatoes&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,Turkey leads because tomatoes are an everyday food and a huge local crop. Mexico's salsa fame is chiles more than kilos of tomato.,1,187,,tomato,,,,Tomato Towns
 tomatoes,,,,,,,,Netherlands,🇳🇱,62,2023,,,,7,187,,,,,,
 tomatoes,,,,,,,,China,🇨🇳,40.4,2023,,,,32,187,,,,,,
 tomatoes,,,,,,,,Mexico,🇲🇽,16.1,2023,,,,100,187,,,,,,
 tomatoes,,,,,,,,Thailand,🇹🇭,4.3,2023,,,,143,187,,,,,,
-onions,14,🧅,Who eats the most onions per person?,"Onions available for consumption per person, FAO food balance",kg/yr,top,no,Tajikistan,🇹🇯,56.8,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Onions&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,"Tajik cooking, especially plov, uses onions by the kilo, so a small country leads the world. India's onion dishes add up to much less per person.",1,182,,onion,,,,Tear Jerkers
+onions,14,🧅,Who eats the most onions per person?,"Onions available for consumption per person, FAO food balance",kg/yr per capita,top,no,Tajikistan,🇹🇯,56.8,2023,UN FAO Food Balances via Our World in Data,https://ourworldindata.org/explorers/global-food?Food=Onions&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year,"Tajik cooking, especially plov, uses onions by the kilo, so a small country leads the world. India's onion dishes add up to much less per person.",1,182,,onion,,,,Tear Jerkers
 onions,,,,,,,,Senegal,🇸🇳,31.1,2023,,,,6,182,,,,,,
 onions,,,,,,,,India,🇮🇳,17.5,2023,,,,30,182,,,,,,
 onions,,,,,,,,United States,🇺🇸,9.6,2023,,,,70,182,,,,,,
@@ -189,7 +191,7 @@ trends-messi,,,,,,,,Argentina,🇦🇷,43,Oct 2021–Oct 2026,,,,7,103,,,,,,
 trends-messi,,,,,,,,Nigeria,🇳🇬,27,Oct 2021–Oct 2026,,,,15,103,,,,,,
 trends-messi,,,,,,,,Spain,🇪🇸,10,Oct 2021–Oct 2026,,,,54,103,,,,,,
 trends-messi,,,,,,,,United States,🇺🇸,4,Oct 2021–Oct 2026,,,,92,103,,,,,,
-renewables,36,🌿,Who gets the most of its energy from renewables?,Renewable energy consumption (% of total final energy consumption),%,top,no,Uganda,🇺🇬,91,2021,"World Bank (IEA, IRENA, UN Statistics Division, WHO, World Bank: SDG 7.2 tracking)",https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS,"Uganda beats Norway because firewood and charcoal count as renewable. A high share here often means energy poverty, not green power plants. Note: share of final energy, 2021.",5,212,,windmill,,,,Green Machines
+renewables,17,🌿,Who gets the most of its energy from renewables?,Renewable energy consumption (% of total final energy consumption),%,top,no,Uganda,🇺🇬,91,2021,"World Bank (IEA, IRENA, UN Statistics Division, WHO, World Bank: SDG 7.2 tracking)",https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS,"Uganda beats Norway because firewood and charcoal count as renewable. A high share here often means energy poverty, not green power plants. Note: share of final energy, 2021.",5,212,,windmill,,,,Green Machines
 renewables,,,,,,,,Norway,🇳🇴,61.4,2021,,,,36,212,,,,,,
 renewables,,,,,,,,India,🇮🇳,34.9,2021,,,,69,212,,,,,,
 renewables,,,,,,,,United States,🇺🇸,10.9,2021,,,,142,212,,,,,,
@@ -328,7 +330,7 @@ life-expectancy-b,,,,,,,,Albania,🇦🇱,79.8,,,,,54,217,,,,,,
 life-expectancy-b,,,,,,,,Brazil,🇧🇷,76,,,,,99,217,,,,,,
 life-expectancy-b,,,,,,,,Russia,🇷🇺,73.4,,,,,122,217,,,,,,
 life-expectancy-b,,,,,,,,Nigeria,🇳🇬,54.6,,,,,217,217,,,,,,
-alcohol-b,109,🍺,Who drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L,top,no,Latvia,🇱🇻,12.87,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Latvia out-drinks Russia once home-distilled spirits are counted. Iran's small figure is unrecorded drinking despite a ban. Note: WHO 2020, recorded plus unrecorded, age 15+.",3,185,,beer,,wb-alcohol,Alcohol Consumption,Another Round
+alcohol-b,109,🍺,Who drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L/yr/capita (15+),top,no,Latvia,🇱🇻,12.87,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Latvia out-drinks Russia once home-distilled spirits are counted. Iran's small figure is unrecorded drinking despite a ban. Note: WHO 2020, recorded plus unrecorded, age 15+.",3,185,,beer,,wb-alcohol,Alcohol Consumption,Another Round
 alcohol-b,,,,,,,,Russia,🇷🇺,10.53,,,,,21,185,,,,,,
 alcohol-b,,,,,,,,South Korea,🇰🇷,7.79,,,,,49,185,,,,,,
 alcohol-b,,,,,,,,China,🇨🇳,4.58,,,,,88,185,,,,,,
@@ -379,7 +381,7 @@ happiness-b,,,,,,,,Saudi Arabia,🇸🇦,6.82,,,,,22,147,,,,,,
 happiness-b,,,,,,,,Russia,🇷🇺,5.83,,,,,79,147,,,,,,
 happiness-b,,,,,,,,India,🇮🇳,4.54,,,,,116,147,,,,,,
 happiness-b,,,,,,,,Afghanistan,🇦🇫,1.45,,,,,147,147,,,,,,
-work-hours-b,105,⏰,Who works the most hours per year?,"Average annual hours worked per worker, 2023",hours,top,no,Cambodia,🇰🇭,2389,,Our World in Data (Penn World Table / ILO): Annual working hours per worker,https://ourworldindata.org/grapher/annual-working-hours-per-worker,"South Korea's famous overwork eased after the 52-hour week, so Russia now logs more hours. Cambodia's lead is farm and self-employed work. Denmark's short week is unions and part-time jobs.",9,129,,clock,,owid-work-hours,Hours Worked per Year,Clocking In
+work-hours-b,105,⏰,Who works the most hours per year?,"Average annual hours worked per worker, 2023",hours/yr per worker,top,no,Cambodia,🇰🇭,2389,,Our World in Data (Penn World Table / ILO): Annual working hours per worker,https://ourworldindata.org/grapher/annual-working-hours-per-worker,"South Korea's famous overwork eased after the 52-hour week, so Russia now logs more hours. Cambodia's lead is farm and self-employed work. Denmark's short week is unions and part-time jobs.",9,129,,clock,,owid-work-hours,Hours Worked per Year,Clocking In
 work-hours-b,,,,,,,,Russia,🇷🇺,2087,,,,,51,129,,,,,,
 work-hours-b,,,,,,,,South Korea,🇰🇷,1910,,,,,73,129,,,,,,
 work-hours-b,,,,,,,,Italy,🇮🇹,1701,,,,,91,129,,,,,,
@@ -445,11 +447,11 @@ us-sex-offense-arrests-race,127,🚓,Which US race group has the highest arrest 
 us-sex-offense-arrests-race,,,,,,,,American Indian / Alaska Native,👤,28.8,2019,,,,2,5,FBI race groups,,,,,
 us-sex-offense-arrests-race,,,,,,,,White,👤,18.8,2019,,,,4,5,FBI race groups,,,,,
 us-sex-offense-arrests-race,,,,,,,,Asian,👤,6.9,2019,,,,5,5,FBI race groups,,,,,
-us-federal-child-sex-offenders-race,131,⚖️,Which US group has the most federal child sex offenders per person?,"Federal child sex-abuse / child cornography offenders sentenced per million people, by race and ethnicity",per million,top,no,White (non-Hispanic),👤,8.76,FY2024,"US Sentencing Commission FY2024 individual datafile (USSC FY24) + US Census Bureau population estimates (July 1, 2024)",https://www.ussc.gov/research/datafiles/commission-datafiles,"Per person, non-Hispanic White Americans are sentenced most often in federal child cornography cases. Note: federal only, so most state prosecutions are missing. Native Americans are excluded because reservation jurisdiction inflates federal counts.",1,4,groups (Native Americans excluded),courthouse,,,,Federal Sex Offenders
+us-federal-child-sex-offenders-race,131,⚖️,Which US group has the most federal child sex offenders per person?,"Federal child sex-abuse / child cornography offenders sentenced per million people, by race and ethnicity",per million people,top,no,White (non-Hispanic),👤,8.76,FY2024,"US Sentencing Commission FY2024 individual datafile (USSC FY24) + US Census Bureau population estimates (July 1, 2024)",https://www.ussc.gov/research/datafiles/commission-datafiles,"Per person, non-Hispanic White Americans are sentenced most often in federal child cornography cases. Note: federal only, so most state prosecutions are missing. Native Americans are excluded because reservation jurisdiction inflates federal counts.",1,4,groups (Native Americans excluded),courthouse,,,,Federal Sex Offenders
 us-federal-child-sex-offenders-race,,,,,,,,Hispanic,👤,6.44,FY2024,,,,2,4,groups (Native Americans excluded),,,,,
 us-federal-child-sex-offenders-race,,,,,,,,Black (non-Hispanic),👤,5.77,FY2024,,,,3,4,groups (Native Americans excluded),,,,,
 us-federal-child-sex-offenders-race,,,,,,,,Asian / Pacific Islander,👤,2.72,FY2024,,,,4,4,groups (Native Americans excluded),,,,,
-us-federal-child-porn-offenders-race-fy23,64,🗄️,Federal child-sex image offenders per million (FY2023),"People sentenced federally for child-sex image offences (§2G2.2) per million residents, by race and ethnicity, FY2023",per million,top,no,White,👤,5.55,FY2023,"US Sentencing Commission, Quick Facts: Child Cornography Offenses (FY2023) + USSC FY2023 datafile (Asian/PI) + US Census Bureau Vintage 2023 national estimates (July 1, 2023)",https://www.ussc.gov/sites/default/files/pdf/research-and-publications/quick-facts/Child_Pornography_FY23.pdf,"Per person, White Americans are sentenced much more often in federal child cornography cases than the other groups here. Note: federal cases only. Native Americans are excluded because reservation jurisdiction inflates federal counts.",1,4,groups (Native Americans excluded),courthouse,,,,Evidence Locker
+us-federal-child-porn-offenders-race-fy23,64,🗄️,Federal child-sex image offenders per million (FY2023),"People sentenced federally for child-sex image offences (§2G2.2) per million residents, by race and ethnicity, FY2023",per million people,top,no,White,👤,5.55,FY2023,"US Sentencing Commission, Quick Facts: Child Cornography Offenses (FY2023) + USSC FY2023 datafile (Asian/PI) + US Census Bureau Vintage 2023 national estimates (July 1, 2023)",https://www.ussc.gov/sites/default/files/pdf/research-and-publications/quick-facts/Child_Pornography_FY23.pdf,"Per person, White Americans are sentenced much more often in federal child cornography cases than the other groups here. Note: federal cases only. Native Americans are excluded because reservation jurisdiction inflates federal counts.",1,4,groups (Native Americans excluded),courthouse,,,,Evidence Locker
 us-federal-child-porn-offenders-race-fy23,,,,,,,,Hispanic,👤,2.76,FY2023,,,,2,4,groups (Native Americans excluded),,,,,
 us-federal-child-porn-offenders-race-fy23,,,,,,,,Black,👤,1.93,FY2023,,,,3,4,groups (Native Americans excluded),,,,,
 us-federal-child-porn-offenders-race-fy23,,,,,,,,Asian / Pacific Islander,👤,1.69,FY2023,,,,4,4,groups (Native Americans excluded),,,,,
@@ -476,19 +478,19 @@ obesity-d,,,,,,,,Guatemala,🇬🇹,26.7,,,,,88,199,,,,,,
 obesity-d,,,,,,,,Malaysia,🇲🇾,23.6,,,,,104,199,,,,,,
 obesity-d,,,,,,,,Japan,🇯🇵,5.2,,,,,192,199,,,,,,
 obesity-d,,,,,,,,Ethiopia,🇪🇹,2.5,,,,,198,199,,,,,,
-garlic,138,🧄,Who eats the most garlic per person?,FAO apparent consumption per person,kg/yr,top,no,China,🇨🇳,13.73,2023,"FAOSTAT (FAO): Crops and livestock products (garlic, item 406), Trade (import/export quantity) and Population, 2023; per-person figures computed by Rankd",https://www.fao.org/faostat/en/#data/QCL,"Italy eats little garlic: heavy use is mainly southern, not national. About four in five Italian immigrants to the US, 1880-1920, came from the south and Sicily, so Italian-American food leans on it. Note: FAO supply, not food eaten.",1,182,,onion,,fao-garlic,,Vampire Hunters
+garlic,138,🧄,Who eats the most garlic per person?,FAO apparent consumption per person,kg/yr per capita,top,no,China,🇨🇳,13.73,2023,"FAOSTAT (FAO): Crops and livestock products (garlic, item 406), Trade (import/export quantity) and Population, 2023; per-person figures computed by Rankd",https://www.fao.org/faostat/en/#data/QCL,"Italy eats little garlic: heavy use is mainly southern, not national. About four in five Italian immigrants to the US, 1880-1920, came from the south and Sicily, so Italian-American food leans on it. Note: FAO supply, not food eaten.",1,182,,onion,,fao-garlic,,Vampire Hunters
 garlic,,,,,,,,South Korea,🇰🇷,6.2,2023,,,,4,182,,,,,,
 garlic,,,,,,,,India,🇮🇳,2.28,2023,,,,35,182,,,,,,
 garlic,,,,,,,,Brazil,🇧🇷,1.42,2023,,,,54,182,,,,,,
 garlic,,,,,,,,Spain,🇪🇸,1.1,2023,,,,66,182,,,,,,
 garlic,,,,,,,,Italy,🇮🇹,0.83,2023,,,,85,182,,,,,,
-alcohol-c,29,🍺,Which country drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L,top,no,South Korea,🇰🇷,7.79,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"South Korea out-drinks Italy: soju is an after-work habit, while Italian wine drinking has fallen for decades. Indonesia, mostly Muslim, is near zero. Note: WHO 2020, age 15+, includes unrecorded alcohol.",49,185,,beer,,wb-alcohol,Alcohol Consumption,Alcohol per Adult
+alcohol-c,29,🍺,Which country drinks the most alcohol per person?,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L/yr/capita (15+),top,no,South Korea,🇰🇷,7.79,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"South Korea out-drinks Italy: soju is an after-work habit, while Italian wine drinking has fallen for decades. Indonesia, mostly Muslim, is near zero. Note: WHO 2020, age 15+, includes unrecorded alcohol.",49,185,,beer,,wb-alcohol,Alcohol Consumption,Alcohol per Adult
 alcohol-c,,,,,,,,Italy,🇮🇹,6.97,,,,,59,185,,,,wb-alcohol,,
 alcohol-c,,,,,,,,United Arab Emirates,🇦🇪,2.08,,,,,130,185,,,,wb-alcohol,,
 alcohol-c,,,,,,,,Democratic Republic of Congo,🇨🇩,1.92,,,,,135,185,,,,wb-alcohol,,
 alcohol-c,,,,,,,,Guatemala,🇬🇹,1.54,,,,,141,185,,,,wb-alcohol,,
 alcohol-c,,,,,,,,Indonesia,🇮🇩,0.07,,,,,177,185,,,,wb-alcohol,,
-alcohol-d,139,🍺,Litres of pure alcohol per adult per year,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L,top,no,Bosnia and Herzegovina,🇧🇦,5.87,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Islam forbids alcohol, but Bosnia and Kazakhstan drink far more than Pakistan. Bosnia is only about half Muslim; Kazakhstan kept a Soviet-era drinking habit. Note: national figures include non-Muslims. WHO 2020, age 15+.",73,185,,beer,,wb-alcohol,Litres of pure alcohol per adult per year,Alcohol is Haram
+alcohol-d,139,🍺,Litres of pure alcohol per adult per year,"Total alcohol per capita (age 15+), litres of pure alcohol, 2020",L/yr/capita (15+),top,no,Bosnia and Herzegovina,🇧🇦,5.87,,World Bank / WHO: Total alcohol consumption per capita (SH.ALC.PCAP.LI),https://data.worldbank.org/indicator/SH.ALC.PCAP.LI,"Islam forbids alcohol, but Bosnia and Kazakhstan drink far more than Pakistan. Bosnia is only about half Muslim; Kazakhstan kept a Soviet-era drinking habit. Note: national figures include non-Muslims. WHO 2020, age 15+.",73,185,,beer,,wb-alcohol,Litres of pure alcohol per adult per year,Alcohol is Haram
 alcohol-d,,,,,,,,Kazakhstan,🇰🇿,4.52,,,,,89,185,,,,wb-alcohol,,
 alcohol-d,,,,,,,,Nigeria,🇳🇬,3.78,,,,,100,185,,,,wb-alcohol,,
 alcohol-d,,,,,,,,United Arab Emirates,🇦🇪,2.08,,,,,130,185,,,,wb-alcohol,,
@@ -569,7 +571,7 @@ gambling-immoral-b,,,,,,,,Brazil,🇧🇷,61,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Kenya,🇰🇪,61,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Poland,🇵🇱,41,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Canada,🇨🇦,27,2025,,,,,,,,,,,
-ef-epi-city,30,🗣️,Which city speaks the best English?,EF EPI city English proficiency score,EPI score,top,yes,Seoul,🇰🇷,550,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Seoul beats Tokyo because Korean adults get far more spoken-English practice in private academies, while Japan's schooling stays grammar-heavy. Note: EF test-takers choose the test. They are not a random sample.",43,121,cities,microphone,,ef-epi-city,City English Score,City English
+ef-epi-city,13,🗣️,Which city speaks the best English?,EF EPI city English proficiency score,EPI score,top,yes,Seoul,🇰🇷,550,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Seoul beats Tokyo because Korean adults get far more spoken-English practice in private academies, while Japan's schooling stays grammar-heavy. Note: EF test-takers choose the test. They are not a random sample.",43,121,cities,microphone,,ef-epi-city,City English Score,City English
 ef-epi-city,,,,,,,,Rome,🇮🇹,538,,,,,52,121,cities,,,,,
 ef-epi-city,,,,,,,,Hanoi,🇻🇳,532,,,,,56,121,cities,,,,,
 ef-epi-city,,,,,,,,Beijing,🇨🇳,514,,,,,73,121,cities,,,,,
@@ -599,7 +601,7 @@ pew-police-videos-good,,,,,,,,Asian,👤,50,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,Latino/Hispanic,👤,48,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,White,👤,41,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,Republican (Rep/Lean Rep),❤️,24,,,,,,,,,,,,
-pew-us-favorable,53,🇺🇸,% with a favorable view of the United States,Favorable opinion of the United States,%,top,yes,Israel,🇮🇱,83,2025,"Pew Research Center, Spring 2025 Global Attitudes Survey (Jan 8–Apr 26 2025; published June 11, 2025)",https://www.pewresearch.org/global/2025/06/11/views-of-the-united-states/,"Israel is most favorable, in line with a close security alliance. Mexico's view fell from 61% to 29% in one year. Sweden is the least favorable.",,,countries,flag,,pew-us-favorable,,Stars and Stripes
+pew-us-favorable,20,🇺🇸,% with a favorable view of the United States,Favorable opinion of the United States,%,top,yes,Israel,🇮🇱,83,2025,"Pew Research Center, Spring 2025 Global Attitudes Survey (Jan 8–Apr 26 2025; published June 11, 2025)",https://www.pewresearch.org/global/2025/06/11/views-of-the-united-states/,"Israel is most favorable, in line with a close security alliance. Mexico's view fell from 61% to 29% in one year. Sweden is the least favorable.",,,countries,flag,,pew-us-favorable,,Stars and Stripes
 pew-us-favorable,,,,,,,,Hungary,🇭🇺,60,,,,,,,,,,,,
 pew-us-favorable,,,,,,,,Brazil,🇧🇷,56,,,,,,,,,,,,
 pew-us-favorable,,,,,,,,United Kingdom,🇬🇧,50,,,,,,,,,,,,
@@ -712,12 +714,12 @@ who-ipv-lifetime-d,,,,,,,,United States,🇺🇸,28.3,2023,,,,,,,,,,,
 who-ipv-lifetime-d,,,,,,,,China,🇨🇳,19.4,2023,,,,,,,,,,,
 who-ipv-lifetime-d,,,,,,,,France,🇫🇷,18.2,2023,,,,,,,,,,,
 who-ipv-lifetime-d,,,,,,,,Indonesia,🇮🇩,11.6,2023,,,,,,,,,,,
-indians-abroad,150,🌏,Indians Abroad 🇦🇪🇺🇸,India-born people living in each country,million,top,yes,United Arab Emirates,🇦🇪,3.25,2024,"UN DESA, International Migrant Stock 2024",https://www.un.org/development/desa/pd/content/international-migrant-stock,"The Gulf hosts more people born in India than the US, UK and Canada combined, mostly as temporary workers. Pakistan's total is largely from Partition, when the two were one country. Note: mid-2024 stocks, not annual arrivals.",,,,globe,,india-migrant-stock,Indians Abroad,Indians Abroad
-indians-abroad,,,,,,,,United States,🇺🇸,3.17,2024,,,,,,,,,,,
-indians-abroad,,,,,,,,Saudi Arabia,🇸🇦,1.95,2024,,,,,,,,,,,
-indians-abroad,,,,,,,,Pakistan,🇵🇰,1.60,2024,,,,,,,,,,,
-indians-abroad,,,,,,,,United Kingdom,🇬🇧,1.04,2024,,,,,,,,,,,
-indians-abroad,,,,,,,,Canada,🇨🇦,1.02,2024,,,,,,,,,,,
+indians-abroad,150,🌏,Indians abroad as % of population 🇦🇪🇺🇸,People born in India as a share of the population,%,top,yes,United Arab Emirates,🇦🇪,29.6,2024,"UN DESA, International Migrant Stock 2024 (India-born stock at 1 July); World Bank total population (SP.POP.TOTL), 2024",https://www.un.org/development/desa/pd/content/international-migrant-stock,"The UAE's India-born share is 29.6%, against 0.9% in the US, even though the two host almost the same number of people born in India (about 3.25 million and 3.17 million). The UAE is small and staffs its economy with temporary migrant workers, while Pakistan's 1.60 million is only 0.6% of a much larger population. Note: mid-2024 birthplace stocks, not citizenship or annual arrivals.",1,122,,globe,,india-migrant-stock,Indians Abroad,Indians Abroad
+indians-abroad,,,,,,,,Saudi Arabia,🇸🇦,5.5,2024,,,,9,122,,,,,,
+indians-abroad,,,,,,,,Canada,🇨🇦,2.5,2024,,,,13,122,,,,,,
+indians-abroad,,,,,,,,United Kingdom,🇬🇧,1.5,2024,,,,15,122,,,,,,
+indians-abroad,,,,,,,,United States,🇺🇸,0.9,2024,,,,19,122,,,,,,
+indians-abroad,,,,,,,,Pakistan,🇵🇰,0.6,2024,,,,24,122,,,,,,
 unicorn-founders,151,🦄,Countries of birth 🇮🇳🇮🇱,US unicorn founders born in each country,founders,top,yes,India,🇮🇳,90,1997–2019,"Ilya Strebulaev, Stanford GSB Venture Capital Initiative, August 2024",https://news.crunchbase.com/venture/foreign-born-entrepreneurs-drive-americas-unicorn-boom-strebulaev-stanford/,Almost half of these US unicorn founders were born abroad. India leads through a large pipeline of engineers into US tech. Israel's count is huge for such a small country.,,,,sparkles,,unicorn-founder-birth,Countries of birth,Unicorn Founders
 unicorn-founders,,,,,,,,Israel,🇮🇱,52,1997–2019,,,,,,,,,,,
 unicorn-founders,,,,,,,,Canada,🇨🇦,42,1997–2019,,,,,,,,,,,
@@ -742,43 +744,43 @@ wealth-gini-level-field,,,,,,,,France,🇫🇷,59,2024,,,,,,,,,,,
 wealth-gini-level-field,,,,,,,,Australia,🇦🇺,55,2024,,,,,,,,,,,
 wealth-gini-level-field,,,,,,,,Belgium,🇧🇪,47,2024,,,,,,,,,,,
 wealth-gini-level-field,,,,,,,,Slovakia,🇸🇰,38,2024,,,,,,,,,,,
-meat-lovers,156,🥩,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr,top,no,United States,🇺🇸,124.1,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"The US and Australia lead on cheap beef and a heavy meat diet. Israel's high rank is mostly poultry, which this carcass measure counts. Note: FAO supply, not what reaches the plate.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,Meat Lovers
+meat-lovers,156,🥩,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr per capita,top,no,United States,🇺🇸,124.1,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"The US and Australia lead on cheap beef and a heavy meat diet. Israel's high rank is mostly poultry, which this carcass measure counts. Note: FAO supply, not what reaches the plate.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,Meat Lovers
 meat-lovers,,,,,,,,Australia,🇦🇺,121.6,2020,,,,,,,,,,,
 meat-lovers,,,,,,,,Argentina,🇦🇷,109.4,2020,,,,,,,,,,,
 meat-lovers,,,,,,,,New Zealand,🇳🇿,100.9,2020,,,,,,,,,,,
 meat-lovers,,,,,,,,Spain,🇪🇸,100.3,2020,,,,,,,,,,,
 meat-lovers,,,,,,,,Israel,🇮🇱,97.0,2020,,,,,,,,,,,
-meat-meatiest,157,🍖,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr,top,no,Argentina,🇦🇷,109.4,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"Argentina's lead is a long asado culture built on huge cattle herds. Mongolia matches Germany through nomadic herding. Japan eats far more fish than meat. Note: FAO carcass supply, not the plate.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,The Meatiest
+meat-meatiest,157,🍖,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr per capita,top,no,Argentina,🇦🇷,109.4,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"Argentina's lead is a long asado culture built on huge cattle herds. Mongolia matches Germany through nomadic herding. Japan eats far more fish than meat. Note: FAO carcass supply, not the plate.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,The Meatiest
 meat-meatiest,,,,,,,,Mongolia,🇲🇳,88.4,2020,,,,,,,,,,,
 meat-meatiest,,,,,,,,Germany,🇩🇪,87.8,2020,,,,,,,,,,,
 meat-meatiest,,,,,,,,Brazil,🇧🇷,77.3,2020,,,,,,,,,,,
 meat-meatiest,,,,,,,,South Korea,🇰🇷,70.7,2020,,,,,,,,,,,
 meat-meatiest,,,,,,,,Japan,🇯🇵,49.3,2020,,,,,,,,,,,
-meat-side-salad,158,🥗,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr,top,no,South Korea,🇰🇷,70.7,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"India's supply is tiny because many Hindus do not eat beef, or any meat, and meat is expensive. Indonesia is also low: little pork, and chicken became common only recently. Note: FAO carcass supply.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,Side Salad
+meat-side-salad,158,🥗,Meat supply per person,"Carcass-mass availability, not loss-adjusted plate consumption",kg/yr per capita,top,no,South Korea,🇰🇷,70.7,2020,"Wikipedia / FAO (meat supply per person, 2020)",https://en.wikipedia.org/wiki/List_of_countries_by_meat_consumption,"India's supply is tiny because many Hindus do not eat beef, or any meat, and meat is expensive. Indonesia is also low: little pork, and chicken became common only recently. Note: FAO carcass supply.",,,,bowl,,wiki-meat-supply-2020,Meat supply per person,Side Salad
 meat-side-salad,,,,,,,,China,🇨🇳,60.6,2020,,,,,,,,,,,
 meat-side-salad,,,,,,,,Japan,🇯🇵,49.3,2020,,,,,,,,,,,
 meat-side-salad,,,,,,,,Philippines,🇵🇭,37.0,2020,,,,,,,,,,,
 meat-side-salad,,,,,,,,Indonesia,🇮🇩,11.7,2020,,,,,,,,,,,
 meat-side-salad,,,,,,,,India,🇮🇳,6.1,2020,,,,,,,,,,,
-kfc-outlets-finger-lickin,159,🍗,KFC outlets per 1 million people,KFC outlets per 1 million people,per million,top,no,Barbados,🇧🇧,42.5,2026,"Wikipedia, List of countries with KFC franchises; outlets per million people using 2024 population (SP.POP.TOTL, data.worldbank.org; UN WPP 2024 where that series has no figure)",https://en.wikipedia.org/wiki/List_of_countries_with_KFC_franchises,Barbados ranks first because a few outlets in a tiny country look huge per million people. Nigeria has almost none per person. Note: Wikipedia outlet counts. Rates use 2024 population.,,,,bowl,,wiki-kfc-outlets,KFC outlets per 1 million people,Finger Lickin'
+kfc-outlets-finger-lickin,159,🍗,KFC outlets per 1 million people,KFC outlets per 1 million people,per million people,top,no,Barbados,🇧🇧,42.5,2026,"Wikipedia, List of countries with KFC franchises; outlets per million people using 2024 population (SP.POP.TOTL, data.worldbank.org; UN WPP 2024 where that series has no figure)",https://en.wikipedia.org/wiki/List_of_countries_with_KFC_franchises,Barbados ranks first because a few outlets in a tiny country look huge per million people. Nigeria has almost none per person. Note: Wikipedia outlet counts. Rates use 2024 population.,,,,bowl,,wiki-kfc-outlets,KFC outlets per 1 million people,Finger Lickin'
 kfc-outlets-finger-lickin,,,,,,,,Australia,🇦🇺,29.4,2026,,,,,,,,,,,
 kfc-outlets-finger-lickin,,,,,,,,Malaysia,🇲🇾,21.7,2026,,,,,,,,,,,
 kfc-outlets-finger-lickin,,,,,,,,United Kingdom,🇬🇧,14.3,2026,,,,,,,,,,,
 kfc-outlets-finger-lickin,,,,,,,,Japan,🇯🇵,9.1,2026,,,,,,,,,,,
 kfc-outlets-finger-lickin,,,,,,,,Nigeria,🇳🇬,0.1,2026,,,,,,,,,,,
-kfc-outlets-bucket-list,160,🪣,KFC outlets per 1 million people,KFC outlets per 1 million people,per million,top,no,New Zealand,🇳🇿,22.5,2026,"Wikipedia, List of countries with KFC franchises; outlets per million people using 2024 population (SP.POP.TOTL, data.worldbank.org; UN WPP 2024 where that series has no figure)",https://en.wikipedia.org/wiki/List_of_countries_with_KFC_franchises,"China has more KFC outlets than the rest of this set combined, but per person New Zealand still ranks higher. China's population swamps the count. Note: rates use 2024 population.",,,,bowl,,wiki-kfc-outlets,KFC outlets per 1 million people,Bucket List
+kfc-outlets-bucket-list,160,🪣,KFC outlets per 1 million people,KFC outlets per 1 million people,per million people,top,no,New Zealand,🇳🇿,22.5,2026,"Wikipedia, List of countries with KFC franchises; outlets per million people using 2024 population (SP.POP.TOTL, data.worldbank.org; UN WPP 2024 where that series has no figure)",https://en.wikipedia.org/wiki/List_of_countries_with_KFC_franchises,"China has more KFC outlets than the rest of this set combined, but per person New Zealand still ranks higher. China's population swamps the count. Note: rates use 2024 population.",,,,bowl,,wiki-kfc-outlets,KFC outlets per 1 million people,Bucket List
 kfc-outlets-bucket-list,,,,,,,,United States,🇺🇸,12.4,2026,,,,,,,,,,,
 kfc-outlets-bucket-list,,,,,,,,China,🇨🇳,8.9,2026,,,,,,,,,,,
 kfc-outlets-bucket-list,,,,,,,,France,🇫🇷,5.9,2026,,,,,,,,,,,
 kfc-outlets-bucket-list,,,,,,,,Mexico,🇲🇽,3.0,2026,,,,,,,,,,,
 kfc-outlets-bucket-list,,,,,,,,Ghana,🇬🇭,1.0,2026,,,,,,,,,,,
-mcdonalds-per-million-density,161,🍟,McDonald’s locations per 1 million people,McDonald’s locations per 1 million people,per million,top,no,Macau,🇲🇴,56.8,2024,"Visual Capitalist (Gabriel Cohen), McDonald’s Restaurant Count by Market 2024",https://www.visualcapitalist.com/mapped-how-many-mcdonalds-each-country-has-per-person/,"Macau's density is a tiny population plus tourists. India stays near zero: a huge population, a late arrival, and a menu with no beef. Note: restaurant counts, 2024.",,,,cart,,mcdonalds-per-million-2024,McDonald’s locations per 1 million people,Golden Density
+mcdonalds-per-million-density,161,🍟,McDonald’s locations per 1 million people,McDonald’s locations per 1 million people,per million people,top,no,Macau,🇲🇴,56.8,2024,"Visual Capitalist (Gabriel Cohen), McDonald’s Restaurant Count by Market 2024",https://www.visualcapitalist.com/mapped-how-many-mcdonalds-each-country-has-per-person/,"Macau's density is a tiny population plus tourists. India stays near zero: a huge population, a late arrival, and a menu with no beef. Note: restaurant counts, 2024.",,,,cart,,mcdonalds-per-million-2024,McDonald’s locations per 1 million people,Golden Density
 mcdonalds-per-million-density,,,,,,,,United States,🇺🇸,38.6,2024,,,,,,,,,,,
 mcdonalds-per-million-density,,,,,,,,Japan,🇯🇵,24.1,2024,,,,,,,,,,,
 mcdonalds-per-million-density,,,,,,,,United Kingdom,🇬🇧,21.2,2024,,,,,,,,,,,
 mcdonalds-per-million-density,,,,,,,,China,🇨🇳,4.8,2024,,,,,,,,,,,
 mcdonalds-per-million-density,,,,,,,,India,🇮🇳,0.5,2024,,,,,,,,,,,
-mcdonalds-per-million-arch,162,🍔,McDonald’s locations per 1 million people,McDonald’s locations per 1 million people,per million,top,no,United States,🇺🇸,38.6,2024,"Visual Capitalist (Gabriel Cohen), McDonald’s Restaurant Count by Market 2024",https://www.visualcapitalist.com/mapped-how-many-mcdonalds-each-country-has-per-person/,Australia and Canada nearly match the US because suburbs and cars suited the same model. Indonesia's huge population keeps its rate near the bottom.,,,,bowl,,mcdonalds-per-million-2024,McDonald’s locations per 1 million people,Arch Rivals
+mcdonalds-per-million-arch,162,🍔,McDonald’s locations per 1 million people,McDonald’s locations per 1 million people,per million people,top,no,United States,🇺🇸,38.6,2024,"Visual Capitalist (Gabriel Cohen), McDonald’s Restaurant Count by Market 2024",https://www.visualcapitalist.com/mapped-how-many-mcdonalds-each-country-has-per-person/,Australia and Canada nearly match the US because suburbs and cars suited the same model. Indonesia's huge population keeps its rate near the bottom.,,,,bowl,,mcdonalds-per-million-2024,McDonald’s locations per 1 million people,Arch Rivals
 mcdonalds-per-million-arch,,,,,,,,Australia,🇦🇺,37.2,2024,,,,,,,,,,,
 mcdonalds-per-million-arch,,,,,,,,Canada,🇨🇦,36.1,2024,,,,,,,,,,,
 mcdonalds-per-million-arch,,,,,,,,Japan,🇯🇵,24.1,2024,,,,,,,,,,,
@@ -791,7 +793,7 @@ female-ceo-girlboss,,,,,,,,United States,🇺🇸,6.6,2023,,,,,,,,,,,
 female-ceo-girlboss,,,,,,,,India,🇮🇳,5.1,2023,,,,,,,,,,,
 female-ceo-girlboss,,,,,,,,Canada,🇨🇦,5.0,2023,,,,,,,,,,,
 female-ceo-girlboss,,,,,,,,South Korea,🇰🇷,2.9,2023,,,,,,,,,,,
-cannabis-use,164,🌿,Where do the most adults use cannabis?,Annual prevalence of cannabis use (% of people aged 15-64),%,top,no,Canada,🇨🇦,32.4,2023,"UNODC World Drug Report 2026, Statistical Annex, Table 1.2",https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report-2026-annex.html,"Canada leads because past-year use in this UNODC series rose from 14.8% in 2017 to 32.4% in 2023, after legalization. The Netherlands still sits below France: Dutch possession remains a crime, and coffeeshops only tolerate sales of up to 5 grams. Note: latest survey per country, 2023 or 2024. Household surveys. Age bands differ. Canada is ages 15+, France is 18-64, and the US figure is UNODC's adjustment to 15-64.",1,126,,leaf,,unodc-cannabis,,High Society
+cannabis-use,168,🌿,Where do the most adults use cannabis?,Annual prevalence of cannabis use,% of adults (15–64),top,no,Canada,🇨🇦,32.4,2023,"UNODC World Drug Report 2026, Statistical Annex, Table 1.2",https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report-2026-annex.html,"Canada leads because past-year use in this UNODC series rose from 14.8% in 2017 to 32.4% in 2023, after legalization. The Netherlands still sits below France: Dutch possession remains a crime, and coffeeshops only tolerate sales of up to 5 grams. Note: latest survey per country, 2023 or 2024. Household surveys. Age bands differ. Canada is ages 15+, France is 18-64, and the US figure is UNODC's adjustment to 15-64.",1,126,,leaf,,unodc-cannabis,,High Society
 cannabis-use,,,,,,,,United States,🇺🇸,26.38,2023,,,,2,126,,,,,,
 cannabis-use,,,,,,,,Jamaica,🇯🇲,19.2,2023,,,,3,126,,,,,,
 cannabis-use,,,,,,,,France,🇫🇷,10.8,2023,,,,11,126,,,,,,

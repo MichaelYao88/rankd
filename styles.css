@@ -186,7 +186,7 @@ a{color:var(--link)}
 .top-row .tv{font-variant-numeric:tabular-nums}
 .fact{margin-top:10px;padding:16px 20px;border-radius:20px;background:var(--surface);line-height:1.5;font-size:15px;border:1px solid var(--line)}
 .fact b{background:linear-gradient(transparent 55%,var(--marker) 55%);padding:0 2px}
-.source{display:inline-block;margin:12px 4px 0;font-size:13px;font-weight:700;text-decoration:none;word-break:break-word}
+.source{display:inline-block;max-width:100%;margin:12px 4px 0;font-size:0.9rem;font-weight:700;line-height:1.35;color:var(--muted);text-decoration:none}
 .community{margin-top:14px;padding:16px 20px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
 .community-head{display:flex;justify-content:space-between;align-items:center;font-weight:700;font-size:14px;gap:8px}
 .badge{font-size:9.5px;font-weight:700;padding:4px 9px;border-radius:999px;background:rgba(var(--ink-rgb),.07);color:var(--muted);text-transform:uppercase;letter-spacing:.12em;white-space:nowrap}
@@ -216,7 +216,8 @@ a{color:var(--link)}
 .country-board .meta{flex:none;color:var(--muted);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
 .you-vs{margin-top:14px;padding:14px 18px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
 .you-vs-pair{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:9px 0;border-top:1px solid var(--line)}
-.you-vs-pair:first-child{border-top:0;padding-top:2px}
+.you-vs-pair:first-child,.you-vs .emoji-row + .you-vs-pair{border-top:0;padding-top:2px}
+.you-vs .emoji-row{margin:0 0 4px}
 .you-vs-main{min-width:0}
 .you-vs-pair b{font-size:18px;font-weight:800;letter-spacing:-.03em;line-height:1.25;color:var(--ink)}
 .you-vs-pair .avg{flex:none;margin-top:3px;color:var(--muted);font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -229,14 +230,14 @@ a{color:var(--link)}
   .tip-wrap:hover .tip-pop{display:block}
 }
 .tip-wrap.open .tip-pop{display:block}
-.platforms{display:flex;align-items:flex-end;gap:3px;margin-top:8px;padding:36px 0 0;min-height:128px;--cheer-delay:calc((var(--n, 12) - 1) * 35ms + .78s)}
+.platforms{display:flex;align-items:flex-end;gap:3px;margin-top:8px;padding:36px 0 18px;min-height:128px;--cheer-delay:calc((var(--n, 12) - 1) * 35ms + .78s)}
+.platforms.has-stack{padding-bottom:32px}
 .platform{position:relative;z-index:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;animation:plat-rise .45s ease both;animation-delay:calc(var(--step) * 35ms)}
 .platform.is-you{z-index:2}
 .platform-step{display:block;width:100%;height:calc(8px + var(--step) * 4.5px);border-radius:5px 5px 2px 2px;background:rgba(var(--brand-rgb),calc(.16 + var(--step) * .05))}
 .platform.is-you .platform-step{background:var(--brand)}
-.player-figure{position:relative;z-index:2;width:22px;height:32px;flex:none;line-height:0}
-.platform .player-figure:first-child{left:-5px;z-index:1}
-.platform .player-figure:nth-child(2){left:5px;margin-top:-15px;z-index:2}
+.player-figure{position:relative;z-index:2;left:0;margin-top:0;width:22px;height:32px;flex:none;line-height:0}
+.platform.is-you .player-figure.is-you{z-index:3}
 .pf-hop,.pf-bob{display:block;width:100%;height:100%;transform-origin:50% 100%}
 .pf-hop{position:relative}
 .pf-svg{display:block;width:100%;height:100%;overflow:visible}
@@ -260,9 +261,19 @@ a{color:var(--link)}
 .player-figure.is-you .pf-hop{animation:pf-land .42s cubic-bezier(.2,.75,.3,1) var(--land-delay, .1s) both,pf-cheer 1.85s cubic-bezier(.33,.7,.32,1) var(--cheer-delay, .9s) forwards,pf-jump var(--hop-dur, 4.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.85s + var(--hop-phase, .2s)) infinite}
 .player-figure.wave-l .pf-arm-l,.player-figure.wave-both .pf-arm-l{animation:pf-wave-l var(--wave-dur, 6s) ease-in-out var(--wave-delay, .6s) infinite}
 .player-figure.wave-r .pf-arm-r,.player-figure.wave-both .pf-arm-r{animation:pf-wave-r var(--wave-dur, 6s) ease-in-out var(--wave-delay, .8s) infinite}
-.player-figure.is-you .pf-arm-l{animation:pf-cheer-arm-l 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-l var(--wave-dur, 6.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.9s) infinite}
-.player-figure.is-you .pf-arm-r{animation:pf-cheer-arm-r 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-r var(--wave-dur, 6.8s) ease-in-out calc(var(--cheer-delay, .9s) + 2.35s) infinite}
+.player-figure.is-you .pf-arm-l,.player-figure.is-cheer .pf-arm-l{animation:pf-cheer-arm-l 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-l var(--wave-dur, 6.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.9s) infinite}
+.player-figure.is-you .pf-arm-r,.player-figure.is-cheer .pf-arm-r{animation:pf-cheer-arm-r 1.85s ease-in-out var(--cheer-delay, .9s) forwards,pf-wave-r var(--wave-dur, 6.8s) ease-in-out calc(var(--cheer-delay, .9s) + 2.35s) infinite}
+.player-figure.is-cheer .pf-hop{animation:pf-land .42s cubic-bezier(.2,.75,.3,1) var(--land-delay, .1s) both,pf-cheer 1.85s cubic-bezier(.33,.7,.32,1) var(--cheer-delay, .9s) forwards,pf-jump var(--hop-dur, 4.4s) ease-in-out calc(var(--cheer-delay, .9s) + 1.85s + var(--hop-phase, .2s)) infinite}
+.platforms.is-winner{padding-top:40px}
+.platforms.is-winner .platform-step{height:10px}
+.platforms.is-winner .platform.is-you .platform-step{height:58px}
+.platforms.is-winner .player-figure{left:0;margin-top:0}
 .you-marker{position:absolute;z-index:4;left:50%;bottom:calc(100% + 20px);transform:translateX(-50%);color:var(--brand);font-size:10px;font-weight:800;letter-spacing:-.02em;line-height:1;white-space:nowrap}
+.platform-pct{position:absolute;z-index:3;left:50%;top:calc(100% + 3px);transform:translateX(-50%);color:var(--ink);font-size:10px;font-weight:800;letter-spacing:-.03em;line-height:1.15;white-space:nowrap;pointer-events:none}
+.platform-pct.is-yours{color:var(--brand)}
+.platform:first-child .platform-pct{left:0;transform:none}
+.platform:last-child .platform-pct{left:auto;right:0;transform:none}
+.platform.pct-stack .platform-pct{top:calc(100% + 16px)}
 .you-marker::after{content:"";display:block;margin:2px auto 0;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid var(--brand)}
 .pf-spark{position:absolute;left:50%;top:18%;width:3px;height:5px;border-radius:1px;opacity:0;pointer-events:none;animation:pf-confetti .9s ease-out calc(var(--cheer-delay, .9s) + var(--spark, 0ms)) forwards}
 .pf-spark.is-round{width:4px;height:4px;border-radius:50%}
@@ -280,21 +291,42 @@ a{color:var(--link)}
 @keyframes pf-confetti{0%{opacity:0;transform:translate3d(0,0,0) rotate(0deg) scale(.4)}14%{opacity:1;transform:translate3d(calc(var(--dx) * .25),calc(var(--dy) * .2),0) rotate(16deg) scale(1)}100%{opacity:0;transform:translate3d(var(--dx),var(--dy),0) rotate(var(--rot)) scale(.65)}}
 @media (max-width:560px){
   .platforms{gap:2px;padding-top:30px;min-height:108px}
+  .platforms.has-stack{padding-bottom:30px}
   .platform-step{height:calc(6px + var(--step) * 3.4px)}
   .player-figure{width:18px;height:26px}
-  .platform .player-figure:first-child{left:0}
-  .platform .player-figure.is-you{left:3px;margin-top:-12px}
-  .player-figure.extra{display:none}
+  .platform.is-you .player-figure.is-you{left:0;margin-top:0}
   .you-marker{bottom:calc(100% + 14px);font-size:9px}
+  .platform-pct{font-size:9px;letter-spacing:-.04em}
+  .platforms.is-winner{padding-top:32px}
+  .platforms.is-winner .platform-step{height:8px}
+  .platforms.is-winner .platform.is-you .platform-step{height:46px}
 }
 @media (prefers-reduced-motion:reduce){
-  .platform,.pf-hop,.pf-bob,.pf-arm,.pf-hair-tail,.pf-spark,.player-figure.celebrate,.player-figure.celebrate-soft{animation:none}
+  .platform,.pf-hop,.pf-bob,.pf-arm,.pf-hair-tail,.pf-spark,.player-figure.celebrate,.player-figure.celebrate-soft,.player-figure.is-cheer{animation:none}
   .pf-spark{display:none}
 }
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
-.share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
 .share-row .pill-btn{padding:15px 10px;font-size:11px}
+.share-row .challenge-friend{grid-column:1 / -1;letter-spacing:.12em;white-space:nowrap}
+.challenge-banner{margin:0 0 12px;padding:12px 14px;border-radius:16px;background:var(--surface2);box-shadow:var(--shadow-soft);font-size:14.5px;font-weight:700;line-height:1.35;letter-spacing:-.01em}
+.h2h{margin-top:14px;padding:14px 16px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
+.h2h-winner{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em}
+.h2h-vs{margin:2px 0 10px;font-size:13px;font-weight:700;color:var(--muted)}
+.h2h-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.h2h-col{min-width:0;padding:10px 10px 12px;border-radius:14px;background:rgba(var(--ink-rgb),.045)}
+.h2h-col b{display:block;font-size:14px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.h2h-meta{margin-top:4px;color:var(--muted);font-size:12px;font-weight:700;line-height:1.35}
+.h2h-squares{display:block;margin-top:8px;font-size:14px;line-height:1.35;letter-spacing:0;white-space:pre-wrap;overflow-wrap:anywhere}
+@media (max-width:400px){
+  .challenge-banner{font-size:13.5px;padding:10px 12px}
+  .h2h{padding:12px}
+  .h2h-grid{gap:8px}
+  .h2h-col{padding:8px}
+  .h2h-squares{font-size:12px}
+  .h2h-meta{font-size:11px}
+}
 /* WhereIsShe suggestion: same surface card as the score / community blocks, pill actions, not a banner. */
 .crosspromo{margin-top:14px;padding:14px 16px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
 .crosspromo-title{margin:0;font-size:15px;font-weight:700;letter-spacing:-.02em}
@@ -520,7 +552,8 @@ a{color:var(--link)}
 .fab{position:fixed;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:40;background:var(--brand);color:var(--on-brand);
   border:0;border-radius:999px;padding:15px 22px;font:inherit;font-weight:700;font-size:15px;letter-spacing:.01em;box-shadow:0 10px 28px rgba(20,30,120,.35);cursor:pointer;animation:slideIn .35s ease both}
 .fab:hover{filter:brightness(1.08)}.fab:focus-visible{outline:3px solid var(--link);outline-offset:3px}
-body.has-fab{padding-bottom:96px}
+body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 48px + env(safe-area-inset-bottom))}
+body.has-fab .share-row{scroll-margin-bottom:calc(var(--fab-h, 56px) + 36px + env(safe-area-inset-bottom))}
 .fab.fab-clear{visibility:hidden;pointer-events:none}
 .lasthint{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;margin:-4px 0 12px;padding:9px 12px;border-radius:14px;background:rgba(255,255,255,.16);font-size:14px;font-weight:600}
 .lasthint .lm-k{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
@@ -555,13 +588,42 @@ html.premium .ad-slot{display:none!important}   /* Premium: no ads */
 @media (max-width:560px){.t5grid{grid-template-columns:minmax(86px,34%) minmax(0,1fr);gap:8px}.t5vals .vchip{padding:0 7px}.t5vals .vchip b{font-size:14px}.t5vals .vchip small{font-size:9px}}
 /* Long units ("cm taller since 1985") need the values column wide enough to read on one or two lines. */
 #t5board.long-unit .t5grid{grid-template-columns:minmax(168px,48%) minmax(0,1fr)}
-@media (max-width:560px){#t5board.long-unit .t5grid{grid-template-columns:minmax(148px,52%) minmax(0,1fr)}}
+@media (max-width:560px){#t5board.long-unit .t5grid{grid-template-columns:minmax(132px,48%) minmax(0,1fr)}}
+/* Top 5 slot board: chip pool + five drop slots. Pointer drag, tap-to-place as a fallback. */
+#guessGame{margin-top:18px}
+.t5pool{display:flex;flex-wrap:wrap;gap:8px;min-height:44px;padding:8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
+.t5pool.over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
+.t5pool:empty{display:none}
+.t5chip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);color:inherit;font:inherit;font-size:14px;font-weight:700;line-height:1.2;cursor:grab;user-select:none;touch-action:none;max-width:100%}
+.t5chip .tc-flag{font-size:18px;line-height:1;flex:none}
+.t5chip .tc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.t5chip.sel{border-color:#FFD84D;background:rgba(255,216,77,.22)}
+.t5chip.good{background:var(--good);border-color:rgba(255,255,255,.35);cursor:default}
+.t5chip.bad{background:var(--bad);border-color:rgba(255,255,255,.35)}
+.t5chip.pinned{cursor:default}
+.t5chip.dragging{opacity:.35}
+.t5chip.pop{animation:pop .45s ease}
+.t5chip.shake{animation:shake .5s cubic-bezier(.36,.07,.19,.97) both}
+.t5-ghost{position:fixed;z-index:80;pointer-events:none;margin:0;box-shadow:0 12px 30px rgba(0,0,0,.35);opacity:.96;background:var(--brand);color:#fff}
+.t5slot{display:flex;align-items:center;gap:8px;min-height:44px;margin-top:6px;padding:4px 8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.38);background:transparent}
+.t5slot.over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
+.t5slot.good{border-style:solid;border-color:var(--good);background:rgba(22,179,100,.18)}
+.t5slot.bad{border-style:solid;border-color:var(--bad)}
+.t5slot .t5r{font-weight:800;font-size:13px;opacity:.75;width:28px;flex:none}
+.t5slot .t5ph{opacity:.55;font-weight:700;font-size:12px;letter-spacing:.04em}
+.t5slot .t5chip{flex:1;min-width:0;justify-content:flex-start}
+.t5out{margin:8px 0 0;font-size:13.5px;font-weight:700;line-height:1.35}
+.t5out-line{margin:0 0 8px;font-weight:700}
+#guessGame .game-bar{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .tienote{display:block;font-size:11px;opacity:.75;font-weight:600}.t5.tied .t5n{font-size:13px}
 /* v10: 6-item rankers: compact rows so all 6 cards (and the values column) fit on a phone */
 .board.n6 .card{min-height:54px;padding-top:6px;padding-bottom:6px}
 .board.n6 .arrows{gap:2px}.board.n6 .arrows button{height:16px}
 .board.n6.vcol .card{height:56px}
 .board.n6 .vchip{height:56px}
+/* Phone rows are 52px. A two-line unit ("hours/yr per worker") plus the world rank still has to fit. */
+body.fit .board.n6 .vchip .vgloss{margin-top:1px;line-height:1.05}
+body.fit .board.n6 .vchip .grank{margin-top:0;line-height:1.05}
 @media (max-width:560px){.board.n6 .card{min-height:52px}.board.n6 .name{font-size:14px}}
 /* 7-item rankers: tighter than n6. 6-item boards never get .n7, so their rows stay as above. */
 .board.n7 .card{min-height:46px;padding-top:4px;padding-bottom:4px}
@@ -664,7 +726,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 @media (max-width:560px){
   body.fit{min-height:0}
   body.fit .wrap{padding:8px 10px 0}
-  body.fit .under-card,body.fit .foot,body.fit #guessExtra,body.fit .art,body.fit .hero-date,body.fit #hint{display:none!important}
+  body.fit .under-card,body.fit .foot,body.fit #guessExtra,body.fit .art,body.fit .hero-date,body.fit #hint,body.fit #t5Hint{display:none!important}
   body.fit .t5more{display:inline-block}
   body.fit .hero{display:flex;flex-direction:column;max-height:calc(100svh - 116px);max-height:calc(100dvh - 116px);padding:12px 14px 12px;border-radius:20px;overflow:hidden}
   body.fit .hero-top{font-size:12.5px;flex:none}
@@ -698,33 +760,36 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .tries-below{margin-top:8px;flex:none}
   body.fit .pill-btn.outline{padding:13px 22px;font-size:12.5px;border-width:2.5px}
   body.fit .pill-btn.outline{padding:10px 18px}
-  /* Top 5 */
-  body.fit #tries{margin:0 0 6px;flex:none;row-gap:3px}
+  /* Top 5: chip pool above five shrinking slots. Lock stays inside the card. */
   body.fit .tries i{width:8px;height:8px}
-  body.fit .hero .t5board{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 0 6px;padding:8px 10px}
-  body.fit .t5h{margin-bottom:2px;flex:none;align-items:center;font-size:12px}
-  body.fit .t5grid{flex:1 1 auto;min-height:0;margin-top:2px;align-items:stretch;grid-template-rows:minmax(0,1fr)}
-  body.fit .t5vals .vp-list{gap:5px}
-  body.fit .t5h{flex-wrap:nowrap;white-space:nowrap}
+  body.fit .hero.is-top5{padding:10px 12px 10px}
+  body.fit .hero.is-top5 h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
+  body.fit .hero.is-top5 #question{font-size:12px;line-height:1.2;margin:0 0 2px}
+  body.fit .hero.is-top5.q-drop #question,
+  body.fit .hero.is-top5.q-drop #statLabel,
+  body.fit .hero.is-top5.q-drop .lasthint{display:none!important}
+  body.fit .hero.is-top5 .game-bar{margin:0 0 6px}
+  body.fit .t5pool{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;flex:0 1 auto;max-height:30%;min-height:0;overflow:auto}
+  body.fit .t5pool:empty{display:none}
+  body.fit .t5chip{padding:4px 8px;font-size:12px;gap:4px;height:auto}
+  body.fit .t5chip .tc-flag{font-size:14px}
+  body.fit .t5pool .t5chip .tc-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  body.fit .hero .t5board{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 0 6px;padding:6px 8px;overflow:hidden}
+  body.fit .t5grid{flex:1 1 auto;min-height:0;margin-top:0;align-items:stretch}
   body.fit .t5vals{margin-top:0;min-height:0;overflow:hidden}
-  body.fit .t5vals .vp-list,body.fit .t5slots{display:grid;grid-template-rows:repeat(5,minmax(0,42px));gap:5px;height:100%;max-height:100%}
-  body.fit .t5vals .vchip{max-height:46px}
-  body.fit .t5slots .t5{height:auto;max-height:46px;margin:0!important;min-height:0;overflow:hidden}
-  body.fit .lastmiss,body.fit .lasthint{flex:none;margin:0 0 6px;padding:6px 10px;font-size:12.5px;flex-wrap:nowrap;overflow:hidden}
-  body.fit .lastmiss .lm-n,body.fit .lasthint>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-  body.fit .lasthint{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-  body.fit .lasthint.hidden,body.fit .lastmiss.hidden{display:none!important}
-  body.fit .guess-form{display:flex;gap:8px;align-items:stretch;flex:none}
-  body.fit .guess-form.hidden{display:none!important}
-  body.fit .combo{flex:1;min-width:0}
-  body.fit #guessInput{height:48px;font-size:17px;padding:0 12px;border-radius:13px}
-  body.fit .combo-unit{display:none}
-  body.fit .guess-form .card-foot{margin:0}
-  body.fit .guess-form .card-foot>span{display:none}
-  body.fit #guessBtn{height:48px;padding:0 16px;white-space:nowrap}
-  body.fit .suggest{top:auto;bottom:54px;max-height:min(260px,45dvh)}
+  body.fit .t5vals .vp-list{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;height:auto}
+  body.fit .t5vals .vchip{height:auto;max-height:none;min-height:40px;flex:0 0 auto;display:flex;align-items:center}
+  body.fit .t5slots{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;min-height:0;height:auto;flex:0 1 auto}
+  body.fit .t5slot{flex:0 0 auto;min-height:40px;max-height:none;height:auto;margin:0;padding:3px 6px;overflow:hidden}
+  body.fit .t5slot .t5chip{padding:4px 8px;font-size:12.5px;min-height:32px}
+  body.fit .t5chip{min-height:40px}
+  body.fit .lasthint,body.fit .t5out{flex:none;margin:0 0 6px;padding:6px 10px;font-size:12.5px;overflow:hidden}
+  body.fit .lasthint>span:last-child,body.fit .t5out{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  body.fit .lasthint{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+  body.fit .lasthint.hidden,body.fit .t5out.hidden{display:none!important}
+  body.fit #guessGame .card-foot{margin-top:6px}
   /* on-screen keyboard open: drop everything above the card + the subtitle */
-  body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top{display:none!important}
+  body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top,body.kb .challenge-banner{display:none!important}
   body.kb .wrap{padding-top:4px}
   body.kb .hero h1{font-size:17px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   body.kb .lasthint{-webkit-line-clamp:1}
@@ -734,7 +799,8 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 @media (max-width:560px){
   body.playing .under-card,.under-card.lock-covered{display:none!important}
   body.fit .hero{overflow:hidden}
-  body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 20px + env(safe-area-inset-bottom))}
+  body.has-fab{padding-bottom:calc(var(--fab-h, 56px) + 48px + env(safe-area-inset-bottom))}
+  body.has-fab .share-row{scroll-margin-bottom:calc(var(--fab-h, 56px) + 36px + env(safe-area-inset-bottom))}
 }
 
 /* v11 (steering C): fun headline (h1) + the plain stat question as a subtitle */
@@ -973,3 +1039,21 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .long-ad-box .pill-btn:disabled{opacity:.55}
 .long-ad-prem{margin:12px 0 0;font-size:12px;color:var(--muted)}
 .arch .ar.unlock{background:rgba(var(--brand-rgb),.12);color:var(--brand)}
+
+/* PWA install. A header icon and a menu row, never a blocking dialog. */
+.topbar-tools{display:flex;align-items:center;gap:2px;flex:none}
+.pwa-install-wrap{display:inline-flex;align-items:center;gap:0;flex:none}
+.pwa-install.round-btn{width:38px;height:38px;flex:none}
+.pwa-install-x{border:0;background:transparent;color:var(--muted);font-size:18px;line-height:1;padding:0 2px;cursor:pointer}
+.pwa-install-x:hover{color:var(--ink)}
+.pwa-ios-hint{max-width:582px;margin:6px auto 0;padding:0 16px;font-size:12px;line-height:1.35;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.pwa-ios-hint b{color:var(--ink);font-weight:700}
+.pwa-result-install{display:block;margin:2px auto 0}
+.menu-list #mInstall small{display:block;color:var(--muted);font-weight:500;margin-top:2px}
+@media (max-width:560px){
+  .pwa-install.round-btn{width:34px;height:34px}
+  .pwa-ios-hint{padding:0 10px}
+}
+@media (display-mode: standalone), (display-mode: fullscreen){
+  .pwa-install-wrap,.pwa-ios-hint,#mInstall,.pwa-result-install{display:none!important}
+}

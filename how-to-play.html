@@ -2,19 +2,24 @@
 <html lang="en">
 <head>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ranki">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ranki.gg">
   <meta property="og:url" content="https://ranki.gg/how-to-play.html">
   <meta property="og:title" content="How to play Ranki.gg">
-  <meta property="og:description" content="How to play Rankd: Rank it, Guess the top 5, Match it and Tier it.">
+  <meta property="og:description" content="How to play Rankd: Rank it, Top 5, Match it and Tier it.">
   <meta property="og:image" content="https://ranki.gg/og.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
   <meta property="og:image:alt" content="Ranki.gg — Rank the stats. A daily game of surprising stats.">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="How to play Ranki.gg">
-  <meta name="twitter:description" content="How to play Rankd: Rank it, Guess the top 5, Match it and Tier it.">
+  <meta name="twitter:description" content="How to play Rankd: Rank it, Top 5, Match it and Tier it.">
   <meta name="twitter:image" content="https://ranki.gg/og.png">
   <meta name="twitter:image:alt" content="Ranki.gg — Rank the stats. A daily game of surprising stats.">
   <meta name="theme-color" content="#3B5BFF">
@@ -22,11 +27,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>How to play Rankd · ranki.gg</title>
-<meta name="description" content="How to play Rankd: Rank it, Guess the top 5 and Match it, tries and feedback, values, caveats, Practice, Archive and streaks.">
+<meta name="description" content="How to play Rankd: Rank it, Top 5 and Match it, tries and feedback, values, caveats, Practice, Archive and streaks.">
 <meta name="color-scheme" content="light dark">
 <link rel="stylesheet" href="styles.css">
 <script src="site-config.js"></script>
 <script src="pages.js"></script>
+<script src="pwa.js"></script>
 </head>
 <body class="static-page">
 <header class="page-top"><a class="hero-brand" href="index.html">Ranki.gg</a><a class="play-link" href="index.html">Play today's puzzle →</a></header>
@@ -36,7 +42,7 @@
 
 <h2>The daily puzzle</h2>
 <p>A new puzzle appears every day at midnight in your local time, and everyone plays the same one. The card at the top tells you
-the mode (Rank it, Guess the top 5, Match it or Tier it), gives the puzzle a headline, and says exactly what is being measured, for example
+the mode (Rank it, Top 5, Match it or Tier it), gives the puzzle a headline, and says exactly what is being measured, for example
 "Average annual hours worked per worker" or "Arrests per 100,000 people". Read that line carefully: the measure, the unit and the
 year often decide the answer.</p>
 
@@ -46,14 +52,9 @@ year often decide the answer.</p>
 the red ones and lock in again. You have five tries. Solve it in one or two tries for a celebration. Miss every card on a country or demographic Rank it and you may see a cheeky <b>Racist!</b> or <b>Xenophobe!</b> flash. If you run out of tries, the
 correct order is revealed with every value, each item's rank among all countries in the source, and a short fact about the result.</p>
 
-<h2>Guess the top 5</h2>
-<p>Here you name the five countries at the top of a list, from every country with data (often 150 or more). Start typing a country,
-choose it from the suggestions, and press <b>Guess</b> or Enter. A correct guess fills its slot on the board and costs nothing. A wrong
-guess is a miss, and you can miss ten times. Every guess shows that country's real rank and value, so a miss still tells you whether
-you were close.</p>
-<p>Every miss reveals a hint. Each hint is one fact about the highest-ranked country you haven't found yet: first its continent,
-then its population, its income level, its capital and finally its first letter. A correct guess doesn't spend a hint. Your score is how many of the five you found, plus your
-average rank: the average position of all your guesses, where lower means closer. If two countries tie for fifth place, either one counts.</p>
+<h2>Top 5</h2>
+<p>You get six country cards: the real top 5, plus one famous country that people expect to be up there but actually ranks 6th or lower. The five values sit in a column. Drag the cards into slots #1 through #5, highest first, or tap a card and then a slot. Leave the odd one out.</p>
+<p>Press <b>Lock it in</b>. Slots you got right turn green and stay put. Wrong slots turn red. Move those and lock in again. You have five tries. Each missed lock reveals one hint about the highest-ranked slot you still have wrong. When the answer comes up, the card you were supposed to leave out shows its real rank and value, for example “Not top 5: Ireland is actually #10”. If two countries tie for fifth, either one can fill that slot.</p>
 
 <h2>Tier it</h2>
 <p>Tier it is for stats where several countries share the same value. Drop each country onto a labeled tier row (several can share a tier). Drag a chip onto a row, or tap a chip and then the row. Lock it in: right tiers turn green and lock, wrong ones turn red. You get five tries. After you finish, the real percentage stays on each chip.</p>

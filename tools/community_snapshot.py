@@ -8,8 +8,8 @@ World and per-country blocks share one bar list the results panel can draw:
   match: {name, matchedTo, label, emoji?, pct}
   top5:  {name, emoji?, pct}           first country named
 
-firstGuessByCountry values are {players, bars}. Bars are omitted from the UI
-when players < MIN_COUNTRY_PLAYERS (the client shows an empty state instead).
+firstGuessByCountry values are {players, bars}. The seed is one play per
+country, and the results panel shows that ordering from the first play.
 
 second_guess is logged on plays but not aggregated here. Bias-vs-region
 scores are out of scope; this module only counts what was submitted.
@@ -17,13 +17,16 @@ scores are out of scope; this module only counts what was submitted.
 countryBoard is every country that submitted, with average tries (or
 guesses, for top 5) and a solve rate kept for older readers. The client
 drops countries under MIN_COUNTRY_PLAYERS and ranks the rest by fewest tries.
+Seeded countries carry about BOARD_SEED_PLAYS plays, and those count, so
+they clear the cutoff. A country with 1 or 2 real plays and no seed does not.
 
 standing is the results-card comparison: average tries, items correct on the
 first guess, and accuracy (0–100). byTries is finished games and failed is
 unfinished games, each a 10-bin accuracy histogram per try count. Fewer tries
 wins, accuracy breaks ties, and unfinished games rank below every finish.
-It is only attached once that many plays carried both a try count and an
-accuracy, so a thin sample does not replace the seed.
+It is only attached once MIN_STANDING_PLAYERS plays carried both a try count
+and an accuracy, so a thin sample does not replace the crowd behind
+"better than". A 1-play seed would pin that percentile at 0 or 99.
 """
 from __future__ import annotations
 
@@ -33,7 +36,13 @@ import random
 from collections import Counter, defaultdict
 from typing import Any
 
-MIN_COUNTRY_PLAYERS = 20
+# Leaderboard cutoff. Keep in sync with MIN_COUNTRY in community-seed.js.
+# 9 seeded plays qualify; 1–2 real plays with no seed do not.
+MIN_COUNTRY_PLAYERS = 9
+BOARD_SEED_PLAYS = 9
+SEED_CONSENSUS_PLAYS = 1
+# Full replace, and a live standing, wait until the percentile is stable.
+MIN_STANDING_PLAYERS = 20
 FAMILY_FIRST = {"CHN", "TWN", "HKG", "KOR", "PRK", "VNM", "KHM", "MNG"}
 
 
@@ -80,19 +89,9 @@ def emoji_map(puzzle: dict | None) -> dict[str, str]:
     return out
 
 
-def split_players(total: int) -> dict[str, int]:
-    """US and TW stay above the UI threshold; SG stays below it."""
-    total = max(0, int(total))
-    us = min(max(24, round(total * 0.17)), max(24, total - 30)) if total else 0
-    tw = min(max(22, round(total * 0.05)), max(22, total // 5)) if total else 0
-    sg = 4 if total >= 40 else 0
-    while us + tw + sg >= total and total > 0 and us > MIN_COUNTRY_PLAYERS:
-        us -= 1
-    while us + tw + sg >= total and total > 0 and tw > MIN_COUNTRY_PLAYERS:
-        tw -= 1
-    if total and us + tw + sg >= total:
-        sg = 0
-    return {"US": max(us, 0), "TW": max(tw, 0), "SG": sg}
+def consensus_counts() -> dict[str, int]:
+    """One seeded play per country, so the first real submit replaces it."""
+    return {"US": SEED_CONSENSUS_PLAYS, "TW": SEED_CONSENSUS_PLAYS, "SG": SEED_CONSENSUS_PLAYS}
 
 
 def rank_bars(names: list[str], shift: int, rng: random.Random, emojis: dict[str, str]) -> list[dict]:
@@ -194,14 +193,28 @@ def rotate_top5(guesses: list[dict], salt: int) -> list[dict]:
     return bars
 
 
+def puzzle_row_count(puzzle: dict | None, kind: str) -> int | None:
+    """Rows the player locks. Top 5 is five slots, not the country list and not one named guess."""
+    if kind == "top5":
+        return 5
+    if not isinstance(puzzle, dict):
+        return None
+    rows = puzzle.get("people") if kind == "match" else puzzle.get("items")
+    if not isinstance(rows, list) or not rows:
+        return None
+    return len(rows)
+
+
 def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None) -> dict:
     """Add firstGuessWorld / firstGuessByCountry without changing existing scores."""
     puzzles_by_id = puzzles_by_id or {}
     for pid, row in (doc.get("puzzles") or {}).items():
         puzzle = puzzles_by_id.get(pid)
         kind = row.get("type") or "rank"
-        players = int(row.get("players") or 0)
-        counts = split_players(players)
+        width = puzzle_row_count(puzzle, kind)
+        if width:
+            row["rowCount"] = width
+        counts = consensus_counts()
         if kind == "top5":
             world = [dict(g) for g in (row.get("firstGuess") or [])]
             buckets = {
@@ -209,7 +222,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
                 "TW": rotate_top5(world, 2 if len(world) > 2 else 0),
                 "SG": rotate_top5(world, 1),
             }
-            row["firstGuessWorld"] = {"players": players, "bars": world}
+            row["firstGuessWorld"] = {"players": SEED_CONSENSUS_PLAYS, "bars": world}
         elif kind == "tier":
             names = list((row.get("perItemCorrect") or {}).keys())
             correct = row.get("perItemCorrect") or {}
@@ -219,7 +232,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
                 "SG": tier_bars(names, puzzle, 1, rng_for(pid + ":SG"), correct),
             }
             row["firstGuessWorld"] = {
-                "players": players,
+                "players": SEED_CONSENSUS_PLAYS,
                 "bars": tier_bars(names, puzzle, 0, rng_for(pid + ":world"), correct),
             }
         elif kind == "match":
@@ -231,7 +244,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
                 "SG": match_bars(names, 0, rng_for(pid + ":SG"), puzzle),
             }
             row["firstGuessWorld"] = {
-                "players": players,
+                "players": SEED_CONSENSUS_PLAYS,
                 "bars": match_bars(names, 0, rng_for(pid + ":world"), puzzle),
             }
         else:
@@ -244,7 +257,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
                 "SG": rank_bars(names, 1, rng_for(pid + ":SG"), emojis),
             }
             row["firstGuessWorld"] = {
-                "players": players,
+                "players": SEED_CONSENSUS_PLAYS,
                 "bars": rank_bars(names, 1, rng_for(pid + ":world"), emojis),
             }
         row["firstGuessByCountry"] = {
@@ -252,13 +265,15 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
             for code, bars in buckets.items()
             if counts.get(code)
         }
-    doc["version"] = 2
-    doc["updatedAt"] = "2026-10-23T19:10:00Z"
+    doc["version"] = 6
+    doc["updatedAt"] = "2026-10-26T19:45:00Z"
     doc["source"] = doc.get("source") or "seed"
     doc["note"] = (
         "Seeded distributions until live aggregates exist. Stable per puzzle id. "
-        "firstGuessWorld / firstGuessByCountry are first submits (not final answers). "
-        "US and TW are large enough to show; SG is present but under the 20-play UI threshold. "
+        "firstGuessWorld and each firstGuessByCountry bucket are one seeded play, "
+        "so the first real submits replace that ordering. "
+        "countryBoard carries about 9 seeded plays per country; countries under 9 plays "
+        "are skipped on the leaderboard, and seeds count toward that cutoff. "
         "Bias-vs-region scores are not in this snapshot."
     )
     return doc
@@ -412,6 +427,12 @@ def _number(value: Any) -> float | None:
 def play_tries(row: dict) -> float | None:
     payload = _payload(row)
     if row.get("puzzle_type") == "top5":
+        attempts = payload.get("attempts")
+        if isinstance(attempts, list) and attempts:
+            tries = _number(payload.get("tries"))
+            if tries is not None and tries > 0:
+                return tries
+            return float(len(attempts))
         guesses = payload.get("guesses")
         if isinstance(guesses, list) and guesses:
             return float(len(guesses))
@@ -483,14 +504,14 @@ def _standings(plays: list[dict]) -> dict[str, Any]:
             entry["avgTries"] = round(sum(slot["tries"]) / len(slot["tries"]), 1)
         board.append(entry)
     out: dict[str, Any] = {"countryBoard": board}
-    if len(tries_vals) >= MIN_COUNTRY_PLAYERS and len(acc_pairs) >= MIN_COUNTRY_PLAYERS:
+    if len(tries_vals) >= MIN_STANDING_PLAYERS and len(acc_pairs) >= MIN_STANDING_PLAYERS:
         by_tries: dict[str, list[int]] = {}
         failed: dict[str, list[int]] = {}
         for tries, accuracy, solved in acc_pairs:
             group = by_tries if solved else failed
             hist = group.setdefault(str(tries), [0] * 10)
             hist[_acc_bin(accuracy)] += 1
-        of = Counter(first_of).most_common(1)[0][0] if first_of else (1 if top5 else 0)
+        of = Counter(first_of).most_common(1)[0][0] if first_of else (5 if top5 else 0)
         out["standing"] = {
             "n": len(acc_pairs),
             "seeded": False,
@@ -610,24 +631,127 @@ def _assignment_bars(kind: str, plays: list[dict]) -> list[dict]:
     return []
 
 
-def overlay_seed(seed_doc: dict, live_doc: dict, min_players: int = MIN_COUNTRY_PLAYERS) -> dict:
-    """Keep the seed unless a puzzle has enough real plays to stand on its own."""
+def _mix_consensus(seed_block: dict | None, live_block: dict | None) -> dict | None:
+    """One seeded play loses to the first real first-guess, including a tie."""
+    seed_block = seed_block or {}
+    live_block = live_block or {}
+    seed_bars = list(seed_block.get("bars") or [])
+    live_bars = list(live_block.get("bars") or [])
+    live_n = int(live_block.get("players") or 0)
+    seed_n = SEED_CONSENSUS_PLAYS if seed_bars else 0
+    if live_n > 0 and live_bars and live_n >= seed_n:
+        return {"players": seed_n + live_n, "bars": live_bars}
+    if seed_bars:
+        return {"players": seed_n, "bars": seed_bars}
+    if live_bars:
+        return {"players": live_n, "bars": live_bars}
+    return None
+
+
+def _mix_country_consensus(seed_map: dict | None, live_map: dict | None) -> dict:
+    seed_map = seed_map or {}
+    live_map = live_map or {}
+    out: dict[str, Any] = {}
+    for code in sorted(set(seed_map) | set(live_map)):
+        mixed = _mix_consensus(seed_map.get(code), live_map.get(code))
+        if mixed:
+            out[code] = mixed
+    return out
+
+
+def _mix_country_board(seed_rows: list | None, live_rows: list | None) -> list:
+    """Blend average tries. Seed plays count toward the leaderboard cutoff."""
+    seed_by: dict[str, dict] = {}
+    order: list[str] = []
+    for row in seed_rows or []:
+        code = str((row or {}).get("code") or "")
+        if not code or code in seed_by:
+            continue
+        seed_by[code] = row
+        order.append(code)
+    live_by: dict[str, dict] = {}
+    for row in live_rows or []:
+        code = str((row or {}).get("code") or "")
+        if not code:
+            continue
+        live_by[code] = row
+        if code not in seed_by:
+            order.append(code)
+    out = []
+    for code in order:
+        seed = seed_by.get(code) or {}
+        live = live_by.get(code) or {}
+        seed_n = int(seed.get("players") or 0)
+        live_n = int(live.get("players") or 0)
+        players = seed_n + live_n
+        if players <= 0:
+            continue
+        seed_avg = seed.get("avgTries")
+        live_avg = live.get("avgTries")
+        entry: dict[str, Any] = {"code": code, "players": players}
+        if seed_avg is not None and live_avg is not None and seed_n and live_n:
+            entry["avgTries"] = round((float(seed_avg) * seed_n + float(live_avg) * live_n) / players, 1)
+        elif live_avg is not None and live_n:
+            entry["avgTries"] = live_avg
+        elif seed_avg is not None:
+            entry["avgTries"] = seed_avg
+        if seed.get("seeded") and seed_n:
+            entry["seeded"] = True
+        if live_n and not seed_n and "solveRate" in live:
+            entry["solveRate"] = live["solveRate"]
+        out.append(entry)
+    return out
+
+
+def _mix_seed(seed_row: dict, live_row: dict) -> dict:
+    """Fold real plays into the seed without rewriting the comparison crowd."""
+    row = dict(seed_row)
+    row["seeded"] = True
+    world = _mix_consensus(seed_row.get("firstGuessWorld"), live_row.get("firstGuessWorld"))
+    if world:
+        row["firstGuessWorld"] = world
+    if seed_row.get("firstGuessByCountry") or live_row.get("firstGuessByCountry"):
+        row["firstGuessByCountry"] = _mix_country_consensus(
+            seed_row.get("firstGuessByCountry"),
+            live_row.get("firstGuessByCountry"),
+        )
+    if seed_row.get("countryBoard") or live_row.get("countryBoard"):
+        row["countryBoard"] = _mix_country_board(seed_row.get("countryBoard"), live_row.get("countryBoard"))
+    return row
+
+
+def overlay_seed(seed_doc: dict, live_doc: dict, min_players: int = MIN_STANDING_PLAYERS) -> dict:
+    """Keep the comparison crowd until a puzzle can stand on its own.
+
+    Below that, real plays mix in. World and per-country orderings are a
+    1-play seed, so the first real first-guess replaces them. Leaderboard
+    averages keep their seeded plays (about 9 per country) and fold real
+    tries into that average. "Better than" stays on the seeded crowd until
+    `min_players` real plays exist, then the live snapshot replaces the seed.
+    """
     out = json.loads(json.dumps(seed_doc))
     replaced = []
+    blended = []
+    puzzles = out.setdefault("puzzles", {})
     for pid, snap in (live_doc.get("puzzles") or {}).items():
-        if int(snap.get("players") or 0) >= min_players:
+        live_n = int(snap.get("players") or 0)
+        if live_n >= min_players:
             fresh = dict(snap)
             fresh["seeded"] = False
-            out.setdefault("puzzles", {})[pid] = fresh
+            puzzles[pid] = fresh
             replaced.append(pid)
-    out["version"] = 5
-    if replaced and len(replaced) == len(out.get("puzzles") or {}):
+        elif live_n > 0 and pid in puzzles:
+            puzzles[pid] = _mix_seed(puzzles[pid], snap)
+            blended.append(pid)
+    out["version"] = 6
+    if replaced and len(replaced) == len(puzzles):
         out["source"] = "live"
-    elif replaced:
+    elif replaced or blended:
         out["source"] = "mixed"
     else:
         out["source"] = seed_doc.get("source") or "seed"
     out["livePuzzlesReplaced"] = replaced
+    out["livePuzzlesBlended"] = blended
     return out
 
 
@@ -693,9 +817,10 @@ def _self_test() -> None:
     seed = {"version": 1, "source": "seed", "puzzles": {"demo-rank": {"type": "rank", "seeded": True, "players": 100, "pctPerfect": 10, "perItemCorrect": {"A": 50, "B": 40}}}}
     merged = overlay_seed(add_seed_first_guess(json.loads(json.dumps(seed)), {}), live)
     assert merged["puzzles"]["demo-rank"]["seeded"] is True
-    assert merged["puzzles"]["demo-rank"]["players"] == 100
-    assert "firstGuessWorld" in merged["puzzles"]["demo-rank"]
-    assert merged["source"] == "seed"
+    assert merged["puzzles"]["demo-rank"]["players"] == 100  # comparison crowd stays put
+    assert merged["puzzles"]["demo-rank"]["firstGuessWorld"]["players"] == SEED_CONSENSUS_PLAYS + 4
+    assert merged["source"] == "mixed"
+    assert "demo-rank" in merged["livePuzzlesBlended"]
     big = aggregate_plays(rank_plays * 6)
     # 4 non-practice * 6 = 24 plays
     replaced = overlay_seed(seed, big)
@@ -713,11 +838,80 @@ def _self_test() -> None:
     seeded = add_seed_first_guess(tiny, {"work": {"type": "rank", "items": [{"name": "Greece", "emoji": "🇬🇷"}, {"name": "Japan", "emoji": "🇯🇵"}, {"name": "Germany", "emoji": "🇩🇪"}]}})
     block = seeded["puzzles"]["work"]
     assert block["pctPerfect"] == 21
+    assert block["firstGuessWorld"]["players"] == SEED_CONSENSUS_PLAYS
     assert [b["slot"] for b in block["firstGuessWorld"]["bars"]] == [1, 2, 3]
-    assert block["firstGuessByCountry"]["TW"]["players"] >= MIN_COUNTRY_PLAYERS
-    assert block["firstGuessByCountry"]["US"]["players"] >= MIN_COUNTRY_PLAYERS
-    assert block["firstGuessByCountry"]["SG"]["players"] < MIN_COUNTRY_PLAYERS
+    for code in ("TW", "US", "SG"):
+        assert block["firstGuessByCountry"][code]["players"] == SEED_CONSENSUS_PLAYS
     assert block["firstGuessWorld"]["bars"][0]["name"] != block["firstGuessByCountry"]["US"]["bars"][0]["name"]
+    assert block["rowCount"] == 3
+
+    mix_seed = {
+        "version": 6,
+        "source": "seed",
+        "puzzles": {
+            "work": {
+                "type": "rank",
+                "seeded": True,
+                "players": 400,
+                "pctPerfect": 12,
+                "perItemCorrect": {"Greece": 80, "Japan": 40},
+                "firstGuessWorld": {"players": 1, "bars": [
+                    {"slot": 1, "name": "Greece", "pct": 40},
+                    {"slot": 2, "name": "Japan", "pct": 30},
+                ]},
+                "firstGuessByCountry": {
+                    "US": {"players": 1, "bars": [{"slot": 1, "name": "Japan", "pct": 50}, {"slot": 2, "name": "Greece", "pct": 40}]},
+                    "TW": {"players": 1, "bars": [{"slot": 1, "name": "Greece", "pct": 44}, {"slot": 2, "name": "Japan", "pct": 33}]},
+                },
+                "countryBoard": [
+                    {"code": "DE", "players": 9, "avgTries": 3.0, "seeded": True},
+                    {"code": "JP", "players": 9, "avgTries": 2.6, "seeded": True},
+                    {"code": "SG", "players": 2, "avgTries": 1.5, "seeded": True},
+                ],
+                "standing": {"n": 400, "avgTries": 3.1, "seeded": True},
+            }
+        },
+    }
+    mix_live = aggregate_plays([
+        {
+            "puzzle_id": "work", "puzzle_type": "rank", "mode": "daily", "solved": True, "perfect": False,
+            "country_code": "DE",
+            "payload": {"tries": 1, "accuracy": 100, "firstCorrect": 2, "firstOf": 2},
+            "first_guess": {"kind": "rank", "order": [{"name": "Japan"}, {"name": "Greece"}]},
+        },
+        {
+            "puzzle_id": "work", "puzzle_type": "rank", "mode": "daily", "solved": True, "perfect": False,
+            "country_code": "FR",
+            "payload": {"tries": 1, "accuracy": 90, "firstCorrect": 1, "firstOf": 2},
+            "first_guess": {"kind": "rank", "order": [{"name": "Japan"}, {"name": "Greece"}]},
+        },
+        {
+            "puzzle_id": "work", "puzzle_type": "rank", "mode": "archive", "solved": False, "perfect": False,
+            "country_code": "FR",
+            "payload": {"tries": 1, "accuracy": 80, "firstCorrect": 1, "firstOf": 2},
+            "first_guess": {"kind": "rank", "order": [{"name": "Japan"}, {"name": "Greece"}]},
+        },
+    ])
+    mixed = overlay_seed(mix_seed, mix_live)
+    mixed_row = mixed["puzzles"]["work"]
+    assert mixed_row["seeded"] is True
+    assert mixed_row["players"] == 400
+    assert mixed_row["standing"]["avgTries"] == 3.1
+    assert mixed_row["pctPerfect"] == 12
+    assert mixed_row["firstGuessWorld"]["bars"][0]["name"] == "Japan"
+    assert mixed_row["firstGuessWorld"]["players"] == 1 + 3
+    assert mixed_row["firstGuessByCountry"]["US"]["players"] == 1
+    assert mixed_row["firstGuessByCountry"]["US"]["bars"][0]["name"] == "Japan"
+    assert mixed_row["firstGuessByCountry"]["FR"]["players"] == 2
+    board = {row["code"]: row for row in mixed_row["countryBoard"]}
+    assert board["DE"]["players"] == 10 and board["DE"]["avgTries"] == 2.8  # (3.0*9 + 1.0) / 10
+    assert board["JP"]["players"] == 9 and board["JP"]["avgTries"] == 2.6
+    assert board["SG"]["players"] == 2
+    assert board["FR"]["players"] == 2
+    assert board["FR"]["players"] < MIN_COUNTRY_PLAYERS
+    assert board["SG"]["players"] < MIN_COUNTRY_PLAYERS
+    assert board["DE"]["players"] >= MIN_COUNTRY_PLAYERS
+    assert "standing" not in mix_live["puzzles"]["work"]
     print("community_snapshot self-test ok")
 
 

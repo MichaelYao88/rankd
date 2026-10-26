@@ -14,7 +14,12 @@
   }();
 </script>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="favicon.svg">
+  <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Ranki">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Ranki.gg">
   <meta property="og:url" content="https://ranki.gg/">
@@ -75,6 +80,8 @@
 <main class="wrap">
   <!-- ======== PLAY VIEW ======== -->
   <section id="playView">
+    <!-- Challenge links: name, tries, and accuracy only. Squares stay hidden until the friend finishes. -->
+    <div class="challenge-banner hidden" id="challengeBanner" role="status"></div>
     <!-- The whole game lives inside one bold card -->
     <article class="hero" id="hero">
       <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="Ranki.gg home">Ranki.gg</a><span class="hero-kind" id="heroKind">Rank it</span><span class="hero-right"><span id="heroNo">No. 001</span><button class="hero-new hidden" id="newRandomTop" aria-label="New random puzzle" title="New random puzzle">🎲 New</button></span></div>
@@ -132,20 +139,21 @@
         <div class="tries tries-below" id="tierTries" aria-live="polite"></div>
       </section>
 
-      <!-- GUESS THE TOP 5 -->
+      <!-- TOP 5: six cards (the real top 5 plus one decoy) into five slots -->
       <section id="guessGame" class="hidden">
-        <div class="tries" id="tries"></div>
-        <div class="t5board hidden" id="t5board" aria-live="polite"></div>
-        <div class="lastmiss hidden" id="lastMiss" aria-live="polite"></div>
+        <div class="game-bar">
+          <span class="direction" id="t5Dir">Highest at #1 · leave one out</span>
+          <button type="button" class="t5more" id="t5More">💡 Hints</button>
+        </div>
+        <div class="t5pool" id="t5pool" role="list" aria-label="Countries. Leave one out."></div>
+        <div class="t5board" id="t5board" aria-live="polite"></div>
+        <p class="hint" id="t5Hint"></p>
         <div class="lasthint hidden" id="lastHint" aria-live="polite"></div>
-        <form class="guess-form" id="guessForm" autocomplete="off">
-          <div class="combo">
-            <input id="guessInput" type="text" placeholder="type a country…" aria-label="Country" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="suggest">
-            <span class="combo-unit">country</span>
-            <ul class="suggest hidden" id="suggest" role="listbox"></ul>
-          </div>
-          <div class="card-foot"><span></span><button class="pill-btn outline" id="guessBtn" type="submit">Guess ↵</button></div>
-        </form>
+        <p class="t5out hidden" id="t5Out"></p>
+        <div class="card-foot actions">
+          <button class="pill-btn outline" id="t5Submit" type="button">Lock it in ↵</button>
+        </div>
+        <div class="tries tries-below" id="t5Tries" aria-live="polite"></div>
       </section>
     </article>
     <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button></div>
@@ -161,23 +169,24 @@
         <div class="score-big" id="scoreBig"></div>
         <div>
           <div class="score-title" id="scoreTitle"></div>
-          <div class="emoji-row" id="emojiRow"></div>
         </div>
       </div>
+      <div class="h2h hidden" id="h2h" aria-live="polite"></div>
       <div class="answer hidden" id="answerBox"></div>
       <div class="fact" id="fact"></div>
       <p class="support hidden" id="support"></p>
       <a class="source" id="sourceLink" target="_blank" rel="noopener">Data: <span id="sourceName"></span> ↗</a>
 
-      <div class="you-vs hidden" id="youVs"></div>
       <div class="community">
         <div class="community-head"><span>What most players thought</span><span class="badge" id="communityBadge">Coming soon</span></div>
         <div id="communityBody" class="community-body"></div>
       </div>
 
+      <div class="you-vs hidden" id="youVs"></div>
       <div class="share-row">
         <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
         <button class="pill-btn" id="shareChallengeBtn">Share today's puzzle</button>
+        <button class="pill-btn challenge-friend" id="challengeFriendBtn" type="button">Challenge a friend</button>
       </div>
       <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
       <aside class="crosspromo hidden" id="crossPromo" aria-label="Like Ranki?">
@@ -284,6 +293,8 @@
 <script src="practice-data.js"></script>
 <script src="community-seed.js"></script>
 <script src="puzzle-search.js"></script>
+<script src="challenge.js"></script>
+<script src="pwa.js"></script>
 <script src="app.js"></script>
 
 </body>
