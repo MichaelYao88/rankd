@@ -37,12 +37,15 @@ test("both puzzles use the 2023 Ipsos gender-identity net, after the queued dail
   assert.ok(top && rank);
   assert.equal(top.type, "top5");
   assert.equal(rank.type, "rank");
-  assert.equal(top.order, 168);
-  assert.equal(rank.order, 169);
-  assert.equal(dateOf(top.order), "2027-03-22");
-  assert.equal(dateOf(rank.order), "2027-03-23");
-  assert.ok(dateOf(top.order) > "2026-11-03");
-  assert.ok(dateOf(rank.order) > "2027-03-21");
+  assert.equal(top.order, 170);
+  assert.equal(rank.order, 171);
+  assert.equal(dateOf(top.order), "2027-03-24");
+  assert.equal(dateOf(rank.order), "2027-03-25");
+  assert.ok(dateOf(top.order) > "2027-03-23");
+  assert.equal(byId("cannabis-use").order, 168);
+  assert.equal(byId("cocaine-use").order, 169);
+  assert.equal(dateOf(168), "2027-03-22");
+  assert.equal(dateOf(169), "2027-03-23");
   for (const p of [top, rank]) {
     assert.equal(p.unit, "% of adults");
     assert.equal(p.sourceUrl, SOURCE_URL);
@@ -74,26 +77,43 @@ test("the Top 5 decoy is the United States at its real rank, and Spain's tie is 
   assert.equal(top.decoy.value, 2);
   assert.equal(top.decoy.rank, 15);
   assert.equal(top.decoy.year, "2023");
-  assert.match(top.fact, /Spain is also 4%/);
-  const hand = ["Switzerland", "Thailand", "Italy", "Sweden", "Germany", "United States"];
-  for (const name of hand) assert.ok(byName[name], name);
-  const overlap = byId("ipsos-gender-identity-b").items.map(it => it.name).filter(name => hand.includes(name));
-  assert.deepEqual(overlap, []);
+  assert.match(top.fact, /tied at 4% with Spain/);
+  assert.match(top.fact, /any order of those three cards counts/);
+  const hand = ["Switzerland", "Thailand", "Italy", "Sweden", "Germany"];
+  const groups = slots(top.countries);
+  assert.deepEqual(groups.map(g => g[0].name), hand);
+  assert.deepEqual(groups[4].map(c => c.name).sort(), ["Germany", "Spain"]);
+  // Same rule as scoreTop5: a card is right when its value matches the slot.
+  const score = names => names.map((name, i) => byName[name].value === groups[i][0].value ? "good" : "bad");
+  const perms = arr => arr.length === 1 ? [arr] : arr.flatMap((name, i) => perms(arr.filter((_, j) => j !== i)).map(rest => [name, ...rest]));
+  for (const order of perms(["Italy", "Sweden", "Germany"])) {
+    assert.deepEqual(score(["Switzerland", "Thailand", ...order]), ["good", "good", "good", "good", "good"], order.join(","));
+  }
+  assert.deepEqual(score(["Switzerland", "Thailand", "Italy", "Sweden", "Spain"]), ["good", "good", "good", "good", "good"]);
+  assert.equal(score(["Switzerland", "Thailand", "Italy", "Sweden", "United States"])[4], "bad");
 });
+
+function slots(countries) {
+  const cs = countries.slice().sort((a, b) => b.value - a.value || (b.exact || 0) - (a.exact || 0));
+  const groups = cs.slice(0, 4).map(c => [c]);
+  groups.push(cs.slice(4).filter(c => c.value === cs[4].value && (c.exact ?? null) === (cs[4].exact ?? null)));
+  return groups;
+}
 
 test("the ranker mixes an expected-high country with higher and lower ones", () => {
   const rank = byId("ipsos-gender-identity-b");
   assert.deepEqual(rank.items.map(it => [it.name, it.value, it.gRank, it.gTotal, it.gScope]), [
+    ["Switzerland", 6, 1, 30, "surveyed countries"],
+    ["Thailand", 5, 2, 30, "surveyed countries"],
     ["Spain", 4, 3, 30, "surveyed countries"],
     ["Japan", 3, 7, 30, "surveyed countries"],
-    ["Canada", 3, 7, 30, "surveyed countries"],
-    ["Netherlands", 2, 15, 30, "surveyed countries"],
-    ["Australia", 2, 15, 30, "surveyed countries"],
-    ["Hungary", 1, 27, 30, "surveyed countries"],
+    ["United States", 2, 15, 30, "surveyed countries"],
+    ["Argentina", 1, 27, 30, "surveyed countries"],
   ]);
-  assert.match(rank.fact, /Netherlands/);
-  assert.match(rank.fact, /Spain/);
-  assert.match(rank.fact, /Japan/);
+  assert.equal(new Set(rank.items.map(it => it.value)).size, 6);
+  assert.match(rank.fact, /Thailand \(5%\) and Japan \(3%\) both rank above the United States \(2%\)/);
+  assert.match(rank.fact, /credibility interval at about 3\.5 points/);
+  assert.match(rank.fact, /Argentina is tied for last at 1%/);
 });
 
 test("search finds both puzzles by country and by the measure", () => {
@@ -102,7 +122,8 @@ test("search finds both puzzles by country and by the measure", () => {
   assert.equal(search.matches(top, "Switzerland"), true);
   assert.equal(search.matches(top, "US"), true);
   assert.equal(search.matches(top, "transgender"), true);
-  assert.equal(search.matches(rank, "Netherlands"), true);
+  assert.equal(search.matches(rank, "Argentina"), true);
+  assert.equal(search.matches(rank, "Thailand"), true);
   assert.equal(search.matches(rank, "Japan"), true);
   assert.equal(search.matches(rank, "gender-fluid"), true);
 });
@@ -122,7 +143,7 @@ test("seeded comparison sits a little under a clear and names the same countries
   }
   const rank = stats.puzzles["ipsos-gender-identity-b"];
   assert.deepEqual(Object.keys(rank.perItemCorrect), [
-    "Spain", "Japan", "Canada", "Netherlands", "Australia", "Hungary",
+    "Switzerland", "Thailand", "Spain", "Japan", "United States", "Argentina",
   ]);
   assert.equal(rank.standing.firstOf, 6);
   const top = stats.puzzles["ipsos-gender-identity"];
