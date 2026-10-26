@@ -74,11 +74,12 @@ co2-consumption,,,,,,,,United States,🇺🇸,15.81,2023,,,,11,120,,,,,,
 co2-consumption,,,,,,,,Switzerland,🇨🇭,13.34,2023,,,,16,120,,,,,,
 co2-consumption,,,,,,,,China,🇨🇳,7.63,2023,,,,36,120,,,,,,
 co2-consumption,,,,,,,,India,🇮🇳,1.77,2023,,,,94,120,,,,,,
-co2-territorial,50,🌫️,Who emits the most CO₂ per person?,"Territorial fossil CO₂ emissions per person (fossil fuels and industry, excl. land use)",t CO₂/person,top,yes,Saudi Arabia,🇸🇦,20.38,2024,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/co-emissions-per-capita,"Saudi Arabia leads on cheap oil, air conditioning and desalination. Australia slightly tops the US on coal-heavy power. Note: territorial fossil CO2, not imports.",6,213,,smokestack,,,,Smokestacks
+co2-territorial,50,🌫️,Who emits the most CO₂ per person?,"Territorial fossil CO₂ emissions per person (fossil fuels and industry, excl. land use)",t CO₂/person,top,yes,Saudi Arabia,🇸🇦,20.38,2024,Global Carbon Budget (Global Carbon Project) via Our World in Data,https://ourworldindata.org/grapher/co-emissions-per-capita,"Saudi Arabia leads on cheap oil, air conditioning and desalination. Australia slightly tops the US on coal-heavy power. An Indian emits about half what a Briton does. Note: territorial fossil CO2, not imports.",6,213,,smokestack,,,,Smokestacks
 co2-territorial,,,,,,,,Australia,🇦🇺,14.48,2024,,,,11,213,,,,,,
 co2-territorial,,,,,,,,United States,🇺🇸,14.2,2024,,,,12,213,,,,,,
 co2-territorial,,,,,,,,China,🇨🇳,8.66,2024,,,,30,213,,,,,,
 co2-territorial,,,,,,,,United Kingdom,🇬🇧,4.53,2024,,,,77,213,,,,,,
+co2-territorial,,,,,,,,India,🇮🇳,2.2,2024,,,,129,213,,,,,,
 height-girls-19,24,📏,Where are 19-year-old women tallest?,Mean height of 19-year-old girls,cm,top,yes,United Kingdom,🇬🇧,163.9,2019,"NCD Risk Factor Collaboration (NCD-RisC), Lancet 2020;396:1511-24",https://www.ncdrisc.org/data-downloads-height.html,"Chinese 19-year-old women are now as tall as American ones, after better childhood diets since the 1980s. US heights barely rose. Note: the top three overlap within uncertainty, so treat them as a near-tie.",49,200,,ruler,,,,Tall Girls
 height-girls-19,,,,,,,,China,🇨🇳,163.5,2019,,,,54,200,,,,,,
 height-girls-19,,,,,,,,United States,🇺🇸,163.3,2019,,,,58,200,,,,,,
