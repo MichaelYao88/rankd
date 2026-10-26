@@ -869,6 +869,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
   "Girlboss": "female CEOs",
   "High Society": "past-year use",
+  "Powder Rankings": "of adults/yr",
 };
 // Free archive depth. unlockedDays in localStorage is an absolute count (today + earlier days),
 // so a save from the old 7-day ad step (14, 21, …) stays valid. The next ad adds adUnlockDays.
@@ -954,6 +955,7 @@ const ART = {
   rocket: `<g class="a-bounce"><path d="M32 6c8 7 11 17 11 28v12H21V34c0-11 3-21 11-28z"/><circle cx="32" cy="27" r="4"/><path d="M21 38l-7 8v6l7-4M43 38l7 8v6l-7-4"/></g><path class="a-flicker" d="M27 50c0 5 2 8 5 10 3-2 5-5 5-10"/>`,
   tree: `<g class="a-sway"><path d="M32 8l-14 20h8l-10 14h12l-8 10h24l-8-10h12l-10-14h8z"/></g><path d="M32 52v8M22 60h20"/>`,
   leaf: `<g class="a-sway"><path d="M32 58C14 50 12 26 32 8c20 18 18 42 0 50z"/><path d="M32 58V18M32 30l-7-5M32 38l8-6M32 46l-9-6"/></g>`,
+  snowflake: `<g class="a-spin-slow" style="transform-origin:32px 32px"><path d="M32 6v52M10 19l44 26M10 45l44-26"/><path d="M32 16l-6-3M32 16l6-3M32 48l-6 3M32 48l6 3M20 26l-6 1M20 26l1-6M44 38l6-1M44 38l-1 6M20 38l-6-1M20 38l1 6M44 26l6 1M44 26l-1-6"/></g>`,
   puzzle: `<g class="a-bounce"><path d="M14 22h12a6 6 0 1 1 12 0h12v12a6 6 0 1 0 0 12v10H38a6 6 0 1 0-12 0H14V46a6 6 0 1 1 0-12z"/></g>`,
   windmill: `<path d="M32 30l-5 28h10z"/><g class="a-spin"><path d="M32 30L32 8M32 30L51 41M32 30L13 41"/></g><circle cx="32" cy="30" r="2" fill="currentColor"/><path d="M18 58h28"/>`,
   chart: `<path d="M10 54h44"/><rect class="a-grow" style="--d:0s" x="14" y="30" width="8" height="24" rx="2"/><rect class="a-grow" style="--d:.3s" x="28" y="18" width="8" height="36" rx="2"/><rect class="a-grow" style="--d:.6s" x="42" y="36" width="8" height="18" rx="2"/>`,
