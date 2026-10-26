@@ -103,10 +103,11 @@ window.RankdData = RankdData;
 // immediately. "Your score vs average" and "better than" use the full standing
 // crowd, not that 1-play seed — a single seeded play would pin the percentile
 // at 0 or 99.
-// Accuracy starts at 100 and drops with each extra try. How far a miss was only
-// moves the score inside that try's band. An unfinished game scores 0, under
-// every finish of 1 or more; ranking also keeps those games below every finish.
-// Platforms rank by tries, then accuracy, with failures at the bottom.
+// Accuracy is 100 on a first-try solve. Each extra try drops into a lower band
+// (80s, 60s, 40s, 20s, then 1–19). Inside a band, every spot a country was off
+// in a wrong guess costs 1 point. An unfinished game scores 1–19 from the last
+// guess and ranks under every finish. Platforms rank by tries, then accuracy,
+// with failures at the bottom.
 // When the snapshot has no countryBoard or standing yet, RankdSeed fills a distribution that
 // sits a little under a typical clear. Real plays mix into the seed, and replace that
 // puzzle once rebuild_community_snapshot.py sees enough of them for a stable percentile.
@@ -181,8 +182,8 @@ function top5Piece(p, key) {
   try { piece.hit = inTop(p, c); piece.rank = tieRank(p, c); } catch { /* catalog not ready */ }
   return piece;
 }
-// Mean absolute rank distance, scaled so a perfect placement is 100 and a full reversal is 0.
-// Ties share a slot: an item on any slot with its value is distance 0.
+// Spot distance: sum of |guessed slot − correct slot|. Ties share a slot, so an
+// item on any slot with its value is distance 0. Each spot is one accuracy point.
 function nearestRankSlots(p) {
   const correct = correctOrder(p);
   const need = correct.map(i => p.items[i].value);
@@ -199,7 +200,7 @@ function nearestRankSlots(p) {
   });
   return { pos, slots };
 }
-function rankDistance01(p, order) {
+function rankDistance(p, order) {
   if (!order || order.length !== p.items.length) return null;
   const { slots } = nearestRankSlots(p);
   const n = order.length;
@@ -213,45 +214,44 @@ function rankDistance01(p, order) {
     options.forEach(slot => { best = Math.min(best, Math.abs(i - slot)); });
     sum += best;
   }
-  const max = Math.floor(n * n / 2);
-  if (!max) return 0;
-  return Math.max(0, Math.min(1, sum / max));
+  return sum;
 }
 function attemptDistance(p, type, attempt) {
   const marks = attempt.marks || [];
   if (marks.length && marks.every(m => m === "good")) return 0;
-  if (type === "rank") return attempt.order ? rankDistance01(p, attempt.order) : null;
+  if (type === "rank") return attempt.order ? rankDistance(p, attempt.order) : null;
   if (type === "tier" && attempt.assign && p.tiers) {
     const right = correctTierAssign(p);
-    const span = Math.max(1, (p.tiers.length - 1) * right.length);
     let sum = 0;
     for (let i = 0; i < right.length; i++) sum += Math.abs((attempt.assign[i] ?? right[i]) - right[i]);
-    return Math.max(0, Math.min(1, sum / span));
+    return sum;
   }
   if (type === "match" && attempt.assign) {
-    const n = attempt.assign.length;
-    const max = Math.floor(n * n / 2);
-    if (!max) return 0;
     let sum = 0;
+    const n = attempt.assign.length;
     for (let i = 0; i < n; i++) sum += Math.abs((attempt.assign[i] ?? i) - i);
-    return Math.max(0, Math.min(1, sum / max));
+    return sum;
   }
   return null;
 }
-// Plain results plus accuracy. The try count sets the band; rank distance
-// only fine-tunes inside it. The (?) copy does not mention unfinished games.
+// Plain results plus accuracy. The try count picks the band. Spot distance
+// only moves the score inside it. The (?) copy does not mention unfinished games.
+const ACCURACY_TIP = "100 for a first-try solve. Each extra try drops you to a lower band (80s, 60s, 40s, 20s), and within a band you lose 1 point for every spot a country was off in your wrong guesses.";
+function accuracyTip() {
+  return (window.RankdSeed && window.RankdSeed.ACCURACY_TIP) || ACCURACY_TIP;
+}
 function resultCard(p, result) {
   if (!p || !result || !window.RankdSeed) return null;
   const type = result.type || p.type;
+  const tip = accuracyTip();
   if (type === "top5") {
     const keys = result.guesses || [];
-    const span = (p.countries || []).length - 5;
-    if (!keys.length || span <= 0) return null;
+    if (!keys.length || (p.countries || []).length <= 5) return null;
     const distances = [];
     keys.forEach(k => {
       const c = findCountry(p, k);
       if (!c) return;
-      distances.push(inTop(p, c) ? 0 : Math.max(0, Math.min(1, (tieRank(p, c) - 5) / span)));
+      distances.push(inTop(p, c) ? 0 : Math.max(0, tieRank(p, c) - 5));
     });
     if (!distances.length) return null;
     const solved = !!result.won;
@@ -263,7 +263,7 @@ function resultCard(p, result) {
       firstOf: 1,
       accuracy: window.RankdSeed.combineAccuracy(distances, solved, "top5"),
       kind: "top5",
-      tip: "Accuracy starts at 100 and drops with each extra miss, less if that miss was close.",
+      tip,
     };
   }
   const attempts = result.attempts || [];
@@ -276,8 +276,6 @@ function resultCard(p, result) {
   }
   const marks = (attempts[0] && attempts[0].marks) || [];
   if (!marks.length) return null;
-  const tip = "Accuracy starts at 100 and drops with each extra try, less if your guesses were close.";
-  const tips = { rank: tip, tier: tip, match: tip };
   return {
     tries: result.tries,
     solved: !!result.solved,
@@ -285,7 +283,7 @@ function resultCard(p, result) {
     firstOf: marks.length,
     accuracy: window.RankdSeed.combineAccuracy(distances, !!result.solved, type),
     kind: "order",
-    tip: tips[type] || tips.rank,
+    tip,
   };
 }
 // One number for the whole game: correct placements divided by placements submitted.
@@ -2616,20 +2614,25 @@ function challengeText() {
   const p = state.puzzle;
   return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${p.type === "top5" ? `Guess the top 5: how many of the top 5 can you name before ${p.maxMisses} misses?` : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?"}\n${shareUrl()}`.replace(/ \n/, "\n");
 }
+function accuracyShareBit(p, r) {
+  const card = resultCard(p, r);
+  return card && card.accuracy != null ? ` · Accuracy ${card.accuracy}` : "";
+}
 function resultText() {
   const p = state.puzzle; let r = getResult(); if (p.type === "rank") r = normRank(r); if (!r || !r.done) return "";
+  const acc = accuracyShareBit(p, r);
   if (p.type === "match") {
-    const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})`;
+    const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})${acc}`;
     return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
   }
   if (p.type === "rank" || p.type === "tier") {
     const kind = p.type === "tier" ? "Tier it" : "";
-    const line = r.solved ? `${p.emoji || ""} ${kind ? kind + ": " : ""}solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}` : `${p.emoji || ""} ${kind ? kind + ": " : ""}X/${CONFIG.rankMaxTries}`;
+    const line = r.solved ? `${p.emoji || ""} ${kind ? kind + ": " : ""}solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `${p.emoji || ""} ${kind ? kind + ": " : ""}X/${CONFIG.rankMaxTries}${acc}`;
     return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
   }
   const h = hitsOf(p, r), m = missesOf(p, r), avg = avgRank(p, r), rows = [];
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map(x => EMO[x]).join(""));
-  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${shareUrl()}`;
+  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""}${acc} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${shareUrl()}`;
 }
 async function doShare(text) {
   if (!text) return;
