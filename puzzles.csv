@@ -20,10 +20,12 @@ happiness,,,,,,,,Mexico,🇲🇽,6.97,2025,,,,12,147,,,,,,
 happiness,,,,,,,,United States,🇺🇸,6.82,2025,,,,23,147,,,,,,
 happiness,,,,,,,,United Kingdom,🇬🇧,6.69,2025,,,,29,147,,,,,,
 happiness,,,,,,,,Japan,🇯🇵,6.13,2025,,,,61,147,,,,,,
-homicide,30,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,United States,🇺🇸,5.76,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"The US rate is about twice India's, largely because civilian gun ownership is far higher and most US homicides are shootings. Note: latest years differ by country.",29,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
+homicide,30,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,Mexico,🇲🇽,24.86,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"Mexico's rate is more than four times the United States', because organized crime drives most of the killings. Japan is lower than Indonesia. Note: latest years differ by country.",10,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
+homicide,,,,,,,,United States,🇺🇸,5.76,2023,,,,29,83,,,,,,
 homicide,,,,,,,,India,🇮🇳,2.82,2022,,,,46,105,,,,,,
 homicide,,,,,,,,Finland,🇫🇮,0.98,2023,,,,57,83,,,,,,
 homicide,,,,,,,,Indonesia,🇮🇩,0.3,2022,,,,99,105,,,,,,
+homicide,,,,,,,,Japan,🇯🇵,0.23,2023,,,,81,83,,,,,,
 stem-women,12,🔬,Where are women the biggest share of STEM graduates?,Female share of tertiary STEM graduates,%,top,no,Algeria,🇩🇿,51.1,2024,"UNESCO Institute for Statistics via World Bank, World Development Indicators",https://data.worldbank.org/indicator/SE.TER.GRAD.FE.SI.ZS,"Women are a majority of STEM graduates in Algeria, and under 30% in Germany.",2,44,,flask,,,,Lab Coats
 stem-women,,,,,,,,India,🇮🇳,44.1,2023,,,,17,96,,,,,,
 stem-women,,,,,,,,United States,🇺🇸,38.5,2023,,,,37,96,,,,,,
