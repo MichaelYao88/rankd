@@ -1,6 +1,6 @@
 # Rankd: a daily game of surprising stats (prototype)
 
-There are two puzzle types, mixed into one daily rotation:
+Daily puzzles mix several types into one rotation:
 
 * **Rank it:** drag 3–5 countries or groups into order for one stat, then lock it in. Cards in the right spot turn
   🟩 green and lock in place; wrong ones turn 🟥 red and shake. Rearrange the rest and lock in again, up to
@@ -13,8 +13,9 @@ There are two puzzle types, mixed into one daily rotation:
   list, and a repeat guess, do not cost a try. Five tries. Finding #1 wins.
   * Accuracy stays in a try band: 1 try = 100, 2 = 80–99, 3 = 60–79, 4 = 40–59, 5 = 20–39. Inside the band, each
     wrong guess loses a point per rank away from #1, and the score does not fall through the floor of the band.
-  * Share: `Ranki.gg #164 🥔 Top 1: solved in 2 tries` (or `X/5`) plus one 🟩/🟨/🟧/🟥 square per try.
+  * Share: `Ranki.gg #172 🥔 Top 1: solved in 2 tries` (or `X/5`) plus one 🟩/🟨/🟧/🟥 square per try.
   * The reveal lists the real top 5, highlights guesses, and keeps the source and fact line.
+* **Name it** (`type: "name"`, `name-puzzles.js` / `name_puzzles.csv`): type any country that passes a letter rule and a stat rule. Aliases from `puzzle-search.js` count (USA, Korea). Non-countries and duplicate guesses do not use a try. Five tries. The first valid country wins. The reveal lists every valid answer, and the share text is one 🟥/🟩 row (`✏️ Name it: solved in 2 tries`). About 12% of Practice seeds deal one of these; the roll uses a separate RNG so other seeds stay put.
 
 ## Run it
 * **Easiest:** double-click `index.html`. It works from `file://` with no server and no internet,
@@ -115,7 +116,7 @@ There are two puzzle types, mixed into one daily rotation:
   `homicide-women` (past) keeps 🇮🇳🇺🇸 via `TITLE_PIN`.
 * **Swings Both Ways** (`ipsos-bisexual`, #044 Nov 18, sensitive): Ipsos LGBT+ Pride 2021 (27 countries), adults who identify as bisexual:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
-  The requested trans/non-binary ranker was not built: in every edition the six countries tie (2021: Germany 3, Russia 2, the other four 1%).
+  Gender identity was added later from the Ipsos 2023 per-country chart (`ipsos-gender-identity`, `ipsos-gender-identity-b`). A 2021 six-country cut tied, and the 2024 and 2025 reports do not publish that chart.
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
   `site-config.js` (`CONTACT_EMAIL`), shown as a mailto link. Schedule: 129 puzzles (116 Rank it, 7 Top 5, 5 Match it, 1 Tier it), ends Feb 11 2027.
 * **Practice:** no Top 5 from a dataset whose #1 is 100% (internet users, urban population, K-pop search index: they become Rank it only;

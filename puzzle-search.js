@@ -50,6 +50,10 @@
     return false;
   }
 
+  function aliasGroup(name) {
+    return ALIAS_OF.get(normQuery(name)) || null;
+  }
+
   function rowNames(p) {
     const names = [];
     const add = n => { if (n != null && String(n).trim()) names.push(String(n)); };
@@ -61,6 +65,7 @@
 
   function categoryText(p) {
     if (!p) return "";
+    if (p.type === "name") return "Name it";
     if (p.type === "top5") return "Top 5 Guess the top 5";
     if (p.type === "top1") return "Top 1 Which country is number 1";
     if (p.type === "match") return "Match it";
@@ -120,5 +125,5 @@
     return !!(aliases && aliases.includes(q));
   }
 
-  return { normQuery, textMatches, nameMatches, aliasExact, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
+  return { normQuery, textMatches, nameMatches, aliasExact, aliasGroup, rowNames, categoryText, matches, countLabel, emptyCopy, bindSearch };
 });

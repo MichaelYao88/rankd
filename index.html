@@ -139,6 +139,23 @@
         <div class="tries tries-below" id="tierTries" aria-live="polite"></div>
       </section>
 
+      <!-- NAME IT -->
+      <section id="nameGame" class="hidden">
+        <div class="game-bar">
+          <span class="direction" id="nameDir">Any valid country wins</span>
+        </div>
+        <p class="name-rule" id="nameRule"></p>
+        <div class="tries tries-below" id="nameTries" aria-live="polite"></div>
+        <ol class="name-log" id="nameLog" aria-live="polite"></ol>
+        <form class="guess-form" id="nameForm" autocomplete="off">
+          <div class="combo">
+            <input id="nameInput" type="text" placeholder="type a country…" aria-label="Country" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="nameSuggest" enterkeyhint="done" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="off">
+            <ul class="suggest hidden" id="nameSuggest" role="listbox"></ul>
+          </div>
+          <div class="card-foot"><span></span><button class="pill-btn outline" id="nameBtn" type="submit">Guess ↵</button></div>
+        </form>
+      </section>
+
       <!-- TOP 1: type a country. Each guess shows that country's real rank. -->
       <section id="guessGame" class="hidden">
         <div class="game-bar">
@@ -294,6 +311,8 @@
 <script src="practice-data.js"></script>
 <script src="community-seed.js"></script>
 <script src="puzzle-search.js"></script>
+<script src="name-puzzles.js"></script>
+<script src="name-it.js"></script>
 <script src="challenge.js"></script>
 <script src="pwa.js"></script>
 <script src="app.js"></script>

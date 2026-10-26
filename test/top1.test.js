@@ -7,12 +7,13 @@ const vm = require("vm");
 const root = path.join(__dirname, "..");
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(path.join(root, "puzzles-data.js"), "utf8"), sandbox, { filename: "puzzles-data.js" });
-const puzzles = sandbox.window.RANKD_PUZZLES;
+const puzzles = JSON.parse(JSON.stringify(sandbox.window.RANKD_PUZZLES));
 const seed = require("../community-seed.js");
 
 const CONVERTED = [
   "top5-wine", "top5-potatoes", "top5-tea", "top5-co2-consumption",
-  "top5-height-gain", "top5-trends-kpop", "top5-alcohol", "top5-height-gain-women",
+  "top5-height-gain",   "top5-trends-kpop", "top5-alcohol", "top5-height-gain-women",
+  "ipsos-gender-identity",
 ];
 const TOP1 = [
   "top1-potatoes", "top1-tea", "top1-co2",
@@ -42,7 +43,7 @@ test("Top 1 dailies sit at the end of the queue with a real #1", () => {
   const orders = TOP1.map(id => puzzles.find(p => p.id === id).order);
   const maxOther = Math.max(...puzzles.filter(p => !TOP1.includes(p.id)).map(p => p.order));
   assert.ok(Math.min(...orders) > maxOther);
-  assert.deepEqual(orders, [164, 165, 166, 167, 168, 169]);
+  assert.deepEqual(orders, [172, 173, 174, 175, 176, 177]);
   for (const id of TOP1) {
     const p = puzzles.find(x => x.id === id);
     assert.equal(p.type, "top1");
@@ -99,5 +100,5 @@ test("an old Top 5 challenge grid still decodes, and orange is a Top 1 square", 
     k: "d", id: "2027-03-18", tries: 3, dnf: false, acc: 72,
     grid: ["ROG"], name: "Alex",
   }));
-  assert.deepEqual(fresh.grid, ["ROG"]);
+  assert.equal(Array.from(fresh.grid).join("."), "ROG");
 });

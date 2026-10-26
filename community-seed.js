@@ -52,62 +52,76 @@
     return hist;
   }
 
-  function accHist(n, peak, rng) {
+  function accHist(n, peak, rng, band) {
+    const lo = band ? band[0] : 0;
+    const hi = band ? band[1] : 100;
     const weights = [];
     for (let b = 0; b < ACC_BINS; b++) {
       const mid = b === ACC_BINS - 1 ? 97 : b * 10 + 5;
+      const blo = b === ACC_BINS - 1 ? 90 : b * 10;
+      const bhi = b === ACC_BINS - 1 ? 100 : b * 10 + 9;
+      if (bhi < lo || blo > hi) { weights.push(0); continue; }
       const d = (mid - peak) / 22;
       weights.push(Math.exp(-d * d) * (0.82 + rng() * 0.36));
+    }
+    if (weights.every(w => w <= 0)) {
+      const mid = Math.max(0, Math.min(100, peak));
+      const bin = mid >= 90 ? ACC_BINS - 1 : Math.min(ACC_BINS - 2, Math.floor(mid / 10));
+      weights[bin] = 1;
     }
     return distribute(n, weights);
   }
 
-  /* Accuracy is anchored to how many tries the puzzle took. Rank distance
-     only slides the score inside that try's band: close misses land high,
-     far misses land low. Fewer tries never score below more tries at the
-     same miss quality, and the bands for 1–4 tries do not overlap at all.
-     A perfect first try is 100. Try 5 can reach 0 only when every miss was
-     as far as it goes; try 6+ stays in the single digits and drops to 0
-     only in that same extreme, so it cannot outscore the 5-try floor.
-     Top 5 counts misses, not names: five hits and no misses is a perfect.
-     An unfinished game is 0. That sits under every finish of 1 or more.
-     A maximally wrong 5-try can also show 0; ranking still places that
-     finish above a DNF because unfinished games sort below every finish. */
-  function clamp01(n) {
+  /* Accuracy is anchored to how many tries the solve took.
+     1st try is exactly 100. Later tries open a 20-point band and start one
+     point under its top: 2nd 80–99, 3rd 60–79, 4th 40–59, 5th 20–39.
+     A 6th try uses 1–19. Further tries stay at 1, so they cannot outscore
+     an earlier finish. Inside a band, each spot a country was off in an
+     earlier wrong guess costs 1 point, then the score clamps to the floor.
+     Rank it, Tier it, Match it, and the six-card Top 5 pass one distance per
+     lock. The old Top 5 name list (kind "top5") counts misses instead:
+     five hits and no misses is 100.
+     An unfinished game scores 1–19 from the last guess only. That number
+     stays under every 1st–5th try solve. The comparison still ranks every
+     unfinished game under every finish, including a long solve that also
+     landed in 1–19. The (?) tooltip does not mention this. */
+  const ACCURACY_TIP = "100 for a first-try solve. Each extra try drops you to a lower band (80s, 60s, 40s, 20s), and within a band you lose 1 point for every spot a country was off in your wrong guesses.";
+  function rawSpots(n) {
     const x = Number(n);
-    if (!Number.isFinite(x)) return 0;
-    return Math.max(0, Math.min(1, x));
+    if (!Number.isFinite(x) || x <= 0) return 0;
+    return Math.round(x);
   }
-  function missBadness(ds) {
-    const misses = ds.filter(d => d > 0);
-    if (!misses.length) return 0;
-    return misses.reduce((a, b) => a + b, 0) / misses.length;
-  }
-  function scaleBand(lo, hi, badness) {
-    return Math.round(lo + (hi - lo) * (1 - badness));
-  }
-  function solvedScore(tries, badness) {
-    const b = clamp01(badness);
+  function tryBand(tries) {
     const t = Math.max(1, Math.round(Number(tries) || 1));
-    if (t <= 1) return 100;
-    if (t === 2) return scaleBand(75, 95, b);
-    if (t === 3) return scaleBand(50, 74, b);
-    if (t === 4) return scaleBand(25, 49, b);
-    if (t === 5) {
-      if (b >= 0.97) return 0;
-      return Math.max(1, scaleBand(1, 24, b));
-    }
-    const five = solvedScore(5, b);
-    const hi = Math.max(1, Math.min(9, 15 - t));
-    if (five <= 0) return 0;
-    return Math.max(1, Math.min(hi, five, scaleBand(1, hi, b)));
+    if (t <= 1) return { start: 100, floor: 100, collapsed: false };
+    const start = 99 - 20 * (t - 2);
+    if (start < 1) return { start: 1, floor: 1, collapsed: true };
+    if (start <= 19) return { start: 19, floor: 1, collapsed: false };
+    return { start, floor: start - 19, collapsed: false };
   }
-  function effectiveTries(ds, solved, kind) {
-    if (kind === "top5") {
-      const misses = ds.filter(d => d > 0).length;
-      return solved ? 1 + misses : Math.max(6, 1 + misses);
-    }
-    return Math.max(1, ds.length || 1);
+  function solvedScore(tries, distance) {
+    const band = tryBand(tries);
+    if (band.start === 100) return 100;
+    const d = rawSpots(distance);
+    if (band.collapsed) return 1;
+    return Math.max(band.floor, Math.min(band.start, band.start - d));
+  }
+  function dnfScore(lastDistance) {
+    return Math.max(1, Math.min(19, 19 - rawSpots(lastDistance)));
+  }
+  /* Inclusive score range a seeded crowd at this try count should occupy.
+     `tries` is the accuracy try (1 = first-try solve), not a Top 5 guess count. */
+  function seedBand(accuracyTries, failed) {
+    if (failed) return [1, 19];
+    const band = tryBand(accuracyTries);
+    if (band.collapsed) return [1, 9];
+    if (band.start === 100) return [100, 100];
+    return [band.floor, band.start];
+  }
+  function bandCenter(accuracyTries) {
+    if (accuracyTries <= 1) return 100;
+    const [lo, hi] = seedBand(accuracyTries, false);
+    return Math.round((lo + hi) / 2 - 4);
   }
   /* Top 1: the try count picks the band. Inside it, each wrong guess loses
      one point per rank away from #1, and the loss stops at the band floor.
@@ -141,11 +155,16 @@
     return Math.max(1, Math.min(19, Math.round(raw)));
   }
   function combineAccuracy(distances, solved, kind) {
-    const ds = (distances || []).map(clamp01);
-    const badness = missBadness(ds);
-    const tries = effectiveTries(ds, !!solved, kind);
-    if (!solved) return 0;
-    return solvedScore(tries, badness);
+    const ds = (distances || []).map(rawSpots);
+    if (!solved) return dnfScore(ds.length ? ds[ds.length - 1] : 18);
+    if (kind === "top5") {
+      const misses = ds.filter(d => d > 0);
+      const penalty = misses.reduce((a, b) => a + b, 0);
+      return solvedScore(1 + misses.length, penalty);
+    }
+    const tries = Math.max(1, ds.length || 1);
+    const penalty = tries <= 1 ? 0 : ds.slice(0, -1).reduce((a, b) => a + b, 0);
+    return solvedScore(tries, penalty);
   }
 
   function histMid(bins, perfect) {
@@ -158,8 +177,11 @@
   function standingBlock(puzzleId, players, type, firstOf) {
     const n = Math.max(0, Math.round(Number(players) || 0));
     const rng = rngFor(String(puzzleId) + ":standing");
-    // Top 5 locks five slots. Top 1 is one answer. A country-list length is not the denominator.
-    const of = type === "top5" ? 5 : type === "top1" ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
+    // Top 5 locks five slots. Name it and Top 1 are one country, so the first-guess scale is 1.
+    // A country-list length passed in by mistake is not the Top 5 denominator.
+    const nameIt = type === "name";
+    const top1 = type === "top1";
+    const of = type === "top5" ? 5 : (nameIt || top1) ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
     const tryKeys = [1, 2, 3, 4, 5];
     const base = [10, 28, 28, 16, 8, 10];
     const counts = distribute(n, base.map(w => w * (0.84 + rng() * 0.32)));
@@ -168,8 +190,8 @@
     const byTries = {};
     const failed = {};
     let tryWeighted = 0, firstWeighted = 0, accWeighted = 0, accN = 0;
-    const take = (tries, count, peak, into, perfect) => {
-      const bins = count ? accHist(count, perfect ? 100 : peak, rng) : Array(ACC_BINS).fill(0);
+    const take = (tries, count, peak, into, perfect, band) => {
+      const bins = count ? accHist(count, perfect ? 100 : peak, rng, perfect ? [100, 100] : band) : Array(ACC_BINS).fill(0);
       if (perfect && count) { bins.fill(0); bins[ACC_BINS - 1] = count; }
       into[String(tries)] = bins;
       tryWeighted += count * tries;
@@ -178,19 +200,17 @@
     };
     tryKeys.forEach((tries, i) => {
       const count = solvedCounts[i] || 0;
-      let peak;
-      if (tries === 1) peak = 100;
-      else {
-        const center = { 2: 86, 3: 60, 4: 35, 5: 12 }[tries] || 8;
-        peak = center + (rng() - 0.5) * 3;
-      }
-      if (tries === 1) peak = 100;
-      else peak = Math.max(2, Math.min(96, peak));
-      take(tries, count, peak, byTries, tries === 1);
+      const band = seedBand(tries, false);
+      const perfect = tries <= 1;
+      let peak = bandCenter(tries) + (perfect ? 0 : (rng() - 0.5) * 3);
+      peak = Math.max(band[0], Math.min(band[1], peak));
+      take(tries, count, peak, byTries, perfect, band);
       const first = tries === 1 ? of : Math.max(0.3, of * (0.46 - (tries - 2) * 0.08));
       firstWeighted += count * first;
     });
-    take(5, failCount, 3, failed, false);
+    const failBand = seedBand(1, true);
+    const failPeak = Math.max(failBand[0], Math.min(failBand[1], 8 + (rng() - 0.5) * 3));
+    take(5, failCount, failPeak, failed, false, failBand);
     firstWeighted += failCount * Math.max(0.25, of * 0.16);
     const avgTries = n ? tryWeighted / n : 0;
     const avgFirst = n ? firstWeighted / n : 0;
@@ -198,7 +218,7 @@
     return {
       n,
       seeded: true,
-      kind: type === "top5" ? "top5" : type === "top1" ? "top1" : "order",
+      kind: nameIt ? "name" : top1 ? "top1" : type === "top5" ? "top5" : "order",
       avgTries: Math.round(avgTries * 100) / 100,
       avgFirst: Math.round(avgFirst * 100) / 100,
       firstOf: of,
@@ -372,23 +392,21 @@
       if (solvedN + failedN !== 900) throw new Error(id + " hist sum " + (solvedN + failedN));
       if (failedN < 60 || failedN > 160) throw new Error(id + " fail share " + failedN);
       if (combineAccuracy([0], true) !== 100) throw new Error("perfect guess");
-      const close2 = combineAccuracy([0.2, 0], true);
-      const far2 = combineAccuracy([0.9, 0], true);
-      const close3 = combineAccuracy([0.2, 0.2, 0], true);
-      if (close2 < 75 || close2 > 95 || far2 < 75 || far2 > 95 || close2 <= far2) throw new Error("try 2 band " + close2 + " " + far2);
-      if (close3 < 50 || close3 > 74 || close3 >= close2) throw new Error("try 3 band " + close3);
-      const unfinished = combineAccuracy([0.2, 0.05], false);
-      if (unfinished !== 0 || unfinished >= close2) throw new Error("failure not below a finish");
+      if (combineAccuracy([2, 0], true) !== 97) throw new Error("distance 2");
+      if (combineAccuracy([30, 0], true) !== 80) throw new Error("clamped");
+      if (combineAccuracy([0, 0, 0], true) !== 79) throw new Error("zero wrong guesses");
+      const unfinished = combineAccuracy([4, 8], false);
+      if (!(unfinished < 20) || unfinished >= combineAccuracy([4, 0], true)) throw new Error("failure not below a finish");
       if (block.avgTries < 2.8 || block.avgTries > 3.6) throw new Error(id + " tries " + block.avgTries);
       if (block.avgAccuracy < 50 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
       if (block.avgFirst < 1.2 || block.avgFirst > 3.2) throw new Error(id + " first " + block.avgFirst);
-      const good = betterThan(block, 2, 80, true);
-      const poor = betterThan(block, 5, 30, false);
+      const good = betterThan(block, 2, 90, true);
+      const poor = betterThan(block, 5, 10, false);
       const perfect = betterThan(block, 1, 100, true);
-      const lastTry = betterThan(block, 5, 40, true);
+      const lastTry = betterThan(block, 5, 30, true);
       if (good < 68 || good > 86) throw new Error(id + " good " + good);
       if (poor > 25) throw new Error(id + " poor " + poor);
-      if (perfect !== 99) throw new Error(id + " perfect " + perfect);
+      if (perfect < 88 || perfect > 99) throw new Error(id + " perfect " + perfect);
       if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
       if (type === "top5" && (block.firstOf !== 5 || Object.keys(block.byTries).some(k => Number(k) > 5))) throw new Error(id + " still counts guesses");
       const mid = platformCount(0.5);
@@ -438,8 +456,8 @@
     if (CONSENSUS_SEED_PLAYS !== 1) throw new Error("consensus seed");
     if (MIN_COUNTRY !== BOARD_SEED_PLAYS) throw new Error("9 seeds must clear the cutoff");
     const handful = standingBlock("work-hours", BOARD_SEED_PLAYS, "rank", 5);
-    const handfulGood = betterThan(handful, 2, 80, true);
-    const handfulPoor = betterThan(handful, 5, 30, false);
+    const handfulGood = betterThan(handful, 2, 90, true);
+    const handfulPoor = betterThan(handful, 5, 10, false);
     if (!(handfulGood > handfulPoor && handfulGood >= 50 && handfulGood <= 90 && handfulPoor <= 30)) {
       throw new Error("board-sized comparison " + handfulGood + " " + handfulPoor);
     }
@@ -505,15 +523,15 @@
       const row = puzzles[pid];
       if (row.seeded === false) return;
       const type = row.type || "rank";
-      const named = row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0;
-      const width = type === "top5" ? 5 : (Number(row.rowCount) || named);
+      const named = type === "name" || type === "top1" ? 1 : (row.perItemCorrect ? Object.keys(row.perItemCorrect).length : 0);
+      const width = type === "top5" ? 5 : (type === "name" || type === "top1") ? 1 : (Number(row.rowCount) || named);
       row.countryBoard = countryBoard(pid, type);
       row.standing = standingBlock(pid, row.players || 0, type, width);
       delete row.rowCount;
       delete row.score;
     });
     doc.version = 6;
-    doc.updatedAt = "2026-10-26T19:45:00Z";
+    doc.updatedAt = "2026-10-26T20:30:00Z";
     doc.note = "Seeded distributions until live aggregates exist. Stable per puzzle id. "
       + "firstGuessWorld and each firstGuessByCountry bucket are one seeded play, so the first real submits replace that ordering. "
       + "countryBoard is average tries only, about 9 seeded plays per country. "
@@ -522,7 +540,8 @@
       + "standing is a full crowd, a little under a typical clear, so better-than stays stable while real plays mix in. "
       + "standing.firstOf is the puzzle row count and avgFirst is on that scale. "
       + "standing.byTries is finished games; standing.failed is unfinished games, ranked below every finish. "
-      + "Accuracy starts at 100 and drops with each extra try. How far a miss was only moves the score inside that try's band.";
+      + "Accuracy is 100 on a first-try solve. Each extra try drops into a lower band (80–99, 60–79, 40–59, 20–39, then 1–19). "
+      + "Inside a band, each spot a country was off in a wrong guess costs 1 point. Unfinished games score 1–19 and rank under every finish.";
     return doc;
   }
 
@@ -540,7 +559,7 @@
   }
 
   return {
-    standingBlock, countryBoard, topCountries, betterThan, combineAccuracy, top1Accuracy, top1Mark,
+    standingBlock, countryBoard, topCountries, betterThan, combineAccuracy, top1Accuracy, top1Mark, ACCURACY_TIP,
     platformCount, platformWindow, platformTopPercent, pedestalTopPercent, scaleAvgFirst,
     MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
   };
