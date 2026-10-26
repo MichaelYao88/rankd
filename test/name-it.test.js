@@ -155,7 +155,7 @@ test("name accuracy follows try bands, not the top 5 miss count", () => {
   assert.ok(block.avgAccuracy >= 50 && block.avgAccuracy <= 72, block.avgAccuracy);
 });
 
-test("name puzzles are appended after the existing daily queue", () => {
+test("name puzzles take the open days of 18–21 Mar 2027", () => {
   const dataBox = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(root, "puzzles-data.js"), "utf8"), dataBox, { filename: "puzzles-data.js" });
   const base = dataBox.window.RANKD_PUZZLES;
@@ -164,17 +164,58 @@ test("name puzzles are appended after the existing daily queue", () => {
     assert.equal(ids.has(puzzle.id), false, puzzle.id);
     assert.equal(/homicide|suicide|murder|overdose|cannabis|marijuana|penis|pornograph|sex|drug/i.test(`${puzzle.id} ${puzzle.headline} ${puzzle.question} ${puzzle.stat}`), false);
   }
-  let max = 0;
-  base.forEach(p => { const order = Math.round(p.order) || 0; if (order > 0 && order < 10000 && order > max) max = order; });
-  assert.equal(max, 163);
-  const epoch = Date.UTC(2026, 9, 6);
-  const dateOf = order => new Date(epoch + (order - 1) * 864e5).toISOString().slice(0, 10);
-  puzzles.forEach((puzzle, i) => {
-    const order = max + 1 + i;
-    assert.equal(dateOf(164), "2027-03-18");
-    assert.ok(dateOf(order) > "2026-11-03", puzzle.id);
-    assert.equal(dateOf(167), "2027-03-21");
+  const store = new Map();
+  const storage = () => ({
+    getItem: k => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: k => store.delete(k),
+    key: i => [...store.keys()][i] ?? null,
+    get length() { return store.size; },
   });
+  const document = {
+    documentElement: { dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
+    querySelector: () => null,
+    querySelectorAll: () => [],
+    getElementById: () => null,
+    createElement: () => ({ style: {}, setAttribute() {}, appendChild() {} }),
+    head: { appendChild() {} },
+    addEventListener() {},
+  };
+  const appBox = {
+    window: { RANKD_STUDIO: true, RANKD_PUZZLES: base, RANKD_NAME_PUZZLES: puzzles },
+    document,
+    localStorage: storage(),
+    sessionStorage: storage(),
+    location: { protocol: "http:", pathname: "/", search: "", hostname: "localhost", hash: "" },
+    matchMedia: () => ({ matches: false, addEventListener() {} }),
+    URLSearchParams, console, Date, Math, JSON, Intl, Number, String, Array, Object, Set, Map, RegExp,
+    Error, parseFloat, parseInt, isNaN, isFinite, setTimeout, clearTimeout,
+    fetch: () => Promise.reject(new Error("no")),
+    AbortController,
+  };
+  appBox.globalThis = appBox;
+  appBox.window.document = document;
+  appBox.window.localStorage = appBox.localStorage;
+  appBox.window.sessionStorage = appBox.sessionStorage;
+  appBox.window.location = appBox.location;
+  appBox.window.matchMedia = appBox.matchMedia;
+  vm.createContext(appBox);
+  vm.runInContext(fs.readFileSync(path.join(root, "app.js"), "utf8"), appBox, { filename: "app.js" });
+  const scheduled = appBox.window.RankdShared.puzzles;
+  const epoch = Date.UTC(2026, 9, 6);
+  const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
+  const tail = scheduled.slice(-5).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 5 + i), order: Math.round(p.order) }));
+  assert.equal(JSON.stringify(tail), JSON.stringify([
+    { id: "name-hdi-s", date: "2027-03-18", order: 164 },
+    { id: "name-pop-stan-land-m", date: "2027-03-19", order: 165 },
+    { id: "name-le-i", date: "2027-03-20", order: 166 },
+    { id: "name-forest-c", date: "2027-03-21", order: 167 },
+    { id: "cannabis-use", date: "2027-03-22", order: 168 },
+  ]));
+  const high = scheduled.find(p => p.id === "cannabis-use");
+  assert.equal(high.sensitive, true);
+  assert.equal(high.unit, "% of adults (15–64)");
+  tail.slice(0, 4).forEach(row => assert.ok(row.date > "2026-11-03", row.id));
 });
 
 test("about one practice seed in eight deals Name it without touching the other seeds' roll", () => {
