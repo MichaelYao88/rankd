@@ -753,16 +753,18 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .hero.is-top5 .game-bar{margin:0 0 6px}
   body.fit .t5pool{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;flex:0 1 auto;max-height:30%;min-height:0;overflow:auto}
   body.fit .t5pool:empty{display:none}
-  body.fit .t5chip{padding:4px 8px;font-size:12px;gap:4px}
+  body.fit .t5chip{padding:4px 8px;font-size:12px;gap:4px;height:auto}
   body.fit .t5chip .tc-flag{font-size:14px}
+  body.fit .t5pool .t5chip .tc-name{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   body.fit .hero .t5board{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin:0 0 6px;padding:6px 8px;overflow:hidden}
   body.fit .t5grid{flex:1 1 auto;min-height:0;margin-top:0;align-items:stretch}
   body.fit .t5vals{margin-top:0;min-height:0;overflow:hidden}
-  body.fit .t5vals .vp-list{display:flex;flex-direction:column;justify-content:space-between;gap:4px;height:100%}
-  body.fit .t5vals .vchip{height:auto;max-height:40px;min-height:0;flex:1 1 0}
-  body.fit .t5slots{display:flex;flex-direction:column;justify-content:space-between;gap:4px;min-height:0;height:100%}
-  body.fit .t5slot{flex:1 1 0;min-height:0;max-height:44px;margin:0;padding:2px 6px;overflow:hidden}
-  body.fit .t5slot .t5chip{padding:2px 6px;font-size:11.5px}
+  body.fit .t5vals .vp-list{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;height:auto}
+  body.fit .t5vals .vchip{height:auto;max-height:none;min-height:40px;flex:0 0 auto;display:flex;align-items:center}
+  body.fit .t5slots{display:flex;flex-direction:column;justify-content:flex-start;gap:4px;min-height:0;height:auto;flex:0 1 auto}
+  body.fit .t5slot{flex:0 0 auto;min-height:40px;max-height:none;height:auto;margin:0;padding:3px 6px;overflow:hidden}
+  body.fit .t5slot .t5chip{padding:4px 8px;font-size:12.5px;min-height:32px}
+  body.fit .t5chip{min-height:40px}
   body.fit .lasthint,body.fit .t5out{flex:none;margin:0 0 6px;padding:6px 10px;font-size:12.5px;overflow:hidden}
   body.fit .lasthint>span:last-child,body.fit .t5out{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   body.fit .lasthint{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}

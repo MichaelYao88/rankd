@@ -1804,14 +1804,14 @@ function paintTop5(marks) {
   const t5v = v => isPercent(p) ? `${fmt1(v)}%` : fmt1(v);
   const t5u = unitAside(p);
   const board = $("#t5board");
-  board.classList.toggle("long-unit", (p.unit || "").length > 12);
+  board.classList.toggle("long-unit", (p.unit || "").length >= 12);
   board.classList.remove("hidden");
   const pin = new Set(g.pinned || []);
   const slotsHtml = sl.map((s, i) => {
     const key = g.cur && g.cur[i];
     const c = key && findCountry(p, key);
-    const mark = marks && marks[i] ? marks[i] : (pinned ? "good" : "");
     const pinned = pin.has(i);
+    const mark = marks && marks[i] ? marks[i] : (pinned ? "good" : "");
     const chip = c ? t5ChipHtml(c, { sel: state.t5Sel === cKey(c), mark, pinned }) : `<span class="t5ph">${state.t5Sel ? "Tap to place" : ""}</span>`;
     return `<div class="t5slot${pinned ? " pinned" : ""}${mark ? " " + mark : ""}" data-slot="${i}" tabindex="0"><span class="t5r">#${i + 1}</span>${chip}</div>`;
   }).join("");
@@ -1975,8 +1975,10 @@ function revealTop5(res, animate) {
       d.moved = true;
       const r = d.chip.getBoundingClientRect(), gh = d.chip.cloneNode(true);
       gh.classList.add("t5-ghost"); gh.classList.remove("sel");
-      gh.style.width = r.width + "px"; gh.style.left = r.left + "px"; gh.style.top = r.top + "px";
-      document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top;
+      gh.style.width = r.width + "px";
+      document.body.appendChild(gh); d.ghost = gh;
+      // Offset from the pointer-down point, so a coalesced first move still sits under the finger.
+      d.ox = d.x - r.left; d.oy = d.y - r.top;
       d.chip.classList.add("dragging");
     }
     e.preventDefault();
@@ -3368,7 +3370,7 @@ function settingsModal() {
     <p style="font-size:12px;color:var(--muted);margin:6px 2px 0">Hides all ad slots and interstitials while you stream or record. Your browser can't tell when OBS is capturing, so switch it on yourself (or open the game with ?stream=1).</p>
     <h3>Puzzles</h3><div class="menu-list">
     <button id="mLoad">📄 Load spreadsheet<small>Your edited puzzles.xlsx, or one or more of the CSV sheets</small></button>
-    <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Guess the top 5 sheets: see puzzles.xlsx)</small></button>
+    <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Top 5 sheets: see puzzles.xlsx)</small></button>
     ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>
     <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history and settings on this device</small></button>
     <p style="font-size:12px;color:var(--muted)">What Rankd stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
