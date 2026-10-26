@@ -62,20 +62,59 @@
     return distribute(n, weights);
   }
 
-  /* Accuracy starts at 100. Each imperfect guess subtracts its normalized mean
-     absolute rank distance (0–1). A perfect guess adds nothing. An unfinished
-     game also drops below the score a finish with the same earlier guesses
-     would have earned. */
-  function combineAccuracy(distances, solved) {
-    const ds = (distances || []).map(d => Math.max(0, Math.min(1, Number(d) || 0)));
-    const sum = ds.reduce((a, b) => a + b, 0);
-    let score = 100 - 100 * sum;
-    if (!solved) {
-      const last = ds.length ? ds[ds.length - 1] : 1;
-      const completer = 100 - 100 * (sum - last);
-      score = Math.min(score, completer - 12);
+  /* Accuracy is anchored to how many tries the puzzle took. Rank distance
+     only slides the score inside that try's band: close misses land high,
+     far misses land low. Fewer tries never score below more tries at the
+     same miss quality, and the bands for 1–4 tries do not overlap at all.
+     A perfect first try is 100. Try 5 can reach 0 only when every miss was
+     as far as it goes; try 6+ stays in the single digits and drops to 0
+     only in that same extreme, so it cannot outscore the 5-try floor.
+     Top 5 counts misses, not names: five hits and no misses is a perfect.
+     An unfinished game is 0. That sits under every finish of 1 or more.
+     A maximally wrong 5-try can also show 0; ranking still places that
+     finish above a DNF because unfinished games sort below every finish. */
+  function clamp01(n) {
+    const x = Number(n);
+    if (!Number.isFinite(x)) return 0;
+    return Math.max(0, Math.min(1, x));
+  }
+  function missBadness(ds) {
+    const misses = ds.filter(d => d > 0);
+    if (!misses.length) return 0;
+    return misses.reduce((a, b) => a + b, 0) / misses.length;
+  }
+  function scaleBand(lo, hi, badness) {
+    return Math.round(lo + (hi - lo) * (1 - badness));
+  }
+  function solvedScore(tries, badness) {
+    const b = clamp01(badness);
+    const t = Math.max(1, Math.round(Number(tries) || 1));
+    if (t <= 1) return 100;
+    if (t === 2) return scaleBand(75, 95, b);
+    if (t === 3) return scaleBand(50, 74, b);
+    if (t === 4) return scaleBand(25, 49, b);
+    if (t === 5) {
+      if (b >= 0.97) return 0;
+      return Math.max(1, scaleBand(1, 24, b));
     }
-    return Math.max(0, Math.min(100, Math.round(score)));
+    const five = solvedScore(5, b);
+    const hi = Math.max(1, Math.min(9, 15 - t));
+    if (five <= 0) return 0;
+    return Math.max(1, Math.min(hi, five, scaleBand(1, hi, b)));
+  }
+  function effectiveTries(ds, solved, kind) {
+    if (kind === "top5") {
+      const misses = ds.filter(d => d > 0).length;
+      return solved ? 1 + misses : Math.max(6, 1 + misses);
+    }
+    return Math.max(1, ds.length || 1);
+  }
+  function combineAccuracy(distances, solved, kind) {
+    const ds = (distances || []).map(clamp01);
+    const badness = missBadness(ds);
+    const tries = effectiveTries(ds, !!solved, kind);
+    if (!solved) return 0;
+    return solvedScore(tries, badness);
   }
 
   function histMid(bins, perfect) {
@@ -112,9 +151,18 @@
       const count = solvedCounts[i] || 0;
       let peak;
       if (!top5 && tries === 1) peak = 100;
-      else if (top5) peak = 70 - (tries - 8) * 2.4 + (rng() - 0.5) * 6;
-      else peak = 84 - (tries - 2) * 12 + (rng() - 0.5) * 5;
-      peak = Math.max(24, Math.min(96, peak));
+      else if (top5) {
+        /* Guess count → misses past a perfect 5. Centers sit a little under
+           the middle of that try's accuracy band. */
+        const misses = Math.max(0, tries - 5);
+        const center = [100, 84, 60, 36, 12, 6, 4, 3, 3, 2][misses];
+        peak = (center == null ? 2 : center) + (rng() - 0.5) * 3;
+      } else {
+        const center = { 2: 86, 3: 60, 4: 35, 5: 12 }[tries] || 8;
+        peak = center + (rng() - 0.5) * 3;
+      }
+      if (!top5 && tries === 1) peak = 100;
+      else peak = Math.max(2, Math.min(96, peak));
       take(tries, count, peak, byTries, !top5 && tries === 1);
       let first;
       if (top5) first = Math.max(0.16, Math.min(0.5, 0.42 - (tries - 8) * 0.02));
@@ -123,8 +171,7 @@
       firstWeighted += count * first;
     });
     const failTries = top5 ? 15 : 5;
-    const failPeak = top5 ? 32 + (rng() - 0.5) * 6 : 22 + (rng() - 0.5) * 6;
-    take(failTries, failCount, Math.max(12, Math.min(42, failPeak)), failed, false);
+    take(failTries, failCount, 3, failed, false);
     if (top5) firstWeighted += failCount * 0.12;
     else firstWeighted += failCount * Math.max(0.25, of * 0.16);
     const avgTries = n ? tryWeighted / n : 0;
@@ -228,12 +275,14 @@
     return Math.max(0, Math.min(99, Math.round(100 * worse / total)));
   }
 
-  /* N in 7..12 whose equal bands put `percentile` (0–1, from the bottom)
-     closest to a band's middle. Ties pick more platforms. */
-  function platformCount(percentile) {
+  /* N in 7..9 whose equal bands put `percentile` (0–1, from the bottom)
+     closest to a band's middle. Ties pick more platforms. A perfect first
+     try skips this staircase: one tall center step, four lower steps aside. */
+  function platformCount(percentile, perfectFirst) {
+    if (perfectFirst) return { n: 9, band: 4, winner: true };
     const p = Math.max(0, Math.min(0.999999, Number(percentile) || 0));
     let bestN = 7, bestDist = Infinity, bestBand = 0;
-    for (let n = 7; n <= 12; n++) {
+    for (let n = 7; n <= 9; n++) {
       const x = p * n;
       const frac = x - Math.floor(x);
       const dist = Math.abs(frac - 0.5);
@@ -243,7 +292,21 @@
         bestBand = Math.min(n - 1, Math.floor(x));
       }
     }
-    return { n: bestN, band: bestBand };
+    return { n: bestN, band: bestBand, winner: false };
+  }
+
+  /* The row always reaches the top step. A player within five steps of it
+     keeps at most five steps below them, so a high score is not a crowd. */
+  function platformWindow(n, band) {
+    const count = Math.max(1, Math.round(Number(n)) || 1);
+    const index = Math.max(0, Math.min(count - 1, Math.round(Number(band)) || 0));
+    const nearTop = count - 1 - index <= 5;
+    return {
+      lo: nearTop ? Math.max(0, index - 5) : 0,
+      hi: count - 1,
+      n: count,
+      band: index,
+    };
   }
 
   /* "Top X%" for one pedestal. Equal bands run worst → best, so band `index`
@@ -267,16 +330,19 @@
       if (solvedN + failedN !== 900) throw new Error(id + " hist sum " + (solvedN + failedN));
       if (failedN < 60 || failedN > 160) throw new Error(id + " fail share " + failedN);
       if (combineAccuracy([0], true) !== 100) throw new Error("perfect guess");
-      if (combineAccuracy([0.2, 0], true) !== 80) throw new Error("perfect costs nothing");
-      if (combineAccuracy([0.2, 0.2, 0], true) >= combineAccuracy([0.2, 0], true)) throw new Error("more guesses should hurt");
+      const close2 = combineAccuracy([0.2, 0], true);
+      const far2 = combineAccuracy([0.9, 0], true);
+      const close3 = combineAccuracy([0.2, 0.2, 0], true);
+      if (close2 < 75 || close2 > 95 || far2 < 75 || far2 > 95 || close2 <= far2) throw new Error("try 2 band " + close2 + " " + far2);
+      if (close3 < 50 || close3 > 74 || close3 >= close2) throw new Error("try 3 band " + close3);
       const unfinished = combineAccuracy([0.2, 0.05], false);
-      if (unfinished >= combineAccuracy([0.2, 0], true)) throw new Error("failure not below a similar finish");
+      if (unfinished !== 0 || unfinished >= close2) throw new Error("failure not below a finish");
       if (type === "top5") {
         if (block.avgTries < 8.5 || block.avgTries > 13) throw new Error(id + " guesses " + block.avgTries);
-        if (block.avgAccuracy < 48 || block.avgAccuracy > 78) throw new Error(id + " acc " + block.avgAccuracy);
+        if (block.avgAccuracy < 8 || block.avgAccuracy > 40) throw new Error(id + " acc " + block.avgAccuracy);
       } else {
         if (block.avgTries < 2.8 || block.avgTries > 3.6) throw new Error(id + " tries " + block.avgTries);
-        if (block.avgAccuracy < 55 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
+        if (block.avgAccuracy < 50 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
         if (block.avgFirst < 1.2 || block.avgFirst > 3.2) throw new Error(id + " first " + block.avgFirst);
         const good = betterThan(block, 2, 80, true);
         const poor = betterThan(block, 5, 30, false);
@@ -288,9 +354,9 @@
         if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
       }
       const mid = platformCount(0.5);
-      if (mid.n !== 11 || mid.band !== 5) throw new Error("platform center " + mid.n + " " + mid.band);
+      if (mid.n !== 9 || mid.band !== 4 || mid.winner) throw new Error("platform center " + mid.n + " " + mid.band);
       const high = platformCount(0.9);
-      if (high.n < 7 || high.n > 12 || high.band < 0 || high.band >= high.n) throw new Error("platform high");
+      if (high.n < 7 || high.n > 9 || high.band < 0 || high.band >= high.n || high.winner) throw new Error("platform high");
       const board = countryBoard(id, type);
       const shown = topCountries(board);
       const hidden = board.filter(r => r.players < MIN_COUNTRY);
@@ -349,8 +415,17 @@
     if (platformTopPercent(10, 9) !== 10) throw new Error("top 10");
     if (platformTopPercent(100, 99) !== 1) throw new Error("top 1");
     if (platformTopPercent(7, 6) !== 14) throw new Error("top 14");
-    if (platformTopPercent(12, 11) !== 8) throw new Error("top 8");
-    if (platformTopPercent(11, 5) !== 55) throw new Error("mid label");
+    if (platformTopPercent(9, 8) !== 11) throw new Error("top of nine");
+    if (platformTopPercent(9, 4) !== 56) throw new Error("mid label");
+    const win = platformCount(0.2, true);
+    if (!win.winner || win.n !== 9 || win.band !== 4) throw new Error("winner podium");
+    for (let i = 0; i < 100; i++) {
+      const pick = platformCount(i / 100);
+      if (pick.winner || pick.n < 7 || pick.n > 9) throw new Error("n range " + i);
+      const view = platformWindow(pick.n, pick.band);
+      if (view.hi !== pick.n - 1) throw new Error("crown dropped " + i);
+      if (pick.band - view.lo > 5) throw new Error("left crowd " + i);
+    }
     [0.9, 0.95, 0.97, 0.99].forEach(p => {
       const pick = platformCount(p);
       if (pick.band !== pick.n - 1) throw new Error("not the top pedestal " + p + " " + pick.n + " " + pick.band);
@@ -381,7 +456,7 @@
       delete row.score;
     });
     doc.version = 6;
-    doc.updatedAt = "2026-10-25T03:40:00Z";
+    doc.updatedAt = "2026-10-26T19:06:00Z";
     doc.note = "Seeded distributions until live aggregates exist. Stable per puzzle id. "
       + "firstGuessWorld and each firstGuessByCountry bucket are one seeded play, so the first real submits replace that ordering. "
       + "countryBoard is average tries only, about 9 seeded plays per country. "
@@ -389,7 +464,7 @@
       + "The board is ranked by fewest tries. "
       + "standing is a full crowd, a little under a typical clear, so better-than stays stable while real plays mix in. "
       + "standing.byTries is finished games; standing.failed is unfinished games, ranked below every finish. "
-      + "Accuracy starts at 100 and drops by the normalized rank distance of each imperfect guess.";
+      + "Accuracy starts at 100 and drops with each extra try. How far a miss was only moves the score inside that try's band.";
     return doc;
   }
 
@@ -408,6 +483,6 @@
 
   return {
     standingBlock, countryBoard, topCountries, betterThan, combineAccuracy,
-    platformCount, platformTopPercent, MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
+    platformCount, platformWindow, platformTopPercent, MIN_COUNTRY, CONSENSUS_SEED_PLAYS, BOARD_SEED_PLAYS, mergeDoc,
   };
 });

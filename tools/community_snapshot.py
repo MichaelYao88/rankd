@@ -251,7 +251,7 @@ def add_seed_first_guess(doc: dict, puzzles_by_id: dict[str, dict] | None = None
             if counts.get(code)
         }
     doc["version"] = 6
-    doc["updatedAt"] = "2026-10-25T03:40:00Z"
+    doc["updatedAt"] = "2026-10-26T19:06:00Z"
     doc["source"] = doc.get("source") or "seed"
     doc["note"] = (
         "Seeded distributions until live aggregates exist. Stable per puzzle id. "

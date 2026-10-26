@@ -104,12 +104,12 @@ def check(doc: dict) -> list[str]:
         if row.get("type") == "top5":
             if not 8.5 <= avg_tries <= 13:
                 errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
-            if not 48 <= acc <= 78:
+            if not 8 <= acc <= 40:
                 errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
         else:
             if not 2.8 <= avg_tries <= 3.6:
                 errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-            if not 55 <= acc <= 72:
+            if not 50 <= acc <= 72:
                 errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
     return errors
 
