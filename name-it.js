@@ -90,6 +90,8 @@
     if (fmt === "hdi") return roundTo(n, 3).toFixed(3);
     if (fmt === "millions") return roundTo(n / 1e6, 1).toFixed(1) + " million";
     if (fmt === "years") return roundTo(n, 1).toFixed(1) + " years";
+    if (fmt === "years2") return roundTo(n, 2).toFixed(2) + " years";
+    if (fmt === "rate") return roundTo(n, 1).toFixed(1) + " per 100k";
     if (fmt === "percent") return roundTo(n, 1).toFixed(1) + "%";
     return String(n);
   }
@@ -105,6 +107,69 @@
   function compare(op, value, threshold) {
     if (op === "gte") return value >= threshold;
     return value > threshold;
+  }
+
+  /* Exclusive range. lowIso/highIso are the two anchor countries. A value
+     equal to either bound is out, and so are the anchors themselves. */
+  function anchorPair(puzzle) {
+    const rule = puzzle.statRule || {};
+    if (rule.op !== "between") return null;
+    const values = puzzle.values || {};
+    const lowIso = rule.lowIso;
+    const highIso = rule.highIso;
+    const a = Number(values[lowIso]);
+    const b = Number(values[highIso]);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a === b) return null;
+    if (a < b) return { low: a, high: b, lowIso, highIso };
+    return { low: b, high: a, lowIso: highIso, highIso: lowIso };
+  }
+
+  function statPasses(puzzle, iso, value) {
+    const rule = puzzle.statRule || {};
+    if ((rule.op || "gt") === "between") {
+      const bounds = anchorPair(puzzle);
+      if (!bounds || !Number.isFinite(value)) return false;
+      if (iso === bounds.lowIso || iso === bounds.highIso) return false;
+      return value > bounds.low && value < bounds.high;
+    }
+    return compare(rule.op || "gt", value, Number(puzzle.threshold));
+  }
+
+  function passes(puzzle, iso) {
+    const c = byIso(iso);
+    if (!c || !letterPass(c.name, puzzle.letter)) return false;
+    if (!hasValue(puzzle, iso)) return false;
+    return statPasses(puzzle, iso, Number(puzzle.values[iso]));
+  }
+
+  function boundName(puzzle, iso) {
+    const listed = (puzzle.countries || []).find(c => c.iso3 === iso);
+    return (listed && listed.name) || (byIso(iso) || {}).name || iso;
+  }
+
+  function poss(name) {
+    const n = String(name || "");
+    return /s$/i.test(n) ? n + "'" : n + "'s";
+  }
+
+  function betweenPhrase(puzzle, value) {
+    const rule = puzzle.statRule || {};
+    const bounds = anchorPair(puzzle);
+    const noun = rule.noun || "value";
+    if (!bounds) return noun + " is outside the range";
+    const lowName = poss(boundName(puzzle, bounds.lowIso));
+    const highName = poss(boundName(puzzle, bounds.highIso));
+    if (value < bounds.low) return `${noun} is below ${lowName}`;
+    if (value > bounds.high) return `${noun} is above ${highName}`;
+    return `${noun} is not strictly between ${lowName} and ${highName}`;
+  }
+
+  function boundsText(puzzle) {
+    const bounds = anchorPair(puzzle);
+    if (!bounds) return puzzle.thresholdLabel || "";
+    const lowName = boundName(puzzle, bounds.lowIso);
+    const highName = boundName(puzzle, bounds.highIso);
+    return `Between ${lowName} (${formatValue(puzzle, bounds.low)}) and ${highName} (${formatValue(puzzle, bounds.high)}), not including either.`;
   }
 
   function hasValue(puzzle, iso) {
@@ -162,16 +227,26 @@
     const letterOk = letterPass(c.name, puzzle.letter);
     const known = hasValue(puzzle, c.iso3);
     const value = known ? Number(puzzle.values[c.iso3]) : null;
-    const statOk = known && compare((puzzle.statRule && puzzle.statRule.op) || "gt", value, Number(puzzle.threshold));
+    const statOk = known && statPasses(puzzle, c.iso3, value);
     const head = `${c.emoji ? c.emoji + " " : ""}${c.name}`;
     const rule = puzzle.statRule || {};
+    const between = rule.op === "between";
+    const letterFail = puzzle.letterFail || "doesn't match the letter rule";
     let line;
-    if (letterOk && statOk) line = `${head}: ${statClause(puzzle, value, true)}`;
+    if (between) {
+      const who = `${c.emoji ? c.emoji + " " : ""}${poss(c.name)}`;
+      if (letterOk && statOk) line = `${head}: ${formatValue(puzzle, value)}, between ${poss(boundName(puzzle, anchorPair(puzzle).lowIso))} and ${poss(boundName(puzzle, anchorPair(puzzle).highIso))}`;
+      else if (letterOk && !known) line = `${head}: ${rule.missing || "no figure in this dataset"}`;
+      else if (letterOk && !statOk) line = `${who} ${betweenPhrase(puzzle, value)}`;
+      else if (!letterOk && statOk) line = `${head}: ${letterFail}`;
+      else if (!letterOk && !known) line = `${head}: ${rule.missing || "no figure in this dataset"}, and ${letterFail}`;
+      else line = `${who} ${betweenPhrase(puzzle, value)}, and ${letterFail}`;
+    } else if (letterOk && statOk) line = `${head}: ${statClause(puzzle, value, true)}`;
     else if (letterOk && !known) line = `${head}: ${rule.missing || "no figure in this dataset"}`;
     else if (letterOk && !statOk) line = `${head}: ${statClause(puzzle, value, false)}`;
-    else if (!letterOk && statOk) line = `${head}: ${puzzle.letterFail || "doesn't match the letter rule"}`;
-    else if (!letterOk && !known) line = `${head}: ${rule.missing || "no figure in this dataset"}, and ${puzzle.letterFail || "doesn't match the letter rule"}`;
-    else line = `${head}: ${statClause(puzzle, value, false)}, and ${puzzle.letterFail || "doesn't match the letter rule"}`;
+    else if (!letterOk && statOk) line = `${head}: ${letterFail}`;
+    else if (!letterOk && !known) line = `${head}: ${rule.missing || "no figure in this dataset"}, and ${letterFail}`;
+    else line = `${head}: ${statClause(puzzle, value, false)}, and ${letterFail}`;
     return {
       status: letterOk && statOk ? "correct" : "wrong",
       counts: true,
@@ -214,7 +289,8 @@
       const mine = yours && row.name === yours;
       return `<button type="button" class="name-chip${mine ? " is-yours" : ""}" data-name="${esc(row.name)}" tabindex="-1"><span class="name-flag">${esc(row.emoji)}</span><span class="name-nm">${esc(row.name)}</span>${shown ? `<span class="name-val">${esc(shown)}</span>` : ""}<span class="name-pct" hidden></span><span class="name-rare" hidden>Rare pick!</span></button>`;
     }).join("");
-    const rule = puzzle.thresholdLabel ? `<p class="name-threshold">${esc(puzzle.thresholdLabel)}</p>` : "";
+    const label = boundsText(puzzle);
+    const rule = label ? `<p class="name-threshold">${esc(label)}</p>` : "";
     return `${rule}<div class="name-answers" id="nameAnswers">${chips}</div><p class="name-rarity" id="nameRarity" hidden></p>`;
   }
 
@@ -479,6 +555,7 @@
 
   return {
     MAX_TRIES, esc, normQuery, fold, letterPass, formatValue, resolveCountry, suggestions, judge,
+    anchorPair, statPasses, passes, boundsText,
     answerRows, revealHtml, pickShare, isRare, paintRarity, seedSnapshot, practiceFromSeed, mount, catalog,
   };
 });

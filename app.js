@@ -1381,6 +1381,8 @@ const SOURCE_BRAND = [
   [/ef epi|ef education/i, "EF EPI"],
   [/iihs|highway safety/i, "IIHS"],
   [/undp|human development/i, "UNDP"],
+  [/world population prospects/i, "UN WPP"],
+  [/economist intelligence|\beiu\b/i, "EIU"],
 ];
 function sourceBrand(p) {
   const raw = String((p && p.source) || "").replace(/\s+/g, " ").trim();
@@ -1523,7 +1525,11 @@ function shuffledOrder(p, seed) {
 //   { type:"rank", attempts:[{order:[...], marks:["good"|"bad",...]}], cur:[...], pinned:[itemIdx...], done, solved, tries }
 const gLabel = it => !(it.gRank && it.gTotal) ? "" : it.gScope ? `#${it.gRank} of ${it.gTotal} ${it.gScope}` : `World #${it.gRank} of ${it.gTotal}`;
 const gTag = it => it.gRank && it.gTotal ? `<span class="grank" title="Rank among all ${it.gTotal} ${esc(it.gScope || "countries")} with data in the source dataset${it.year ? " (" + esc(it.year) + ")" : ""}">🌍 ${esc(gLabel(it))}</span>` : "";
-const decOf = p => Math.min(2, Math.max(0, ...p.items.map(it => ((String(it.value).split(".")[1]) || "").length)));
+const decOf = p => {
+  // A puzzle can ask for a third decimal (HDI is published to 0.001). Other puzzles stay at two.
+  if (p && Number.isInteger(p.decimals)) return Math.min(6, Math.max(0, p.decimals));
+  return Math.min(2, Math.max(0, ...p.items.map(it => ((String(it.value).split(".")[1]) || "").length)));
+};
 const isYearPuzzle = p => !p.unit && p.items.every(it => Number.isInteger(it.value) && it.value >= 1000 && it.value <= 2100);   // e.g. space-first
 const fmtP = (p, v) => v.toLocaleString("en-US", { minimumFractionDigits: decOf(p), maximumFractionDigits: decOf(p), useGrouping: !isYearPuzzle(p) });
 // Percent display: unit '%' / units starting with '%' (% of GDP, % Trump, …) / valueFormat:'percent'.

@@ -39,11 +39,11 @@ test("every former Top 5 daily is a Rank it with 5 or 6 distinct values", () => 
   }
 });
 
-test("Top 1 dailies sit at the end of the queue with a real #1", () => {
+test("Top 1 dailies keep their queue slots with a real #1", () => {
   const orders = TOP1.map(id => puzzles.find(p => p.id === id).order);
-  const maxOther = Math.max(...puzzles.filter(p => !TOP1.includes(p.id)).map(p => p.order));
-  assert.ok(Math.min(...orders) > maxOther);
   assert.deepEqual(orders, [172, 173, 174, 175, 176, 177]);
+  const between = puzzles.filter(p => !TOP1.includes(p.id) && p.order >= 172 && p.order <= 177);
+  assert.deepEqual(between.map(p => p.id), []);
   for (const id of TOP1) {
     const p = puzzles.find(x => x.id === id);
     assert.equal(p.type, "top1");
