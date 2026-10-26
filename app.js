@@ -2087,11 +2087,9 @@ function pfCycle(items, n, rand) {
 }
 function pfCast(n, seed) {
   const rand = rng(String(seed || "ranki"));
-  const back = pfBalanced(n, rand);
-  const front = pfBalanced(n, rand);
-  const genders = [];
-  for (let i = 0; i < n; i++) genders.push(back[i], front[i]);
-  const count = genders.length;
+  const count = Math.max(1, Math.round(Number(n) || 1));
+  // One look per platform. A second "front" cast used to stand on the same step.
+  const genders = pfBalanced(count, rand);
   const skins = pfCycle(PF_SKINS, count, rand);
   const shirts = pfCycle(PF_SHIRTS, count, rand);
   const pants = pfCycle(PF_PANTS, count, rand);
@@ -2308,8 +2306,8 @@ function renderWinnerPlatforms(castSeed, better) {
     const col = document.createElement("div");
     col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
-    // One figure per step. The centre step's own figure is You!; nothing else stands above it.
-    const fig = PlayerFigure(yours, looks[i * 2]);
+    // One figure per step. The centre step's own figure is You!.
+    const fig = PlayerFigure(yours, looks[i]);
     fig.style.setProperty("--land-delay", (0.06 + Math.abs(i - center) * 0.05).toFixed(2) + "s");
     if (yours) {
       fig.classList.add("celebrate");
@@ -2354,23 +2352,14 @@ function renderPlatforms(percentile, castSeed, opts) {
     col.className = "platform" + (yours ? " is-you" : "");
     col.style.setProperty("--step", String(i));
     if (yours && topBand - i === 1) col.classList.add("pct-stack");
-    // Equal percentile bands hold about the same number of players, so the
-    // crowd on each step is the same size. The player's step keeps its own
-    // regular figure and styles that one as You!. The second figure, the one
-    // that stands above the regular crowd, is not drawn there.
-    for (let f = 0; f < 2; f++) {
-      const look = looks[lookI++];
-      if (yours && f === 1) continue;
-      const you = yours;
-      const fig = PlayerFigure(you, look);
-      fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + " + (0.08 + f * 0.11).toFixed(2) + "s)");
-      if (!you && f === 1) fig.classList.add("extra");
-      if (you) {
-        fig.classList.add(soft ? "celebrate-soft" : "celebrate");
-        if (!soft) pfSparks(fig);
-      }
-      col.appendChild(fig);
+    // Every step gets exactly one figure. The player's own figure is You!.
+    const fig = PlayerFigure(yours, looks[lookI++]);
+    fig.style.setProperty("--land-delay", "calc(var(--step) * 35ms + .08s)");
+    if (yours) {
+      fig.classList.add(soft ? "celebrate-soft" : "celebrate");
+      if (!soft) pfSparks(fig);
     }
+    col.appendChild(fig);
     const step = document.createElement("i");
     step.className = "platform-step";
     col.appendChild(step);
