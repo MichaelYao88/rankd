@@ -746,18 +746,25 @@ function parseTables(t) {
 
 let custom = load(LS.custom, null);
 const KNOWN = p => p && (p.type === "rank" || p.type === "top5" || (p.type === "match" && p.people && p.people.length >= 4 && p.people.length <= 7) || (p.type === "tier" && p.tiers && p.items && p.tiers.length >= 2 && p.items.length >= 3));   // drops pre-v7 "guess" puzzles from old uploads
-// Name it lives in name-puzzles.js so the rank sheet stays a rank sheet. Append after the
-// built-in queue; an uploaded spreadsheet is left as uploaded.
+// Name it lives in name-puzzles.js so the rank sheet stays a rank sheet. Each one takes the
+// earliest free daily order, then the list is sorted by that order, so a later rank puzzle
+// can sit past those days. An uploaded spreadsheet is left as uploaded.
 function attachNamePuzzles(list) {
   const extra = window.RANKD_NAME_PUZZLES || [];
   const base = Array.isArray(list) ? list : [];
   if (!extra.length) return base;
   const ids = new Set(base.map(p => p && p.id));
   const fresh = extra.filter(p => p && p.id && !ids.has(p.id)).map(p => Object.assign({}, p));
-  let max = 0;
-  base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000 && o > max) max = o; });
-  fresh.forEach((p, i) => { p.order = max + 1 + i; });
-  return base.concat(fresh);
+  const taken = new Set();
+  base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000) taken.add(o); });
+  let next = 1;
+  fresh.forEach(p => {
+    while (taken.has(next)) next += 1;
+    p.order = next;
+    taken.add(next);
+    next += 1;
+  });
+  return base.concat(fresh).sort((a, b) => (Math.round(a.order) || 0) - (Math.round(b.order) || 0));
 }
 let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.filter(KNOWN) : attachNamePuzzles(window.RANKD_PUZZLES || []);
 
