@@ -53,7 +53,7 @@ const CONFIG = {
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
-  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
+  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1", challengeName: "rankd.challengeName.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
@@ -62,6 +62,8 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
 //                            including today. Kept as stored when the ad step changes; never rescaled.
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
+//   rankd.challengeName.v1 : optional display name for challenge links (max 16). Stays on this device and in the
+//                            shared URL. Not sent to Supabase or PostHog. Not remapped in preview.
 //   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
@@ -918,15 +920,21 @@ if (window.RANKD_STUDIO) {
   };
   return;
 }
-function goPractice(seed) {
+function goPractice(seed, opts) {
   if (!Practice.ok()) return goToday();
   if (seed == null) seed = 1 + Math.floor(Math.random() * 2e9);
+  const token = opts && opts.challengeToken;
+  const RC = window.RankdChallenge;
+  // A valid challenge opens that seed directly. Other practice ads (the every-5th long ad) stay as they are.
+  const direct = !!(token && RC && RC.matches(RC.decode(token), { k: "r", id: String(seed) }));
   const start = () => {
     const p = Practice.generate(seed); if (!p) return goToday();
-    state.mode = "practice"; openPuzzle(p);
+    state.mode = "practice";
+    bindChallenge(direct ? token : "", { k: "r", id: String(p.seed) });
+    openPuzzle(p);
   };
-  // Free: long ad every 5th Practice game (Premium / streamer skip)
-  if (!isPremium() && Ads.allowed()) {
+  // Free: long ad every 5th Practice game (Premium / streamer skip). Challenge links skip this gate.
+  if (!direct && !isPremium() && Ads.allowed()) {
     const n = bumpPracticeGame();
     if (n > 0 && n % 5 === 0) return showLongAd({ reason: "practice", onDone: start });
   }
@@ -934,7 +942,8 @@ function goPractice(seed) {
 }
 
 // ================================================================ state
-const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null };
+const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null,
+  challenge: null, challengeToken: "", challengeOpenedFresh: false };
 const puzzleForDay = n => PUZZLES[((n % PUZZLES.length) + PUZZLES.length) % PUZZLES.length];
 const resultKey = () => state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
@@ -942,7 +951,34 @@ const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { 
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
 const isToday = () => state.mode === "daily";
-function linkHash() { return state.mode === "preview" ? "" : state.mode === "all" ? `#p=${encodeURIComponent(state.puzzle.id)}` : state.mode === "practice" ? `#r=${state.puzzle.seed}` : `#d=${state.dateKey}`; }
+function puzzleOnlyHash() {
+  if (!state.puzzle || state.mode === "preview") return "";
+  if (state.mode === "all") return `#p=${encodeURIComponent(state.puzzle.id)}`;
+  if (state.mode === "practice") return `#r=${encodeURIComponent(state.puzzle.seed)}`;
+  return `#d=${state.dateKey}`;
+}
+function linkHash() {
+  const base = puzzleOnlyHash();
+  if (!base || !state.challengeToken || !state.challenge) return base;
+  const RC = window.RankdChallenge;
+  if (!RC || !RC.matches(state.challenge, puzzleChallengeRef())) return base;
+  return base + "&c=" + state.challengeToken;
+}
+function puzzleChallengeRef() {
+  if (!state.puzzle) return null;
+  if (state.mode === "practice") return { k: "r", id: String(state.puzzle.seed) };
+  if (state.mode === "all") return { k: "p", id: state.puzzle.id };
+  if (state.mode === "daily" || state.mode === "archive") return { k: "d", id: state.dateKey };
+  return null;
+}
+function bindChallenge(token, ref) {
+  const RC = window.RankdChallenge;
+  const ch = token && RC ? RC.decode(token) : null;
+  const ok = !!(ch && RC.matches(ch, ref));
+  state.challengeOpenedFresh = ok && token !== state.challengeToken;
+  state.challenge = ok ? ch : null;
+  state.challengeToken = ok ? token : "";
+}
 function setHash(h) { try { history.replaceState(null, "", h || location.pathname + location.search); } catch { location.hash = h; } }
 
 // ================================================================ card art (v5)
@@ -1124,7 +1160,13 @@ function openPuzzle(p) {
   setHash(linkHash());
   const saved = getResult();
   if (freshRound(saved)) track("game_started", { mode: state.mode, puzzle_type: p.type });
+  const h2h = $("#h2h"); if (h2h) { h2h.classList.add("hidden"); h2h.replaceChildren(); }
   p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop5(saved);
+  if (state.challengeOpenedFresh) {
+    state.challengeOpenedFresh = false;
+    track("challenge_link_opened", { mode: state.mode, puzzle_type: p.type });
+  }
+  renderChallengeBanner();
   window.scrollTo({ top: 0 }); syncPlaying();
 }
 
@@ -1938,6 +1980,7 @@ function showResult(res, opts) {
   const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderYouVs(p, null, res);
+  renderHeadToHead(res);
   renderCommunity(p, res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
@@ -2589,11 +2632,167 @@ function maybeShowCrossPromo() {
   el.classList.remove("hidden");
 }
 
+// ================================================================ challenge a friend
+// The hash still names the puzzle. &c= is a base64url of tries, DNF, accuracy and square
+// rows only (challenge.js). The banner shows name + tries + accuracy. Squares wait until
+// the friend finishes. A bad token is ignored. Archive unlock storage is not changed.
+function markCode(m) {
+  if (m === "good") return "G";
+  if (m === "near") return "Y";
+  if (m === "miss") return "M";
+  return "R";
+}
+function gridFromResult(p, r) {
+  if (!p || !r) return [];
+  if (p.type === "top5") {
+    const marks = r.marks && r.marks.length ? r.marks : (r.guesses || []).map(k => {
+      try { return inTop(p, findCountry(p, k)) ? "good" : "miss"; } catch (e) { return "miss"; }
+    });
+    const row = marks.map(markCode).join("");
+    return row ? [row] : [];
+  }
+  return (r.attempts || []).map(a => (a.marks || []).map(markCode).join("")).filter(Boolean);
+}
+function scoreForChallenge(p, r) {
+  if (!p || !r) return null;
+  if (p.type === "rank") r = normRank(r) || r;
+  if (!isDone(r)) return null;
+  const card = resultCard(p, r);
+  if (!card || !Number.isInteger(card.accuracy)) return null;
+  const tries = Number(r.tries);
+  if (!Number.isInteger(tries)) return null;
+  const grid = gridFromResult(p, r);
+  if (!grid.length) return null;
+  const dnf = p.type === "top5" ? !r.won : !r.solved;
+  return { tries, dnf, acc: card.accuracy, grid };
+}
+function renderChallengeBanner() {
+  const el = $("#challengeBanner");
+  if (!el) return;
+  const RC = window.RankdChallenge;
+  const ch = state.challenge;
+  const onPlay = !$("#playView").classList.contains("hidden");
+  if (!RC || !ch || !onPlay || !RC.matches(ch, puzzleChallengeRef())) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.textContent = RC.bannerLine(ch);
+  el.classList.remove("hidden");
+}
+function h2hSquares(grid) {
+  const RC = window.RankdChallenge;
+  const wrap = document.createElement("div");
+  wrap.className = "h2h-squares";
+  wrap.textContent = RC ? RC.gridText(grid) : "";
+  return wrap;
+}
+function h2hColumn(label, score) {
+  const col = document.createElement("div");
+  col.className = "h2h-col";
+  const name = document.createElement("b");
+  name.textContent = label;
+  const meta = document.createElement("div");
+  meta.className = "h2h-meta";
+  const word = score.tries === 1 ? "try" : "tries";
+  meta.textContent = (score.dnf ? "DNF · " + score.tries + " " + word : score.tries + " " + word) + " · accuracy " + score.acc;
+  col.append(name, meta, h2hSquares(score.grid));
+  return col;
+}
+function renderHeadToHead(res) {
+  const el = $("#h2h");
+  if (!el) return;
+  const RC = window.RankdChallenge;
+  el.replaceChildren();
+  const ch = state.challenge;
+  const mine = scoreForChallenge(state.puzzle, res);
+  if (!RC || !ch || !mine || !RC.matches(ch, puzzleChallengeRef())) {
+    el.classList.add("hidden");
+    return;
+  }
+  const line = document.createElement("p");
+  line.className = "h2h-winner";
+  line.textContent = RC.verdictLine(RC.winner(mine, ch));
+  const vs = document.createElement("p");
+  vs.className = "h2h-vs";
+  vs.textContent = "You vs " + RC.displayName(ch);
+  const grid = document.createElement("div");
+  grid.className = "h2h-grid";
+  grid.append(h2hColumn("You", mine), h2hColumn(RC.displayName(ch), ch));
+  el.append(line, vs, grid);
+  el.classList.remove("hidden");
+}
+function storedChallengeName() {
+  const v = load(LS.challengeName, null);
+  if (!v || typeof v !== "object" || !Object.prototype.hasOwnProperty.call(v, "name")) return null;
+  return window.RankdChallenge ? RankdChallenge.sanitizeName(v.name) : "";
+}
+function rememberChallengeName(name) {
+  const RC = window.RankdChallenge;
+  save(LS.challengeName, { name: RC ? RC.sanitizeName(name) : "", at: Date.now() });
+}
+function challengeNameForShare() {
+  const saved = storedChallengeName();
+  if (saved !== null) return saved;
+  let entered = null;
+  try { entered = window.prompt("Your name on the challenge link? Optional, up to 16 characters.", ""); }
+  catch (e) { entered = null; }
+  if (entered == null) { rememberChallengeName(""); return ""; }
+  const RC = window.RankdChallenge;
+  const name = RC ? RC.sanitizeName(entered) : "";
+  rememberChallengeName(name);
+  return name;
+}
+async function shareOrCopyChallenge(text, url) {
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title: CONFIG.brand, text: text, url: url });
+      return "shared";
+    } catch (e) {
+      if (e && e.name === "AbortError") return "abort";
+    }
+  }
+  const payload = text;
+  try {
+    await navigator.clipboard.writeText(payload);
+    toast("Challenge link copied!");
+    return "copied";
+  } catch (e) {
+    const ta = document.createElement("textarea");
+    ta.value = payload;
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); toast("Challenge link copied!"); }
+    catch (err) { window.prompt("Copy this:", payload); }
+    ta.remove();
+    return "copied";
+  }
+}
+async function shareChallengeFriend() {
+  const RC = window.RankdChallenge;
+  const p = state.puzzle;
+  if (!RC || !p) return;
+  let r = getResult();
+  if (p.type === "rank") r = normRank(r);
+  const score = scoreForChallenge(p, r);
+  if (!score) { toast("Finish the puzzle first"); return; }
+  const name = challengeNameForShare();
+  const ref = puzzleChallengeRef();
+  if (!ref) return;
+  const token = RC.encode({ k: ref.k, id: String(ref.id), tries: score.tries, dnf: score.dnf, acc: score.acc, grid: score.grid, name: name });
+  if (!token) { toast("Couldn't make a challenge link"); return; }
+  const url = shareUrl() + "&c=" + token;
+  const text = RC.shareLine(name, score) + "\n" + url;
+  const how = await shareOrCopyChallenge(text, url);
+  if (how === "shared" || how === "copied") track("challenge_link_created", { mode: state.mode, puzzle_type: p.type });
+}
+
 // ================================================================ sharing
 // Share links always name this puzzle. Daily and archive use #d=YYYY-MM-DD, practice uses
 // #r=<seed>, the all-puzzles list uses #p=<id>. Loading Zone preview uses ?preview=YYYY-MM-DD:
 // a future #d= link is refused and would open today. The schedule page (loadingzone.html)
-// is not a puzzle URL, so shares point at the game.
+// is not a puzzle URL, so shares point at the game. Challenge links add &c= and are separate
+// from these spoiler-free / result shares.
 function gameShareBase() {
   const http = location.protocol.startsWith("http");
   const origin = http ? location.origin : "https://ranki.gg";
@@ -2672,7 +2871,7 @@ function syncFabPad() {
 function parkFab() {
   const f = $("#fab"); if (!f) return;
   if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
-  const targets = [$("#shareChallengeBtn"), $("#shareChallengeTop"), document.querySelector("#result .share-row"), $("#youVs")];
+  const targets = [$("#shareChallengeBtn"), $("#shareChallengeTop"), $("#challengeFriendBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs")];
   document.querySelectorAll("#youVs .platform-pct").forEach(el => targets.push(el));
   const hit = targets.some(el => boxesOverlap(f, el));
   f.classList.toggle("fab-clear", hit);
@@ -2927,25 +3126,42 @@ function showView(v) {
   syncTopBanner();
   syncPlaying();
 }
-function goToday() { state.mode = "daily"; state.dateKey = todayKey(); openPuzzle(puzzleForDay(dayNumber(state.dateKey))); }
-function goDate(key) {
+function goToday(opts) {
+  state.mode = "daily"; state.dateKey = todayKey();
+  bindChallenge(opts && opts.challengeToken, { k: "d", id: state.dateKey });
+  openPuzzle(puzzleForDay(dayNumber(state.dateKey)));
+}
+function goDate(key, opts) {
   const today = todayKey();
+  const token = opts && opts.challengeToken;
   if (!validKey(key) || dayNumber(key) < 0) { toast("That puzzle doesn't exist"); return goToday(); }
   if (utc(key) > utc(today)) { toast("That puzzle isn't out yet 👀"); return goToday(); }   // never expose future dailies
-  if (key === today) return goToday();
-  if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); return; }
-  // Free: watch a long ad to unlock the next adUnlockDays, then retry
+  if (key === today) return goToday(opts);
+  const RC = window.RankdChallenge;
+  const decoded = token && RC ? RC.decode(token) : null;
+  // A challenge for this day is playable even outside the free window. It does not widen the saved unlock.
+  const viaChallenge = !!(decoded && RC.bypassArchiveAd(decoded, key));
+  if (archiveFreeUnlocked(key) || viaChallenge) {
+    state.mode = "archive"; state.dateKey = key;
+    bindChallenge(token, { k: "d", id: key });
+    openPuzzle(puzzleForDay(dayNumber(key)));
+    return;
+  }
+  // Free: watch a long ad to unlock the next adUnlockDays, then retry. Malformed challenges fall through to here.
   unlockNextArchiveDays(() => {
     goArchive();
-    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key))); }
+    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; bindChallenge("", { k: "d", id: key }); openPuzzle(puzzleForDay(dayNumber(key))); }
     else toast(archiveUnlockToast());
   });
 }
-function goAll(idx) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
+function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
   if (!CONFIG.SHOW_ALL_PUZZLES) return goToday();
   state.mode = "all";
   if (idx == null) idx = (dayNumber(todayKey()) + 1) % PUZZLES.length;
-  state.practiceIdx = ((idx % PUZZLES.length) + PUZZLES.length) % PUZZLES.length; openPuzzle(PUZZLES[state.practiceIdx]);
+  state.practiceIdx = ((idx % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
+  const p = PUZZLES[state.practiceIdx];
+  bindChallenge(opts && opts.challengeToken, { k: "p", id: p.id });
+  openPuzzle(p);
 }
 function goPreview(key) {   // v12 Studio preview of any scheduled day, past or future (sandboxed storage)
   if (!validKey(key) || dayNumber(key) < 0) { toast("That day isn't scheduled"); return goToday(); }
@@ -2959,10 +3175,13 @@ function longAdSeconds() {
   return CONFIG.longAdSeconds || 20;
 }
 /** Placeholder long-ad / rewarded unlock. Swap #longAdFill for a real unit later. */
+let closeLongAd = null;
+function dismissLongAd() { if (closeLongAd) closeLongAd(); }
 function showLongAd({ reason, onDone, onCancel } = {}) {
   if (isPremium() || !Ads.allowed()) { onDone && onDone({ skipped: true, reason: "premium-or-streamer" }); return; }
   const ov = $("#longAd"), btn = $("#longAdContinue"), timer = $("#longAdTimer"), note = $("#longAdNote"), copy = $("#longAdCopy");
   if (!ov || !btn) { onDone && onDone({ skipped: true, reason: "no-ui" }); return; }
+  if (closeLongAd) closeLongAd();
   let s = longAdSeconds(); state.busy = true;
   note.textContent = reason === "practice" ? "Practice" : "Archive unlock";
   copy.textContent = reason === "practice"
@@ -2979,8 +3198,11 @@ function showLongAd({ reason, onDone, onCancel } = {}) {
   let closed = false;
   const finish = (ok) => {
     if (closed) return; closed = true; clearInterval(tick); ov.classList.add("hidden"); state.busy = false;
+    if (closeLongAd === dismiss) closeLongAd = null;
     if (ok) onDone && onDone({ ok: true, reason }); else onCancel && onCancel();
   };
+  const dismiss = () => finish(false);
+  closeLongAd = dismiss;
   btn.onclick = () => { if (!btn.disabled) finish(true); };
   // Hook for a real rewarded unit: window.RankdLongAd.onCreative?.(fill, { done: () => finish(true) })
   try { window.RankdLongAd && window.RankdLongAd.onCreative && window.RankdLongAd.onCreative($("#longAdFill"), { done: () => finish(true) }); } catch (e) {}
@@ -3124,7 +3346,7 @@ function settingsModal() {
     <button id="mLoad">📄 Load spreadsheet<small>Your edited puzzles.xlsx, or one or more of the CSV sheets</small></button>
     <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Guess the top 5 sheets: see puzzles.xlsx)</small></button>
     ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>
-    <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history and settings on this device</small></button>
+    <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history, challenge name and settings on this device</small></button>
     <p style="font-size:12px;color:var(--muted)">What Rankd stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
   $$(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
     settings[sg.dataset.set] = b.dataset.v; saveSettings(); sg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
@@ -3136,7 +3358,7 @@ function settingsModal() {
 }
 function clearDataModal() {   // v11.1: confirm step for "Clear all data"
   openModal(`<div id="clearConfirm" role="alertdialog" aria-labelledby="clearTitle" aria-describedby="clearDesc"><h2 id="clearTitle">Clear all data?</h2>
-    <p id="clearDesc">This will erase your <b>stats, streaks, puzzle progress, practice history and settings</b> on this device. It can't be undone.</p>
+    <p id="clearDesc">This will erase your <b>stats, streaks, puzzle progress, practice history, challenge name and settings</b> on this device. It can't be undone.</p>
     <div class="confirm-row"><button class="pill-btn outline" id="clearCancel">Cancel</button><button class="pill-btn danger" id="clearConfirmBtn">Clear</button></div></div>`);
   $("#clearCancel").onclick = settingsModal; $("#clearCancel").focus();
   $("#clearConfirmBtn").onclick = () => { RankdData.clear(); location.replace(location.pathname); };   // drop ?stream= / #hash so nothing is re-written
@@ -3233,6 +3455,7 @@ if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
+if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 $("#menuBtn").onclick = menuModal;
 $("#guessInput").addEventListener("focus", () => { setTimeout(fitLayout, 60); setTimeout(fitLayout, 350); });
 $("#guessInput").addEventListener("blur", () => setTimeout(fitLayout, 60)); $("#modalClose").onclick = closeModal;
@@ -3270,12 +3493,19 @@ $("#guessForm").onsubmit = e => { e.preventDefault(); onGuessSubmit(); };
 applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
+  dismissLongAd();
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
-  const h = location.hash, d = h.match(/d=(\d{4}-\d{2}-\d{2})/), p = h.match(/p=([^&]+)/), rs = h.match(/r=(\d+)/);
-  if (h.startsWith("#archive")) return goArchive();
-  if (d) return goDate(d[1]);
-  if (rs && Practice.ok()) return goPractice(+rs[1]);
-  if (p && CONFIG.SHOW_ALL_PUZZLES) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i); }
+  const h = location.hash;
+  const RC = window.RankdChallenge;
+  const token = (RC ? RC.tokenFromHash(h) : "") || (RC ? RC.tokenFromHash(location.search) : "");
+  const d = h.match(/(?:^#|[?&#])d=(\d{4}-\d{2}-\d{2})/);
+  const p = h.match(/(?:^#|[?&#])p=([^&]+)/);
+  const rs = h.match(/(?:^#|[?&#])r=(\d+)/);
+  const opts = token ? { challengeToken: token } : null;
+  if (/^#archive(?:$|&)/.test(h)) return goArchive();
+  if (d) return goDate(d[1], opts);
+  if (rs && Practice.ok()) return goPractice(+rs[1], opts);
+  if (p && CONFIG.SHOW_ALL_PUZZLES) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i, opts); }
   goToday();
 }
 window.addEventListener("hashchange", () => { if (!PREVIEW && (location.hash !== linkHash() || $("#playView").classList.contains("hidden"))) route(); });

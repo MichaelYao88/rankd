@@ -75,6 +75,8 @@
 <main class="wrap">
   <!-- ======== PLAY VIEW ======== -->
   <section id="playView">
+    <!-- Challenge links: name, tries, and accuracy only. Squares stay hidden until the friend finishes. -->
+    <div class="challenge-banner hidden" id="challengeBanner" role="status"></div>
     <!-- The whole game lives inside one bold card -->
     <article class="hero" id="hero">
       <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="Ranki.gg home">Ranki.gg</a><span class="hero-kind" id="heroKind">Rank it</span><span class="hero-right"><span id="heroNo">No. 001</span><button class="hero-new hidden" id="newRandomTop" aria-label="New random puzzle" title="New random puzzle">🎲 New</button></span></div>
@@ -163,6 +165,7 @@
           <div class="score-title" id="scoreTitle"></div>
         </div>
       </div>
+      <div class="h2h hidden" id="h2h" aria-live="polite"></div>
       <div class="answer hidden" id="answerBox"></div>
       <div class="fact" id="fact"></div>
       <p class="support hidden" id="support"></p>
@@ -177,6 +180,7 @@
       <div class="share-row">
         <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
         <button class="pill-btn" id="shareChallengeBtn">Share today's puzzle</button>
+        <button class="pill-btn challenge-friend" id="challengeFriendBtn" type="button">Challenge a friend</button>
       </div>
       <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
       <aside class="crosspromo hidden" id="crossPromo" aria-label="Like Ranki?">
@@ -283,6 +287,7 @@
 <script src="practice-data.js"></script>
 <script src="community-seed.js"></script>
 <script src="puzzle-search.js"></script>
+<script src="challenge.js"></script>
 <script src="app.js"></script>
 
 </body>
