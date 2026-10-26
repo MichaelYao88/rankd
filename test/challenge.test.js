@@ -97,6 +97,13 @@ test("share text names the score and leaves the squares in the token", () => {
   assert.match(RC.shareLine("", { tries: 5, acc: 40, dnf: true }), /didn't finish/);
 });
 
+test("top 5 challenge grids keep one row of marks per lock-in", () => {
+  const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  const fn = app.slice(app.indexOf("function gridFromResult"), app.indexOf("function scoreForChallenge"));
+  assert.match(fn, /r\.attempts/);
+  assert.ok(fn.indexOf("r.attempts") < fn.indexOf("r.marks"), "per-try marks come before the last-try fallback");
+});
+
 test("the page wires the button, the events, and the archive bypass", () => {
   const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
