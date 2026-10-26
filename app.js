@@ -954,7 +954,7 @@ const isToday = () => state.mode === "daily";
 function puzzleOnlyHash() {
   if (!state.puzzle || state.mode === "preview") return "";
   if (state.mode === "all") return `#p=${encodeURIComponent(state.puzzle.id)}`;
-  if (state.mode === "practice") return `#r=${encodeURIComponent(state.puzzle.seed)}`;
+  if (state.mode === "practice") return `#r=${state.puzzle.seed}`;
   return `#d=${state.dateKey}`;
 }
 function linkHash() {
