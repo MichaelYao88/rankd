@@ -2874,6 +2874,7 @@ function syncTopBanner() {
   if (phase === "practice" || phase === "archive-on") AdSense.banner();
 }
 function showView(v) {
+  document.documentElement.classList.remove("rankd-boot-play", "rankd-boot-archive");
   if (v !== "play") showFab(false);
   const play = $("#playView"), arch = $("#archiveView"), home = $("#homeView");
   if (play) play.classList.toggle("hidden", v !== "play");

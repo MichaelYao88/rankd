@@ -28,6 +28,9 @@ button,input{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--link)}
 .hidden{display:none!important}
+html.rankd-boot-play #homeView,html.rankd-boot-archive #homeView{display:none!important}
+html.rankd-boot-play #playView{display:block!important}
+html.rankd-boot-archive #archiveView{display:block!important}
 
 /* ---------- floating corner controls ---------- */
 .corners{display:flex;justify-content:space-between;align-items:center;padding:14px 14px 0;pointer-events:none}

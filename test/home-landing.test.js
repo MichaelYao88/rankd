@@ -75,6 +75,10 @@ test("the landing page leads with today's puzzle, five steps, and a suggestion f
   assert.match(html, /How to play!/);
   assert.match(html, /Submit your own puzzle/);
   assert.match(html, /id="playView" class="hidden"/);
+  assert.match(html, /rankd-boot-play/);
+  assert.match(html, /rankd-boot-archive/);
+  assert.match(css, /html\.rankd-boot-play #playView/);
+  assert.match(css, /html\.rankd-boot-archive #archiveView/);
   assert.match(html, /Step 1/);
   assert.match(html, /Drag the countries into order/);
   assert.match(html, /Lock it in/);

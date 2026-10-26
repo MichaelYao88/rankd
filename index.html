@@ -43,6 +43,12 @@
   (function(){try{var q=new URLSearchParams(location.search).get("stream"),s=JSON.parse(localStorage.getItem("rankd.settings.v1")||"{}");
   if(q==="1"||q==="0"){s.stream=q==="1"?"on":"off";localStorage.setItem("rankd.settings.v1",JSON.stringify(s));}
   if(s.stream==="on")document.documentElement.classList.add("streamer");}catch(e){}})();
+  // Shared links should not flash the home page before app.js routes.
+  (function(){try{
+    var h=location.hash||"", q=new URLSearchParams(location.search).get("preview"), root=document.documentElement;
+    if((q&&q.trim())||/^#(today|play|d=|p=|r=)/.test(h)) root.classList.add("rankd-boot-play");
+    else if(h.indexOf("#archive")===0) root.classList.add("rankd-boot-archive");
+  }catch(e){}})();
 </script>
 <link rel="stylesheet" href="styles.css">
 <!-- v12.1 ADSENSE: app.js adds the loader (async, crossorigin=anonymous,
