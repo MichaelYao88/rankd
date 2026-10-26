@@ -82,7 +82,7 @@ def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
                 if plays < cs.MIN_COUNTRY_PLAYERS or plays > cs.BOARD_SEED_PLAYS + 2:
                     errors.append(f"{pid}: {r.get('code')} has {plays} seeded plays, expected about {cs.BOARD_SEED_PLAYS}")
                 avg_tries = float(r["avgTries"])
-                lo, hi = (7, 15) if row.get("type") == "top5" else (2.1, 4.3)
+                lo, hi = (2.1, 4.3)
                 if not lo <= avg_tries <= hi:
                     errors.append(f"{pid}: implausible avg tries {avg_tries} for {r.get('code')}")
             for r in thin:
@@ -114,25 +114,17 @@ def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
             errors.append(f"{pid}: missing avgFirst")
         else:
             af = float(avg_first)
-            if kind == "top5":
-                if not 0.15 <= af <= 0.6:
-                    errors.append(f"{pid}: first-guess rate {af} is outside the seeded band")
-            else:
-                lo, hi = 0.25 * width, 0.75 * width
-                if not lo <= af <= hi:
-                    errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
+            lo, hi = 0.25 * width, 0.75 * width
+            if not lo <= af <= hi:
+                errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
         avg_tries = float(standing.get("avgTries") or 0)
         acc = float(standing.get("avgAccuracy") or 0)
-        if row.get("type") == "top5":
-            if not 8.5 <= avg_tries <= 13:
-                errors.append(f"{pid}: guess average {avg_tries} is outside the seeded band")
-            if not 8 <= acc <= 40:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
-        else:
-            if not 2.8 <= avg_tries <= 3.6:
-                errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-            if not 50 <= acc <= 72:
-                errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if not 2.8 <= avg_tries <= 3.6:
+            errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
+        if not 50 <= acc <= 72:
+            errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
+        if row.get("type") == "top5" and any(int(k) > 5 for k in (standing.get("byTries") or {})):
+            errors.append(f"{pid}: top5 standing still uses the old guess scale")
     return errors
 
 
