@@ -868,6 +868,7 @@ const VALUE_GLOSS_FALLBACK = {
   "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
   "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
   "Girlboss": "female CEOs",
+  "High Society": "past-year use",
 };
 // Free archive depth. unlockedDays in localStorage is an absolute count (today + earlier days),
 // so a save from the old 7-day ad step (14, 21, …) stays valid. The next ad adds adUnlockDays.
