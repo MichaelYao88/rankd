@@ -866,7 +866,7 @@ const VALUE_GLOSS_FALLBACK = {
   "After Dark": "feel safe walking alone at night", "Porch Light": "feel safe walking alone at night", "Walking Home": "feel safe walking alone at night",
   "Partner Violence": "experienced partner violence", "Lifetime Prevalence": "experienced partner violence", "Ever-Partnered Women": "experienced partner violence", "Lifetime Rates": "experienced partner violence",
   "Swedish Surprise": "wealth Gini", "Top Heavy": "wealth Gini", "Level Field": "wealth Gini",
-  "Meat Lovers": "kg meat / person", "The Meatiest": "kg meat / person", "Side Salad": "kg meat / person",
+  "Meat Lovers": "kg/yr per capita", "The Meatiest": "kg/yr per capita", "Side Salad": "kg/yr per capita",
   "Girlboss": "female CEOs",
 };
 // Free archive depth. unlockedDays in localStorage is an absolute count (today + earlier days),
