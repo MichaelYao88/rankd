@@ -2891,14 +2891,16 @@ function markCode(m) {
 }
 function gridFromResult(p, r) {
   if (!p || !r) return [];
-  if (p.type === "top5") {
-    const marks = r.marks && r.marks.length ? r.marks : (r.guesses || []).map(k => {
-      try { return inTop(p, findCountry(p, k)) ? "good" : "miss"; } catch (e) { return "miss"; }
-    });
-    const row = marks.map(markCode).join("");
-    return row ? [row] : [];
-  }
-  return (r.attempts || []).map(a => (a.marks || []).map(markCode).join("")).filter(Boolean);
+  // One row per lock-in. New Top 5 is five slots a try, same as Rank it.
+  // The flat marks list is only the last try, so it is the fallback for old guess-style games.
+  const fromTries = (r.attempts || []).map(a => (a.marks || []).map(markCode).join("")).filter(Boolean);
+  if (fromTries.length) return fromTries;
+  if (p.type !== "top5") return [];
+  const marks = r.marks && r.marks.length ? r.marks : (r.guesses || []).map(k => {
+    try { return inTop(p, findCountry(p, k)) ? "good" : "miss"; } catch (e) { return "miss"; }
+  });
+  const row = marks.map(markCode).join("");
+  return row ? [row] : [];
 }
 function scoreForChallenge(p, r) {
   if (!p || !r) return null;
