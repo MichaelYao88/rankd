@@ -101,6 +101,9 @@ test("stored answers are exactly the countries that pass both rules", () => {
     "name-pop-stan-land-m": 5,
     "name-le-i": 5,
     "name-forest-c": 11,
+    "name-hdi-between-s": 3,
+    "name-age-between-c": 3,
+    "name-road-between-u": 2,
   };
   for (const puzzle of puzzles) {
     assert.equal(puzzle.type, "name");
@@ -109,8 +112,7 @@ test("stored answers are exactly the countries that pass both rules", () => {
     for (const [iso, value] of Object.entries(puzzle.values)) {
       const c = country(iso);
       assert.ok(c, iso);
-      if (!Name.letterPass(c.name, puzzle.letter)) continue;
-      if (!(Number(value) > Number(puzzle.threshold))) continue;
+      if (!Name.passes(puzzle, iso)) continue;
       rows.push({ iso, name: c.name, value: Number(value) });
     }
     rows.sort((a, b) => b.value - a.value || a.name.localeCompare(b.name, "en"));
@@ -155,7 +157,54 @@ test("name accuracy follows try bands, not the top 5 miss count", () => {
   assert.ok(block.avgAccuracy >= 50 && block.avgAccuracy <= 72, block.avgAccuracy);
 });
 
-test("name puzzles take the open days of 18–21 Mar 2027", () => {
+test("a range is exclusive, and a miss says too high, too low, or the letter", () => {
+  const hdi = byId("name-hdi-between-s");
+  assert.equal(hdi.statRule.op, "between");
+  assert.equal(JSON.stringify(hdi.answers), JSON.stringify(["SGP", "KOR", "SVN"]));
+  assert.equal(Name.judge(hdi, "Singapore", new Set()).status, "correct");
+  assert.equal(Name.judge(hdi, "Sweden", new Set()).line, "🇸🇪 Sweden's HDI is not strictly between Spain's and Germany's");
+  assert.equal(Name.judge(hdi, "Spain", new Set()).line, "🇪🇸 Spain's HDI is not strictly between Spain's and Germany's");
+  assert.equal(Name.judge(hdi, "Sudan", new Set()).line, "🇸🇩 Sudan's HDI is below Spain's");
+  assert.equal(Name.judge(hdi, "Switzerland", new Set()).line, "🇨🇭 Switzerland's HDI is above Germany's");
+  assert.equal(Name.judge(hdi, "South Africa", new Set()).line, "🇿🇦 South Africa's HDI is below Spain's");
+  const france = Name.judge(hdi, "France", new Set());
+  assert.equal(france.letterOk, false);
+  assert.equal(france.statOk, true);
+  assert.equal(france.line, "🇫🇷 France: doesn't start with S");
+  assert.equal(/HDI|0\.920|below|above/.test(france.line), false);
+  const india = Name.judge(hdi, "India", new Set());
+  assert.equal(india.line, "🇮🇳 India's HDI is below Spain's, and doesn't start with S");
+  const reveal = Name.revealHtml(hdi, { pick: "Slovenia" });
+  assert.match(reveal, /Between Spain \(0\.918\) and Germany \(0\.959\), not including either\./);
+  assert.equal(reveal.includes('data-name="Spain"'), false);
+  assert.equal(reveal.includes('data-name="Germany"'), false);
+  assert.match(reveal, /data-name="Singapore"/);
+  assert.match(reveal, /data-name="Slovenia"[^>]*class="name-chip is-yours"|class="name-chip is-yours"[^>]*data-name="Slovenia"/);
+
+  const age = byId("name-age-between-c");
+  assert.equal(JSON.stringify(age.answers.map(iso => country(iso).name)), JSON.stringify(["Cuba", "Canada", "China"]));
+  assert.equal(Name.judge(age, "China", new Set()).status, "correct");
+  assert.equal(Name.judge(age, "Czechia", new Set()).line, "🇨🇿 Czechia's median age is above France's");
+  assert.equal(Name.judge(age, "Chile", new Set()).line, "🇨🇱 Chile's median age is below Ireland's");
+  assert.equal(Name.passes(age, "FRA"), false);
+  assert.equal(Name.passes(age, "IRL"), false);
+  assert.match(Name.revealHtml(age, null), /Between Ireland \(38\.42 years\) and France \(41\.82 years\), not including either\./);
+
+  const road = byId("name-road-between-u");
+  assert.equal(JSON.stringify(road.answers.map(iso => country(iso).name)), JSON.stringify(["Uganda", "United States"]));
+  assert.equal(Name.judge(road, "Uganda", new Set()).status, "correct");
+  assert.equal(Name.judge(road, "Ukraine", new Set()).line, "🇺🇦 Ukraine's road death rate is below Malaysia's");
+  const indiaRoad = Name.judge(road, "India", new Set());
+  assert.equal(indiaRoad.statOk, true);
+  assert.equal(indiaRoad.letterOk, false);
+  assert.equal(indiaRoad.line, "🇮🇳 India: doesn't start with U");
+  assert.equal(/14\.|per 100k|below|above/.test(indiaRoad.line), false);
+  assert.equal(Name.passes(road, "MYS"), false);
+  assert.equal(Name.passes(road, "COL"), false);
+  assert.match(Name.revealHtml(road, { pick: "United States" }), /Between Malaysia \(13\.9 per 100k\) and Colombia \(16\.2 per 100k\), not including either\./);
+});
+
+test("name puzzles take the open days after the ranks already on the sheet", () => {
   const dataBox = { window: {} };
   vm.runInNewContext(fs.readFileSync(path.join(root, "puzzles-data.js"), "utf8"), dataBox, { filename: "puzzles-data.js" });
   const base = dataBox.window.RANKD_PUZZLES;
@@ -204,7 +253,7 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
   const scheduled = appBox.window.RankdShared.puzzles;
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
-  const tail = scheduled.slice(-14).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 14 + i), order: Math.round(p.order) }));
+  const tail = scheduled.slice(-22).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 22 + i), order: Math.round(p.order) }));
   assert.equal(JSON.stringify(tail), JSON.stringify([
     { id: "name-hdi-s", date: "2027-03-18", order: 164 },
     { id: "name-pop-stan-land-m", date: "2027-03-19", order: 165 },
@@ -220,7 +269,21 @@ test("name puzzles take the open days of 18–21 Mar 2027", () => {
     { id: "top1-pop-2100", date: "2027-03-29", order: 175 },
     { id: "top1-median-age", date: "2027-03-30", order: 176 },
     { id: "top1-road-deaths", date: "2027-03-31", order: 177 },
+    { id: "hdi-quality", date: "2027-04-01", order: 178 },
+    { id: "pop-2100", date: "2027-04-02", order: 179 },
+    { id: "democracy-eiu-2024", date: "2027-04-03", order: 180 },
+    { id: "median-age-wpp", date: "2027-04-04", order: 181 },
+    { id: "road-deaths-2021", date: "2027-04-05", order: 182 },
+    { id: "name-hdi-between-s", date: "2027-04-06", order: 183 },
+    { id: "name-age-between-c", date: "2027-04-07", order: 184 },
+    { id: "name-road-between-u", date: "2027-04-08", order: 185 }
   ]));
+  const loss = { type: "name", solved: false, done: true, marks: ["bad", "bad", "bad", "bad", "bad"] };
+  assert.equal(appBox.window.RankdShared.rating.ratingShout(loss), "Ignorant!");
+  assert.equal(appBox.window.RankdShared.rating.cheerChoice(loss, false), "ignorant");
+  const win = { type: "name", solved: true, done: true, tries: 2, marks: ["bad", "good"] };
+  assert.equal(appBox.window.RankdShared.rating.ratingShout(win), "");
+  assert.equal(sandbox.RankdSeed.combineAccuracy([1, 0], true, "name"), 98);
   const high = scheduled.find(p => p.id === "cannabis-use");
   assert.equal(high.sensitive, true);
   assert.equal(high.unit, "% of adults (15–64)");
