@@ -20,7 +20,7 @@ happiness,,,,,,,,Mexico,🇲🇽,6.97,2025,,,,12,147,,,,,,
 happiness,,,,,,,,United States,🇺🇸,6.82,2025,,,,23,147,,,,,,
 happiness,,,,,,,,United Kingdom,🇬🇧,6.69,2025,,,,29,147,,,,,,
 happiness,,,,,,,,Japan,🇯🇵,6.13,2025,,,,61,147,,,,,,
-homicide,13,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,United States,🇺🇸,5.76,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"The US rate is about twice India's, largely because civilian gun ownership is far higher and most US homicides are shootings. Note: latest years differ by country.",29,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
+homicide,30,🚨,Which country has the highest homicide rate?,"Intentional homicides per 100,000 people",per 100k,top,no,United States,🇺🇸,5.76,2023,"UNODC via World Bank, World Development Indicators",https://data.worldbank.org/indicator/VC.IHR.PSRC.P5,"The US rate is about twice India's, largely because civilian gun ownership is far higher and most US homicides are shootings. Note: latest years differ by country.",29,83,,globe,,unodc-homicide,Homicide Rate,Homicide Rates
 homicide,,,,,,,,India,🇮🇳,2.82,2022,,,,46,105,,,,,,
 homicide,,,,,,,,Finland,🇫🇮,0.98,2023,,,,57,83,,,,,,
 homicide,,,,,,,,Indonesia,🇮🇩,0.3,2022,,,,99,105,,,,,,
@@ -49,12 +49,12 @@ crash-rate,,,,,,,,Female drivers aged 70+,👵,3.4,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Male drivers aged 70+,👴,2.9,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Male drivers (all ages),👨,2.8,2022,,,,,,,,,,,
 crash-rate,,,,,,,,Female drivers (all ages),👩,1.9,2022,,,,,,,,,,,
-homicide-women,15,🔪,Where is the female homicide rate highest?,"Intentional homicide victims, female",per 100k women,top,yes,United States,🇺🇸,2.81,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"The US female rate tops India's. Women killed in the US usually die by gunshot, often a partner. Note: UNODC via World Bank, 2022.",24,98,,candle,,unodc-homicide-female,Female Homicide Rate,Female Homicide
+homicide-women,32,🔪,Where is the female homicide rate highest?,"Intentional homicide victims, female",per 100k women,top,yes,United States,🇺🇸,2.81,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"The US female rate tops India's. Women killed in the US usually die by gunshot, often a partner. Note: UNODC via World Bank, 2022.",24,98,,candle,,unodc-homicide-female,Female Homicide Rate,Female Homicide
 homicide-women,,,,,,,,India,🇮🇳,2.37,2022,,,,30,98,,,,,,
 homicide-women,,,,,,,,Germany,🇩🇪,0.82,2022,,,,61,98,,,,,,
 homicide-women,,,,,,,,Jordan,🇯🇴,0.7,2022,,,,65,98,,,,,,
 homicide-women,,,,,,,,South Korea,🇰🇷,0.5,2022,,,,79,98,,,,,,
-homicide-sex,20,🚻,"Where is the homicide rate highest, by sex?","Intentional homicides per 100,000 of that sex (male or female population)",per 100k,top,yes,Men in India,👨,3.23,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.MA.P5 / VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"US women are killed at a higher rate than men in Germany. In the US that is mostly gun homicide; male homicide in Germany is rare. Note: per 100,000 of that sex, 2022.",45,97,countries · male rate,balance,,,,Homicide by Sex
+homicide-sex,53,🚻,"Where is the homicide rate highest, by sex?","Intentional homicides per 100,000 of that sex (male or female population)",per 100k,top,yes,Men in India,👨,3.23,2022,"UNODC via World Bank, World Development Indicators (VC.IHR.PSRC.MA.P5 / VC.IHR.PSRC.FE.P5)",https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5,"US women are killed at a higher rate than men in Germany. In the US that is mostly gun homicide; male homicide in Germany is rare. Note: per 100,000 of that sex, 2022.",45,97,countries · male rate,balance,,,,Homicide by Sex
 homicide-sex,,,,,,,,Women in the US,👩,2.81,2022,,,,24,98,countries · female rate,,,,,
 homicide-sex,,,,,,,,Men in Germany,👨,0.81,2022,,,,84,97,countries · male rate,,,,,
 homicide-sex,,,,,,,,Men in South Korea,👨,0.49,2022,,,,92,97,countries · male rate,,,,,
@@ -64,7 +64,7 @@ women-work,,,,,,,,United Arab Emirates,🇦🇪,53.03,2025,,,,93,182,,,,,,
 women-work,,,,,,,,Italy,🇮🇹,40.81,2025,,,,147,182,,,,,,
 women-work,,,,,,,,Saudi Arabia,🇸🇦,33.57,2025,,,,160,182,,,,,,
 women-work,,,,,,,,India,🇮🇳,32.42,2025,,,,162,182,,,,,,
-suicide,17,🕯️,Which country has the highest suicide rate?,"Age-standardized suicide rate, both sexes",per 100k,top,no,South Korea,🇰🇷,23.4,2023,"WHO Global Health Observatory, indicator MH_12 (Global Health Estimates)",https://www.who.int/data/gho/data/indicators/indicator-details/GHO/age-standardized-suicide-rates-(per-100-000-population),"South Korea leads because suicide is far more common among older adults in poverty. Sweden, despite the gloomy reputation, is lowest here. Note: WHO modelled, age-standardized, 2023.",8,185,,sunrise,https://findahelpline.com/,who-suicide,Suicide Rate,Suicide Rates
+suicide,36,🕯️,Which country has the highest suicide rate?,"Age-standardized suicide rate, both sexes",per 100k,top,no,South Korea,🇰🇷,23.4,2023,"WHO Global Health Observatory, indicator MH_12 (Global Health Estimates)",https://www.who.int/data/gho/data/indicators/indicator-details/GHO/age-standardized-suicide-rates-(per-100-000-population),"South Korea leads because suicide is far more common among older adults in poverty. Sweden, despite the gloomy reputation, is lowest here. Note: WHO modelled, age-standardized, 2023.",8,185,,sunrise,https://findahelpline.com/,who-suicide,Suicide Rate,Suicide Rates
 suicide,,,,,,,,India,🇮🇳,15.3,2023,,,,48,185,,,,,,
 suicide,,,,,,,,Japan,🇯🇵,14.4,2023,,,,58,185,,,,,,
 suicide,,,,,,,,United States,🇺🇸,13.3,2023,,,,68,185,,,,,,
@@ -117,7 +117,7 @@ gss-men-gender-roles,41,🏠,Which American men most agree a woman should tend t
 gss-men-gender-roles,,,,,,,,Black men,👨🏿,33.4,2016–2024 pooled,,,,,,,,,,,
 gss-men-gender-roles,,,,,,,,Asian men,👨🏻,27.1,2016–2024 pooled,,,,,,,,,,,
 gss-men-gender-roles,,,,,,,,White men,👨🏼,26.5,2016–2024 pooled,,,,,,,,,,,
-market-economy-age,32,📈,Who approves most of the switch from communism to a market economy?,"% approving the change to a market economy since 1989/1991, by country and age",% approve,top,yes,Bulgarians 18–34,🇧🇬,74,2019,"Pew Research Center, Spring 2019 Global Attitudes Survey (European Public Opinion Three Decades After the Fall of Communism, p.23)",https://www.pewresearch.org/global/2019/10/15/political-and-economic-changes-since-the-fall-of-communism/,"Young Bulgarians approve most. Older Russians, who lived through the 1990s crash, mostly disapprove. Czechs aged 60+, who lived under communism, still approve more than young Russians.",,,,statue,,,,Market Transition
+market-economy-age,15,📈,Who approves most of the switch from communism to a market economy?,"% approving the change to a market economy since 1989/1991, by country and age",% approve,top,yes,Bulgarians 18–34,🇧🇬,74,2019,"Pew Research Center, Spring 2019 Global Attitudes Survey (European Public Opinion Three Decades After the Fall of Communism, p.23)",https://www.pewresearch.org/global/2019/10/15/political-and-economic-changes-since-the-fall-of-communism/,"Young Bulgarians approve most. Older Russians, who lived through the 1990s crash, mostly disapprove. Czechs aged 60+, who lived under communism, still approve more than young Russians.",,,,statue,,,,Market Transition
 market-economy-age,,,,,,,,Czechs 60+,🇨🇿,69,2019,,,,,,,,,,,
 market-economy-age,,,,,,,,Russians 18–34,🇷🇺,51,2019,,,,,,,,,,,
 market-economy-age,,,,,,,,Slovaks 60+,🇸🇰,49,2019,,,,,,,,,,,
@@ -189,7 +189,7 @@ trends-messi,,,,,,,,Argentina,🇦🇷,43,Oct 2021–Oct 2026,,,,7,103,,,,,,
 trends-messi,,,,,,,,Nigeria,🇳🇬,27,Oct 2021–Oct 2026,,,,15,103,,,,,,
 trends-messi,,,,,,,,Spain,🇪🇸,10,Oct 2021–Oct 2026,,,,54,103,,,,,,
 trends-messi,,,,,,,,United States,🇺🇸,4,Oct 2021–Oct 2026,,,,92,103,,,,,,
-renewables,36,🌿,Who gets the most of its energy from renewables?,Renewable energy consumption (% of total final energy consumption),%,top,no,Uganda,🇺🇬,91,2021,"World Bank (IEA, IRENA, UN Statistics Division, WHO, World Bank: SDG 7.2 tracking)",https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS,"Uganda beats Norway because firewood and charcoal count as renewable. A high share here often means energy poverty, not green power plants. Note: share of final energy, 2021.",5,212,,windmill,,,,Green Machines
+renewables,17,🌿,Who gets the most of its energy from renewables?,Renewable energy consumption (% of total final energy consumption),%,top,no,Uganda,🇺🇬,91,2021,"World Bank (IEA, IRENA, UN Statistics Division, WHO, World Bank: SDG 7.2 tracking)",https://data.worldbank.org/indicator/EG.FEC.RNEW.ZS,"Uganda beats Norway because firewood and charcoal count as renewable. A high share here often means energy poverty, not green power plants. Note: share of final energy, 2021.",5,212,,windmill,,,,Green Machines
 renewables,,,,,,,,Norway,🇳🇴,61.4,2021,,,,36,212,,,,,,
 renewables,,,,,,,,India,🇮🇳,34.9,2021,,,,69,212,,,,,,
 renewables,,,,,,,,United States,🇺🇸,10.9,2021,,,,142,212,,,,,,
@@ -569,7 +569,7 @@ gambling-immoral-b,,,,,,,,Brazil,🇧🇷,61,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Kenya,🇰🇪,61,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Poland,🇵🇱,41,2025,,,,,,,,,,,
 gambling-immoral-b,,,,,,,,Canada,🇨🇦,27,2025,,,,,,,,,,,
-ef-epi-city,30,🗣️,Which city speaks the best English?,EF EPI city English proficiency score,EPI score,top,yes,Seoul,🇰🇷,550,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Seoul beats Tokyo because Korean adults get far more spoken-English practice in private academies, while Japan's schooling stays grammar-heavy. Note: EF test-takers choose the test. They are not a random sample.",43,121,cities,microphone,,ef-epi-city,City English Score,City English
+ef-epi-city,13,🗣️,Which city speaks the best English?,EF EPI city English proficiency score,EPI score,top,yes,Seoul,🇰🇷,550,2025,EF English Proficiency Index 2025 (via Wikipedia),https://en.wikipedia.org/wiki/EF_English_Proficiency_Index,"Seoul beats Tokyo because Korean adults get far more spoken-English practice in private academies, while Japan's schooling stays grammar-heavy. Note: EF test-takers choose the test. They are not a random sample.",43,121,cities,microphone,,ef-epi-city,City English Score,City English
 ef-epi-city,,,,,,,,Rome,🇮🇹,538,,,,,52,121,cities,,,,,
 ef-epi-city,,,,,,,,Hanoi,🇻🇳,532,,,,,56,121,cities,,,,,
 ef-epi-city,,,,,,,,Beijing,🇨🇳,514,,,,,73,121,cities,,,,,
@@ -599,7 +599,7 @@ pew-police-videos-good,,,,,,,,Asian,👤,50,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,Latino/Hispanic,👤,48,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,White,👤,41,,,,,,,,,,,,
 pew-police-videos-good,,,,,,,,Republican (Rep/Lean Rep),❤️,24,,,,,,,,,,,,
-pew-us-favorable,53,🇺🇸,% with a favorable view of the United States,Favorable opinion of the United States,%,top,yes,Israel,🇮🇱,83,2025,"Pew Research Center, Spring 2025 Global Attitudes Survey (Jan 8–Apr 26 2025; published June 11, 2025)",https://www.pewresearch.org/global/2025/06/11/views-of-the-united-states/,"Israel is most favorable, in line with a close security alliance. Mexico's view fell from 61% to 29% in one year. Sweden is the least favorable.",,,countries,flag,,pew-us-favorable,,Stars and Stripes
+pew-us-favorable,20,🇺🇸,% with a favorable view of the United States,Favorable opinion of the United States,%,top,yes,Israel,🇮🇱,83,2025,"Pew Research Center, Spring 2025 Global Attitudes Survey (Jan 8–Apr 26 2025; published June 11, 2025)",https://www.pewresearch.org/global/2025/06/11/views-of-the-united-states/,"Israel is most favorable, in line with a close security alliance. Mexico's view fell from 61% to 29% in one year. Sweden is the least favorable.",,,countries,flag,,pew-us-favorable,,Stars and Stripes
 pew-us-favorable,,,,,,,,Hungary,🇭🇺,60,,,,,,,,,,,,
 pew-us-favorable,,,,,,,,Brazil,🇧🇷,56,,,,,,,,,,,,
 pew-us-favorable,,,,,,,,United Kingdom,🇬🇧,50,,,,,,,,,,,,
