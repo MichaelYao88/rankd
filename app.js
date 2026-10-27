@@ -822,6 +822,8 @@ const streamerOn = () => settings.stream === "on";
 let authUser = null;
 let premiumCache = null;
 let sb = null;
+let closeInterstitial = null;
+function dismissInterstitial() { if (typeof closeInterstitial === "function") closeInterstitial(); }
 function entitlementIsActive(row, now) {
   if (!row || row.premium !== true) return false;
   const end = row.current_period_end;
@@ -886,8 +888,16 @@ function getChallengerName() {
   return googleProfile(authUser).name || null;
 }
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
+function syncPremiumUpsells() {
+  const hide = isPremium();
+  const nodes = document.querySelectorAll("[data-premium-upsell]");
+  for (let i = 0; i < nodes.length; i++) nodes[i].classList.toggle("hidden", hide);
+}
 function applyPremium() {
   document.documentElement.classList.toggle("premium", isPremium());
+  syncPremiumUpsells();
+  if (isPremium()) dismissInterstitial();
+  if (typeof mirrorTopShell === "function") mirrorTopShell();
   if (typeof AdSense !== "undefined") AdSense.init();
 }
 // Capture helper. No-ops when PostHog was not loaded (snippet missing, Studio, or ?preview= sandbox).
@@ -959,7 +969,14 @@ const AdSense = {
     const chk = () => { const st = ins.getAttribute("data-ad-status"); if (st === "unfilled") { mo.disconnect(); onUnfilled(); } else if (st === "filled") { mo.disconnect(); onFilled?.(); } };
     const mo = new MutationObserver(chk); mo.observe(ins, { attributes: true, attributeFilter: ["data-ad-status"] }); chk();
   },
-  collapse(box) { if (!box) return; box.classList.add("ad-collapsed"); window.RankdFit?.layout(); },
+  collapse(box) {
+    if (!box) return;
+    box.classList.add("ad-collapsed");
+    const shell = box.closest ? box.closest(".ad-banner-shell") : null;
+    if (shell) shell.classList.add("is-collapsed");
+    if (box.id === "adTop" && typeof mirrorTopShell === "function") mirrorTopShell();
+    window.RankdFit?.layout();
+  },
   banner() {
     // Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
     // Practice always; a short archive day only after .ad-on is committed.
@@ -2823,10 +2840,18 @@ function showInterstitial(done, skipNext) {   // skipNext (v12.2): shown before 
   $("#interNote").textContent = skipNext ? "Your next puzzle is ready" : "Your result is ready";
   ov.classList.remove("hidden"); btn.disabled = true; btn.textContent = `Skip in ${s}`;
   const t = setInterval(() => { s--; if (s <= 0) { clearInterval(t); btn.disabled = false; btn.textContent = skipNext ? "Next puzzle ✕" : "See result ✕"; } else btn.textContent = `Skip in ${s}`; }, 1000);
-  let closed = false; const close = () => { if (closed) return; closed = true; clearInterval(t); ov.classList.add("hidden"); state.busy = false; done(); };
-  btn.onclick = () => { if (!btn.disabled) close(); };
+  let closed = false;
+  // Remove ads leaves for Go Premium without revealing. Skip still runs done().
+  const finish = (runDone) => {
+    if (closed) return; closed = true; clearInterval(t); ov.classList.add("hidden"); state.busy = false;
+    if (closeInterstitial === dismiss) closeInterstitial = null;
+    if (runDone) done();
+  };
+  const dismiss = () => finish(false);
+  closeInterstitial = dismiss;
+  btn.onclick = () => { if (!btn.disabled) finish(true); };
   // v12.1: AdSense creative (live mode). No fill -> close at once and go straight to the result (recorded on the decision).
-  AdSense.interstitial(() => { const d = Ads.last(); if (d) d.unfilled = true; close(); });
+  AdSense.interstitial(() => { const d = Ads.last(); if (d) d.unfilled = true; finish(true); });
 }
 
 // ================================================================ result panel
@@ -3869,9 +3894,9 @@ function fitLayout() {
     b.classList.toggle("kb", fit && typing && h < vvMax - 120);
     b.classList.toggle("fit", fit);
     if (!fit) { hero.style.maxHeight = ""; hero.style.height = ""; hero.classList.remove("q-drop"); parkFab(); return; }
-    const ab = $("#adBottom");
+    const ab = $("#adBottomShell") || $("#adBottom");
     const abShown = ab && getComputedStyle(ab).display !== "none" && ab.offsetHeight;
-    const abH = abShown ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner stays on screen
+    const abH = abShown ? ab.offsetHeight + 6 : 0;   // v12.2: Practice bottom banner (plus Remove ad strip) stays on screen
     // Document offset of the card (stable while playing at scroll 0), from the visual viewport — not 100vh.
     const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
     // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
@@ -4040,22 +4065,34 @@ function topBannerWanted() {
   if (state.mode === "archive" && playRows(state.puzzle) < 6) return "archive";
   return "off";
 }
+function mirrorTopShell() {
+  const box = $("#adTop"), shell = $("#adTopShell");
+  if (!box || !shell) return;
+  const show = box.classList.contains("ad-on") && !box.classList.contains("ad-collapsed") && Ads.allowed();
+  shell.classList.toggle("is-on", show);
+  if (!show) shell.classList.remove("is-on");
+}
 function applyTopBanner() {
   const box = $("#adTop"); if (!box) return "off";
   const want = topBannerWanted();
-  if (want === "practice") { box.classList.add("ad-on"); return "practice"; }
-  if (want !== "archive") {
+  let phase = "off";
+  if (want === "practice") { box.classList.add("ad-on"); phase = "practice"; }
+  else if (want !== "archive") {
     if (box.classList.contains("ad-on")) box.classList.remove("ad-on");
     archiveBannerHold = null;
-    return "off";
+    phase = "off";
+  } else {
+    const key = archiveBannerKey();
+    if (archiveBannerHold && archiveBannerHold.key === key) {
+      box.classList.toggle("ad-on", archiveBannerHold.show);
+      phase = archiveBannerHold.show ? "archive-on" : "archive-off";
+    } else {
+      box.classList.add("ad-on");
+      phase = "archive-try";
+    }
   }
-  const key = archiveBannerKey();
-  if (archiveBannerHold && archiveBannerHold.key === key) {
-    box.classList.toggle("ad-on", archiveBannerHold.show);
-    return archiveBannerHold.show ? "archive-on" : "archive-off";
-  }
-  box.classList.add("ad-on");
-  return "archive-try";
+  mirrorTopShell();
+  return phase;
 }
 function locksComfortable() {
   // Result screen has no Lock control. Phone fit hides Share while playing; still refuse a Lock that
@@ -4088,7 +4125,7 @@ function confirmArchiveBanner(phase) {
   const box = $("#adTop"); if (!box) return;
   const ok = locksComfortable();
   archiveBannerHold = { key: archiveBannerKey(), show: ok };
-  if (!ok) { box.classList.remove("ad-on"); scheduleFit(); }
+  if (!ok) { box.classList.remove("ad-on"); mirrorTopShell(); scheduleFit(); }
   else AdSense.banner();
 }
 function syncTopBanner() {
@@ -4860,6 +4897,7 @@ document.addEventListener("click", e => {
   if (!hit) return;
   e.preventDefault();
   dismissLongAd();
+  dismissInterstitial();
   goPremium();
 });
 startAuth();
