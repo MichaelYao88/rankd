@@ -57,7 +57,7 @@ const CONFIG = {
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
-  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1", challengeName: "rankd.challengeName.v1" };
+  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
@@ -66,8 +66,6 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
 //                            including today. Kept as stored when the ad step changes; never rescaled.
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
-//   rankd.challengeName.v1 : optional display name for challenge links (max 16). Stays on this device and in the
-//                            shared URL. Not sent to Supabase or PostHog. Not remapped in preview.
 //   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
@@ -1598,7 +1596,7 @@ function renderHero() {
   const label = isToday() ? "Share today's puzzle" : "Share this puzzle";
   $("#newRandomTop").classList.toggle("hidden", state.mode !== "practice");
   document.body.classList.toggle("mode-practice", state.mode === "practice"); AdSense.bottom();   // v12.2: Practice bottom banner
-  renderArt(p); $("#hero").dataset.kind = p.type; $("#shareChallengeTop").textContent = label + " ↗"; $("#shareChallengeBtn").textContent = label;
+  renderArt(p); $("#hero").dataset.kind = p.type; $("#shareChallengeTop").textContent = label + " ↗";
 }
 
 function renderName(saved) {
@@ -2833,12 +2831,6 @@ function showResult(res, opts) {
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
-  const nameInput = $("#challengeNameInput");
-  if (nameInput && nameInput.dataset.ready !== "1") {
-    const savedName = storedChallengeName();
-    if (savedName) nameInput.value = savedName;
-    nameInput.dataset.ready = "1";
-  }
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
 }
 function communityCrow(label, pct, emoji) {
@@ -3617,28 +3609,17 @@ function renderHeadToHead(res) {
   el.append(line, vs, grid);
   el.classList.remove("hidden");
 }
-function storedChallengeName() {
-  const v = load(LS.challengeName, null);
-  if (!v || typeof v !== "object" || !Object.prototype.hasOwnProperty.call(v, "name")) return null;
-  return window.RankdChallenge ? RankdChallenge.sanitizeName(v.name) : "";
-}
-function rememberChallengeName(name) {
-  const RC = window.RankdChallenge;
-  save(LS.challengeName, { name: RC ? RC.sanitizeName(name) : "", at: Date.now() });
+// No accounts yet. When sign-in exists, return that account's display name.
+// Null keeps the shared name empty: the banner says "Your friend", and an old link that already
+// carries a name still decodes to that name.
+function getChallengerName() {
+  return null;
 }
 function challengeNameForShare() {
-  // The results field is optional. Blank stays blank and the link says "Your friend".
   const RC = window.RankdChallenge;
-  const input = $("#challengeNameInput");
-  let raw = "";
-  if (input) raw = input.value;
-  else {
-    const saved = storedChallengeName();
-    raw = saved == null ? "" : saved;
-  }
-  const name = RC ? RC.sanitizeName(raw) : String(raw || "").replace(/\s+/g, " ").trim().slice(0, 16);
-  rememberChallengeName(name);
-  return name;
+  const raw = getChallengerName();
+  if (raw == null || raw === "") return "";
+  return RC ? RC.sanitizeName(raw) : String(raw).replace(/\s+/g, " ").trim().slice(0, 16);
 }
 async function shareOrCopyChallenge(text, url) {
   if (typeof navigator.share === "function") {
@@ -3792,7 +3773,7 @@ function syncFabPad() {
 function parkFab() {
   const f = $("#fab"); if (!f) return;
   if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
-  const targets = [$("#shareChallengeBtn"), $("#shareChallengeTop"), $("#challengeFriendBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs")];
+  const targets = [$("#shareChallengeTop"), $("#challengeFriendBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs")];
   document.querySelectorAll("#youVs .platform-pct").forEach(el => targets.push(el));
   const hit = targets.some(el => boxesOverlap(f, el));
   f.classList.toggle("fab-clear", hit);
@@ -4444,7 +4425,7 @@ if ($("#suggest")) $("#suggest").addEventListener("mousedown", e => {
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareResultBtn").onclick = () => doShare(resultText());
-$("#shareChallengeBtn").onclick = $("#shareChallengeTop").onclick = () => doShare(challengeText());
+$("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
