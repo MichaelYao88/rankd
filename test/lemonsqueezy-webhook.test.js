@@ -238,3 +238,42 @@ test("the migration keeps entitlement writes on the service role and exposes ema
   assert.match(claimFn, /security invoker/);
   assert.doesNotMatch(claimFn, /security definer/);
 });
+
+test("premium_by_email rows carry only its own columns, and user rows carry user_email", () => {
+  const migrationCols = ["email", "premium", "status", "current_period_end", "lemon_customer_id", "lemon_subscription_id",
+    "lemon_order_id", "source_variant_id", "source_product", "source_app", "test_mode"];
+  const decision = lemon.decideLemon(order({}, { custom_data: {} }), env(), NOW);
+  const plan = lemon.applyPlan(decision, false);
+  assert.equal("user_email" in plan.emailRow, false);
+  for (const key of Object.keys(plan.emailRow)) assert.ok(migrationCols.includes(key), key);
+  const direct = lemon.applyPlan(lemon.decideLemon(order(), env(), NOW), true);
+  assert.equal(direct.userRow.user_email, "ada@example.com");
+});
+
+test("test-mode grants are marked test_mode", () => {
+  const testOrder = order({ test_mode: true }, { test_mode: true, custom_data: {} });
+  const plan = lemon.applyPlan(lemon.decideLemon(testOrder, env({ allowTestMode: true }), NOW), false);
+  assert.equal(plan.emailRow.test_mode, true);
+  const live = lemon.applyPlan(lemon.decideLemon(order(), env(), NOW), true);
+  assert.equal(live.userRow.test_mode, false);
+});
+
+test("dedupe uses a per-event key, not meta.webhook_id, which is shared by every delivery", () => {
+  const a = lemon.decideLemon(order({ updated_at: "2026-10-27T08:24:30Z" }), env(), NOW);
+  const b = lemon.decideLemon(sub("subscription_created", "active", { updated_at: "2026-10-27T08:24:31Z" }, { webhook_id: "wh_order" }), env(), NOW);
+  assert.equal(a.webhookId, b.webhookId);
+  assert.notEqual(a.eventKey, b.eventKey);
+  assert.equal(a.eventKey, "order_created:orders:55:2026-10-27T08:24:30.000Z");
+  const retry = lemon.decideLemon(order({ updated_at: "2026-10-27T08:24:30Z" }), env(), NOW);
+  assert.equal(retry.eventKey, a.eventKey);
+  assert.doesNotMatch(indexSrc, /alreadyApplied\(admin, decision\.webhookId\)/);
+  assert.match(indexSrc, /console\.error\("lemon apply_failed"/);
+});
+
+test("the test-mode migration adds the column and the claim copies it", () => {
+  const m = fs.readFileSync(path.join(__dirname, "../supabase/migrations/20261027190000_premium_test_mode.sql"), "utf8");
+  assert.match(m, /alter table public\.premium_by_email\s+add column if not exists test_mode/);
+  assert.match(m, /alter table public\.entitlements\s+add column if not exists test_mode/);
+  assert.match(m, /rec\.test_mode/);
+  assert.match(m, /security definer/);
+});
