@@ -131,9 +131,10 @@
   }
 
   function ignore(eventName, reason, extra) {
-    var row = { ignore: true, reason: reason, eventName: eventName || "", grant: null, webhookId: "" };
+    var row = { ignore: true, reason: reason, eventName: eventName || "", grant: null, webhookId: "", eventKey: "" };
     if (extra) {
       if (extra.webhookId) row.webhookId = extra.webhookId;
+      if (extra.eventKey) row.eventKey = extra.eventKey;
       if (extra.testMode != null) row.testMode = extra.testMode;
       if (extra.variantId) row.variantId = extra.variantId;
       if (extra.storeId) row.storeId = extra.storeId;
@@ -154,6 +155,18 @@
     return { premium: false, until: isoOrNull(endsAt) || isoOrNull(renewsAt), status: s || "inactive" };
   }
 
+  // Lemon sends no delivery id. meta.webhook_id names the configured webhook,
+  // so every delivery to one endpoint shares it and it must not be used to
+  // dedupe. A retry keeps event name, resource and updated_at; a real change
+  // moves updated_at.
+  function eventKeyOf(eventName, data, attrs) {
+    var type = String(data.type || "").trim();
+    var id = textId(data.id);
+    if (!eventName || !type || !id) return "";
+    var stamp = isoOrNull(attrs.updated_at) || isoOrNull(attrs.created_at) || "";
+    return (eventName + ":" + type + ":" + id + ":" + stamp).slice(0, 200);
+  }
+
   function decideLemon(payload, env, now) {
     var body = asObject(payload);
     var meta = asObject(body.meta);
@@ -165,7 +178,8 @@
     var testMode = isTestMode(meta, attrs);
     var storeId = digits(attrs.store_id);
     var variantId = variantIdOf(attrs);
-    var base = { webhookId: webhookId, testMode: testMode, variantId: variantId, storeId: storeId };
+    var eventKey = eventKeyOf(eventName, data, attrs);
+    var base = { webhookId: webhookId, eventKey: eventKey, testMode: testMode, variantId: variantId, storeId: storeId };
 
     if (!eventName) return ignore("", "missing_event", base);
     var isOrder = eventName === "order_created" || eventName === "order_refunded";
@@ -214,6 +228,7 @@
       reason: "apply",
       eventName: eventName,
       webhookId: webhookId,
+      eventKey: eventKey,
       testMode: testMode,
       variantId: variantId,
       storeId: storeId,
@@ -229,11 +244,13 @@
         customerId: textId(attrs.customer_id),
         subscriptionId: data.type === "subscriptions" ? textId(data.id) : textId(attrs.subscription_id),
         orderId: data.type === "orders" ? textId(data.id) : textId(attrs.order_id),
+        testMode: testMode,
       },
     };
   }
 
-  // Which rows the service role should write. userExists is true only when
+  // Which rows the service role should write. premium_by_email is keyed by
+  // email and has no user_email column; entitlements carries user_email. userExists is true only when
   // custom_data.user_id is a Ranki auth user. Otherwise the email table holds
   // the entitlement until that person signs in and claims it.
   function applyPlan(decision, userExists) {
@@ -251,11 +268,11 @@
       source_variant_id: g.variantId,
       source_product: g.sourceProduct,
       source_app: g.sourceApp || null,
-      user_email: g.email || null,
+      test_mode: !!g.testMode,
     };
     var emailRow = g.email ? Object.assign({ email: g.email }, fields) : null;
     var userRow = g.userId && userExists
-      ? Object.assign({ user_id: g.userId, grant_via: "user_id" }, fields)
+      ? Object.assign({ user_id: g.userId, grant_via: "user_id", user_email: g.email || null }, fields)
       : null;
     return {
       emailRow: emailRow,
@@ -270,6 +287,7 @@
     sourceProductFor: sourceProductFor,
     verifySignature: verifySignature,
     decideLemon: decideLemon,
+    eventKeyOf: eventKeyOf,
     applyPlan: applyPlan,
     normalizeEmail: normalizeEmail,
     normalizeUserId: normalizeUserId,

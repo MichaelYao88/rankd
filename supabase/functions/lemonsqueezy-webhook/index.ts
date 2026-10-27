@@ -24,6 +24,7 @@ type Grant = {
   customerId: string | null;
   subscriptionId: string | null;
   orderId: string | null;
+  testMode: boolean;
 };
 
 type Decision = {
@@ -31,6 +32,7 @@ type Decision = {
   reason: string;
   eventName: string;
   webhookId: string;
+  eventKey: string;
   testMode?: boolean;
   variantId?: string;
   storeId?: string;
@@ -95,8 +97,9 @@ async function logEvent(
   if (error && error.code !== "23505") console.error("lemon_events insert", error.message);
 }
 
-async function alreadyApplied(admin: SupabaseClient, webhookId: string): Promise<boolean> {
-  const { data } = await admin.from("lemon_events").select("applied").eq("lemon_event_id", webhookId).maybeSingle();
+async function alreadyApplied(admin: SupabaseClient, eventKey: string): Promise<boolean> {
+  const { data, error } = await admin.from("lemon_events").select("applied").eq("lemon_event_id", eventKey).maybeSingle();
+  if (error) console.error("lemon_events lookup", error.code, error.message);
   return !!(data && data.applied);
 }
 
@@ -114,14 +117,14 @@ async function applyGrant(admin: SupabaseClient, decision: Decision): Promise<st
       { ...plan.emailRow, updated_at: now },
       { onConflict: "email" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("premium_by_email upsert: " + error.message);
   }
   if (plan.userRow) {
     const { error } = await admin.from("entitlements").upsert(
       { ...plan.userRow, updated_at: now },
       { onConflict: "user_id" },
     );
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("entitlements upsert: " + error.message);
   } else if (plan.emailGrantUpdate && plan.emailRow) {
     const email = String(plan.emailRow.email || "");
     const patch = { ...plan.emailRow };
@@ -129,7 +132,7 @@ async function applyGrant(admin: SupabaseClient, decision: Decision): Promise<st
     const { error } = await admin.from("entitlements").update({ ...patch, grant_via: "email", updated_at: now })
       .eq("user_email", email)
       .eq("grant_via", "email");
-    if (error) throw new Error(error.message);
+    if (error) throw new Error("entitlements email update: " + error.message);
   }
   if (!plan.emailRow && !plan.userRow) return "no_ranki_user";
   return exists ? "user_id" : "email";
@@ -178,17 +181,18 @@ Deno.serve(async (req: Request) => {
   }, Date.now());
 
   if (!admin) {
+    console.error("lemon missing_service_key");
     return json({ ok: false, error: "missing_service_key" }, 500);
   }
 
-  if (decision.webhookId && await alreadyApplied(admin, decision.webhookId)) {
+  if (decision.eventKey && await alreadyApplied(admin, decision.eventKey)) {
     return json({ ok: true, duplicate: true }, 200);
   }
 
   if (decision.ignore) {
     await logEvent(admin, {
       event_name: decision.eventName || "unknown",
-      lemon_event_id: decision.webhookId || null,
+      lemon_event_id: decision.eventKey || null,
       payload,
       signature_ok: true,
       applied: false,
@@ -201,7 +205,7 @@ Deno.serve(async (req: Request) => {
     const via = await applyGrant(admin, decision);
     await logEvent(admin, {
       event_name: decision.eventName,
-      lemon_event_id: decision.webhookId || null,
+      lemon_event_id: decision.eventKey || null,
       payload,
       signature_ok: true,
       applied: true,
@@ -210,6 +214,8 @@ Deno.serve(async (req: Request) => {
     return json({ ok: true, applied: true, via }, 200);
   } catch (err) {
     const message = err instanceof Error ? err.message : "apply_failed";
+    // No secrets or payload here: event name, key, and the database message only.
+    console.error("lemon apply_failed", decision.eventName, decision.eventKey, message);
     await logEvent(admin, {
       event_name: decision.eventName,
       lemon_event_id: null,
