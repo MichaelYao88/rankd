@@ -201,6 +201,73 @@ test("a missing suggestions table is a distinct, friendly failure", () => {
   assert.doesNotMatch(missing, /PGRST|stack|SQL/i);
 });
 
+test("the results source card matches the how-to preview and sits above share", () => {
+  const result = html.slice(html.indexOf('id="result"'), html.indexOf('id="adBottomShell"'));
+  const fact = result.indexOf('id="fact"');
+  const source = result.indexOf('id="sourceLink"');
+  const share = result.indexOf('id="shareResultBtn"');
+  const challenge = result.indexOf('id="challengeFriendBtn"');
+  assert.ok(fact >= 0 && source > fact && share > source && challenge > source);
+  assert.match(result, /class="source-card hidden" id="sourceLink"/);
+  assert.match(result, /id="sourceName"/);
+  assert.match(result, /id="sourceDataset"/);
+  assert.match(result, /id="sourceDomain"/);
+  assert.match(result, /id="sourceFav"/);
+  assert.match(result, /Tap to see the data/);
+  assert.match(html, /class="source-card"/);
+  assert.match(html, /Female homicide rate, 2022/);
+  assert.match(html, /data\.worldbank\.org/);
+  assert.match(css, /\.source-card/);
+  assert.match(css, /source-fav-fallback/);
+  assert.doesNotMatch(fs.readFileSync(path.join(root, "app.js"), "utf8"), /og:image|opengraph|microlink|unfurl/i);
+
+  const card = shared.sourceCardModel({
+    source: "UNODC via World Bank",
+    sourceUrl: "https://www.data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5",
+    stat: "Female homicide rate",
+    year: "2022",
+  });
+  assert.equal(card.publisher, "UNODC via World Bank");
+  assert.equal(card.dataset, "Female homicide rate, 2022");
+  assert.equal(card.domain, "data.worldbank.org");
+  assert.equal(card.favicon, "https://www.data.worldbank.org/favicon.ico");
+  assert.equal(card.tap, "Tap to see the data");
+  assert.match(card.url, /^https:\/\/www\.data\.worldbank\.org\//);
+
+  const kept = shared.sourceCardModel({
+    source: "Pew",
+    sourceUrl: "https://www.pewresearch.org/global/2021/11/18/what-makes-life-meaningful/",
+    stat: "Meaning in life, 2021",
+    year: "2021",
+  });
+  assert.equal(kept.dataset, "Meaning in life, 2021");
+  assert.equal(kept.domain, "pewresearch.org");
+
+  const match = shared.sourceCardModel({
+    source: "Pew Research Center",
+    sourceUrl: "https://www.pewresearch.org/global/example",
+    stat: "Match each clue to the right person",
+    question: "Where people found meaning in life",
+    headline: "What Matters Most",
+  });
+  assert.equal(match.dataset, "Where people found meaning in life");
+
+  const flagged = shared.sourceCardModel({
+    source: "Our World in Data",
+    sourceUrl: "https://ourworldindata.org/grapher/annual-working-hours-per-worker",
+    stat: "",
+    question: "Hours Worked per Year 🇩🇪🇮🇩",
+    items: [{ year: "2023" }],
+  });
+  assert.equal(flagged.dataset, "Hours Worked per Year, 2023");
+  assert.equal(flagged.favicon, "https://ourworldindata.org/favicon.ico");
+
+  const blank = shared.sourceCardModel({ source: "", sourceUrl: "notaurl", stat: "Tea" });
+  assert.equal(blank.url, "");
+  assert.equal(blank.favicon, "");
+  assert.equal(blank.publisher, "Source");
+});
+
 test("the submission migration is insert-only for anon", () => {
   assert.match(migration, /create table if not exists public\.puzzle_submissions/i);
   assert.match(migration, /enable row level security/i);
