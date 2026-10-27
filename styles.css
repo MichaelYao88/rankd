@@ -413,7 +413,7 @@ button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;
 .inter-note{font-size:12px;font-weight:700;color:var(--muted)}
 .skip{border:0;background:var(--ink);color:var(--bg);border-radius:999px;padding:9px 15px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
 .skip:disabled{opacity:.5;cursor:default}
-.inter-fill{padding:0 14px 14px}
+.inter-fill{padding:0 14px}
 .inter-ph{height:300px;border-radius:14px;display:grid;place-items:center;text-align:center;color:var(--muted);background:rgba(var(--ink-rgb),.05)}
 .modal-box{position:relative;width:min(480px,100%);max-height:86vh;overflow:auto;background:var(--surface2);border-radius:22px;padding:26px 22px;box-shadow:var(--shadow-card)}
 .modal-box h2{margin:0 0 14px;font-size:26px;letter-spacing:-.035em;font-weight:700}
@@ -615,6 +615,8 @@ body.has-fab .share-row{scroll-margin-bottom:calc(var(--fab-h, 56px) + 36px + en
 /* v9: streamer mode hides every ad container */
 html.streamer .ad-slot{display:none!important}
 html.premium .ad-slot{display:none!important}   /* Premium: no ads */
+html.premium [data-premium-upsell]{display:none!important}   /* Premium: hide Remove ads / Go Premium upsells */
+html.streamer #interstitial,html.premium #interstitial{display:none!important}
 /* v9: Guess the top 5 values box on the LEFT (one dashed box, one value per row, aligned with the #1-#5 slots) */
 .t5grid{display:grid;grid-template-columns:minmax(92px,32%) minmax(0,1fr);gap:10px;align-items:start;margin-top:6px}
 .t5vals{border:1.5px dashed var(--line);border-radius:14px;margin-top:4.5px}
@@ -849,7 +851,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit .hero.is-top1 .top1-hints .lasthint>span:last-child{white-space:normal;overflow:visible;text-overflow:unset}
   body.fit #guessGame .card-foot{margin-top:6px}
   /* on-screen keyboard open: drop everything above the card + the subtitle */
-  body.kb .topbar,body.kb .ad-banner,body.kb .stat-label,body.kb .hero-top,body.kb .challenge-banner{display:none!important}
+  body.kb .topbar,body.kb .ad-banner,body.kb .ad-banner-shell,body.kb .stat-label,body.kb .hero-top,body.kb .challenge-banner{display:none!important}
   body.kb .wrap{padding-top:4px}
   body.kb .hero h1{font-size:17px;margin:0 0 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   body.kb .lasthint{-webkit-line-clamp:1}
@@ -1014,19 +1016,39 @@ html.ads-live .ad-banner .ad-tag,html.ads-live .ad-banner .ad-fill:empty{display
 html.ads-live .ad-banner{background:transparent}
 .ad-banner .ad-fill{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
 .ad-banner.ad-collapsed,#adTop.ad-collapsed{display:none!important}
-/* Top banner is off until app.js adds .ad-on (Practice, or a short archive day that still fits). display:none so Daily, lists, and full-height boards keep no empty gap. */
+/* Top banner is off until app.js adds .ad-on (Practice, or a short archive day that still fits). display:none so Daily, lists, and full-height boards keep no empty gap.
+   The shell (Remove ad strip + slot) follows .is-on so the label never shows without the banner and never covers the iframe. */
 #adTop{display:none}
 #adTop.ad-on{display:flex}
+.ad-banner-shell{display:none;max-width:728px;margin:12px auto 0}
+.ad-banner-shell.is-on{display:flex;flex-direction:column;align-items:stretch}
+.ad-banner-shell .ad-banner{margin:0;max-width:none}
+.ad-banner-shell.is-collapsed,html.premium .ad-banner-shell,html.streamer .ad-banner-shell{display:none!important}
+@media (max-width:760px){.ad-banner-shell{margin:12px 14px 0;max-width:none}}
+@media (min-width:760px){.ad-banner-shell{margin-top:18px}}
+@media (max-width:560px){.ad-banner-shell{margin:6px 10px 0}}
+.ad-remove-bar{display:flex;justify-content:flex-end;align-items:center;min-height:22px;padding:0 2px 2px;font-size:11px;line-height:1.2}
+button.ad-remove.prem-upsell{padding:3px 2px 3px 10px;font-size:11px;font-weight:700;letter-spacing:.01em;position:static}
 ins.rk-ad-banner{display:block;width:100%;height:50px;max-width:728px;margin:0 auto}
 @media (min-width:760px){ins.rk-ad-banner{height:90px}}
 ins.rk-ad-inter{display:block;width:100%;min-height:250px}
+.inter-creative{background:transparent}
+.inter-remove{padding:12px 16px 14px;text-align:center}
+button#interRemoveAds.prem-upsell{font-size:14px;font-weight:700;position:static}
 
-/* v12.2: Practice bottom banner (same look/size as the top banner; only in Practice; streamer mode hides it via .ad-slot) */
+/* v12.2: Practice bottom banner (same look/size as the top banner; only in Practice; streamer mode hides it via .ad-slot).
+   Remove ad is a strip above the slot. On phones the shell is fixed so the strip stays outside the 50px creative. */
 .ad-bottom{display:none}
-body.mode-practice .ad-bottom{display:block;margin:14px auto 0}
-body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
-@media (max-width:760px){body.mode-practice .ad-bottom{margin:12px 0 0}}
-@media (max-width:560px){body.fit.mode-practice .ad-bottom{position:fixed;left:10px;right:10px;bottom:max(6px,env(safe-area-inset-bottom));margin:0;height:50px;z-index:30} body.kb .ad-bottom{display:none!important}}
+.ad-bottom-shell{display:none;max-width:728px;margin:14px auto 0}
+body.mode-practice .ad-bottom-shell{display:flex;flex-direction:column;align-items:stretch}
+body.mode-practice .ad-bottom-shell .ad-bottom{display:flex;margin:0;max-width:none}
+body.mode-practice .ad-bottom.ad-collapsed,.ad-bottom-shell.is-collapsed{display:none!important}
+@media (max-width:760px){body.mode-practice .ad-bottom-shell{margin:12px 0 0;max-width:none}}
+@media (max-width:560px){
+  body.fit.mode-practice .ad-bottom-shell{position:fixed;left:10px;right:10px;bottom:max(6px,env(safe-area-inset-bottom));margin:0;z-index:30;max-width:none}
+  body.fit.mode-practice .ad-bottom-shell .ad-bottom{position:static;height:50px;margin:0}
+  body.kb .ad-bottom-shell{display:none!important}
+}
 
 /* v12.2: static pages (about.html, privacy.html, how-to-play.html) + footer links */
 .foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:8px}
@@ -1109,6 +1131,10 @@ body.mode-practice .ad-bottom.ad-collapsed{display:none!important}
 .home-play h1{margin-top:18px}
 .home-puzzle{margin:2px 0 0;font-size:clamp(18px,4.6vw,22px);font-weight:700;letter-spacing:-.03em;line-height:1.25}
 .home-play .pill-btn{display:block;width:100%;margin-top:18px;text-align:center}
+.home-premium{margin:14px 0 0}
+button.home-premium-btn.prem-upsell{display:block;width:100%;text-align:left;background:var(--surface2);border:0;border-radius:18px;box-shadow:var(--shadow-soft);padding:14px 16px;color:var(--ink);font-size:14.5px;font-weight:700;line-height:1.4;letter-spacing:-.015em;text-decoration:none;cursor:pointer}
+button.home-premium-btn.prem-upsell:hover{background:rgba(var(--ink-rgb),.03)}
+.home-premium-lead{color:var(--brand);font-weight:800}
 .home-how{margin-top:28px}
 .home-submit{margin-top:6px}
 .how-steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}

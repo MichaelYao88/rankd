@@ -82,8 +82,14 @@
      Lock control still fits. CSS hides #adTop (no reserved gap) until app.js adds .ad-on. Placeholder locally;
      on the live site AdSense fills .ad-fill the first time the slot is actually visible, and collapses it if
      there's no ad-unit ID, no fill or the script is blocked. Daily, the archive list, and All puzzles stay off. -->
-<!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) and Premium (html.premium) hide them all. -->
-<div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+<!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) and Premium (html.premium) hide them all.
+     "Remove ad" sits in a strip above the slot, never on the creative or the iframe. -->
+<div class="ad-banner-shell" id="adTopShell">
+  <div class="ad-remove-bar" data-premium-upsell="banner">
+    <button type="button" class="ad-remove prem-upsell" id="adTopRemove">Remove ad ✕</button>
+  </div>
+  <div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+</div>
 
 
 
@@ -101,6 +107,10 @@
       <p class="hero-date" id="homeWhen">A new puzzle every day</p>
       <button type="button" class="pill-btn outline" id="homePlayBtn">Play today's puzzle</button>
     </article>
+
+    <aside class="home-premium" id="homePremium" data-premium-upsell="home">
+      <button type="button" class="home-premium-btn prem-upsell" id="homePremiumBtn"><span class="home-premium-lead">Go Premium:</span> no ads, full archive, and unlocks WhereIsShe too. From $2.67/month</button>
+    </aside>
 
     <section class="home-how" id="homeHow" aria-labelledby="homeHowTitle">
       <h2 class="section-title" id="homeHowTitle"><span class="hl">How to play!</span></h2>
@@ -378,7 +388,12 @@
     </section>
     <!-- v12.2 AD SLOT: bottom banner, Practice only (body.mode-practice). On phones it sits right under the card and
          fitLayout() shrinks the card so the banner and the Guess button both stay on screen. -->
-    <div class="ad-slot ad-banner ad-bottom" id="adBottom" data-ad="practice-bottom-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+    <div class="ad-banner-shell ad-bottom-shell" id="adBottomShell">
+      <div class="ad-remove-bar" data-premium-upsell="banner">
+        <button type="button" class="ad-remove prem-upsell" id="adBottomRemove">Remove ad ✕</button>
+      </div>
+      <div class="ad-slot ad-banner ad-bottom" id="adBottom" data-ad="practice-bottom-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+    </div>
   </section>
 
   <!-- ======== ARCHIVE VIEW ======== -->
@@ -421,12 +436,19 @@
      Shown on archive/practice puzzles only, between submitting and the reveal. Never on today's daily.
      v12.2: also in Practice when the player asks for the next random puzzle without finishing the current one.
      For production use an AdSense "Ad placement" / vignette or a Google Ad Manager interstitial instead. -->
-<div class="overlay hidden ad-slot" id="interstitial" data-ad="interstitial" aria-modal="true" role="dialog">
+<div class="overlay hidden" id="interstitial" aria-modal="true" role="dialog" aria-labelledby="interNote">
   <div class="inter-box">
     <div class="inter-top"><span class="ad-tag">Ad</span><span class="inter-note" id="interNote">Your result is ready</span><button class="skip" id="skipAd" disabled>Skip in 5</button></div>
-    <div class="inter-fill">
-      <!-- ADSENSE: interstitial / large rectangle unit goes here -->
-      <div class="inter-ph"><span>Interstitial ad placeholder<br><small>336×280 · full-screen on mobile</small></span></div>
+    <!-- Ad slot is only the creative. Skip stays in the bar above; Remove ads sits below, outside the slot. -->
+    <div class="ad-slot inter-creative" data-ad="interstitial">
+      <div class="inter-fill">
+        <!-- ADSENSE: interstitial / large rectangle unit goes here -->
+        <div class="inter-ph"><span>Interstitial ad placeholder<br><small>336×280 · full-screen on mobile</small></span></div>
+      </div>
+    </div>
+    <!-- /interstitial ad slot: Remove ads control is outside this slot -->
+    <div class="inter-remove" data-premium-upsell="interstitial">
+      <button type="button" class="prem-upsell" id="interRemoveAds">Remove ads with Premium</button>
     </div>
   </div>
 </div>
