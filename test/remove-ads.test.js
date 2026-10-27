@@ -72,7 +72,7 @@ test("home Premium line sits under Play and opens Go Premium", () => {
   const how = home.indexOf('id="homeHow"');
   assert.ok(play >= 0 && play < card && card < how);
   const text = home.slice(card, how).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  assert.match(text, /Go Premium: no ads, full archive, and unlocks WhereIsShe too\. From \$2\.67\/month/);
+  assert.match(text, /Go Premium: no ads, full archive, and unlocks whereisshe\.gg too\. From \$2\.67\/month/);
   assert.match(home, /data-premium-upsell="home"/);
   assert.match(home, /class="home-premium-btn prem-upsell"/);
   assert.match(css, /button\.home-premium-btn\.prem-upsell\{[^}]*background:var\(--surface2\)/);

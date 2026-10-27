@@ -3,7 +3,7 @@
   <rect width="1200" height="630" fill="#EAE7E0"/>
   <rect x="70" y="70" width="1060" height="490" rx="48" ry="48" fill="#FFFFFF"/>
   <text x="600" y="270" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="92" font-weight="800">
-    <tspan fill="#1C1C1E">Ranki</tspan><tspan fill="#3B5BFF">.GG</tspan>
+    <tspan fill="#1C1C1E">ranki</tspan><tspan fill="#3B5BFF">.gg</tspan>
   </text>
   <text x="600" y="340" text-anchor="middle" font-family="Inter, system-ui, sans-serif" font-size="28" font-weight="500" fill="#78787C">Six cards. One order. A new puzzle every day.</text>
 </svg>

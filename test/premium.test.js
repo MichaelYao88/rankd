@@ -73,7 +73,7 @@ function googleUser(over) {
 test("checkout keeps Lemon's bracket names and sends the Ranki user", () => {
   assert.equal(shared.CONFIG.premium.checkoutUrl, CHECKOUT);
   assert.equal(shared.CONFIG.premium.priceLine, "From $2.67/month · suggested $6.70");
-  assert.match(shared.CONFIG.premium.pitch, /Premium unlocks Ranki \+ WhereIsShe/);
+  assert.match(shared.CONFIG.premium.pitch, /Premium unlocks ranki\.gg \+ whereisshe\.gg/);
   const url = premium.premiumCheckoutUrl(CHECKOUT, { id: USER, email: "Ada@Example.com" });
   assert.ok(url.startsWith(CHECKOUT + "?"));
   assert.match(url, /checkout\[custom\]\[user_id\]=11111111-1111-4111-8111-111111111111/);
@@ -151,10 +151,10 @@ test("the sign-in screen and the Premium screen advertise both games", () => {
   assert.match(appSrc, /redirectTo:\s*authRedirectUrl\(\)/);
   assert.match(html, /id="accountBtn"/);
   assert.match(html, /id="premiumView"/);
-  assert.match(html, /Premium unlocks Ranki \+ WhereIsShe: no ads, full archive, and ad-free Practice\. From \$2\.67\/month · suggested \$6\.70/);
+  assert.match(html, /Premium unlocks ranki\.gg \+ whereisshe\.gg: no ads, full archive, and ad-free Practice\. From \$2\.67\/month · suggested \$6\.70/);
   assert.match(html, /supabase-js@2/);
-  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
-  assert.match(premium.accountCopy("signup").subtitle, /Ranki and WhereIsShe/);
+  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
+  assert.match(premium.accountCopy("signup").subtitle, /ranki\.gg and whereisshe\.gg/);
   assert.match(privacy, /Sign up with Google/);
   assert.match(privacy, /Sign in with Google/);
   assert.match(privacy, /Sign up with email/);
@@ -170,14 +170,14 @@ test("account labels follow the device seen flag", () => {
   assert.equal(premium.accountSeen(), false);
   assert.equal(premium.accountCopy().intent, "signup");
   assert.equal(premium.accountCopy().header, "Sign up");
-  assert.equal(premium.accountCopy().title, "Create your Ranki account");
+  assert.equal(premium.accountCopy().title, "Create your ranki.gg account");
   assert.equal(premium.accountCopy().google, "Sign up with Google");
   assert.equal(premium.accountCopy().email, "Sign up with email");
   assert.equal(premium.accountCopy().toggleLead, "Already have an account?");
   assert.equal(premium.accountCopy().toggle, "Sign in");
 
   const signupHtml = premium.accountModalHtml();
-  assert.match(signupHtml, /Create your Ranki account/);
+  assert.match(signupHtml, /Create your ranki\.gg account/);
   assert.match(signupHtml, /Sign up with Google/);
   assert.match(signupHtml, /Sign up with email/);
   assert.match(signupHtml, /Already have an account\?/);
@@ -205,7 +205,7 @@ test("account labels follow the device seen flag", () => {
   assert.match(signinHtml, /Sign in with Google/);
   assert.match(signinHtml, /New here\?/);
   assert.match(signinHtml, /id="accountToggle">Sign up</);
-  assert.doesNotMatch(signinHtml, /Create your Ranki account/);
+  assert.doesNotMatch(signinHtml, /Create your ranki\.gg account/);
 
   assert.equal(premium.accountCopy("signup").google, "Sign up with Google");
   assert.match(premium.accountModalHtml("signup"), /Sign up with Google/);

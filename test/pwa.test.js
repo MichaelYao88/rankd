@@ -36,8 +36,8 @@ function req(url, extra) {
 
 test("manifest is a standalone Ranki app at the site root", () => {
   const manifest = JSON.parse(read("manifest.webmanifest"));
-  assert.equal(manifest.name, "Ranki");
-  assert.equal(manifest.short_name, "Ranki");
+  assert.equal(manifest.name, "ranki.gg");
+  assert.equal(manifest.short_name, "ranki.gg");
   assert.equal(manifest.start_url, "/");
   assert.equal(manifest.scope, "/");
   assert.equal(manifest.display, "standalone");
@@ -93,7 +93,7 @@ test("every HTML page links the manifest and iOS tags", () => {
     assert.match(html, /name="apple-mobile-web-app-capable" content="yes"/, page);
     assert.match(html, /name="mobile-web-app-capable" content="yes"/, page);
     assert.match(html, /name="apple-mobile-web-app-status-bar-style"/, page);
-    assert.match(html, /name="apple-mobile-web-app-title" content="Ranki"/, page);
+    assert.match(html, /name="apple-mobile-web-app-title" content="ranki\.gg"/, page);
     assert.match(html, /name="theme-color" content="#3B5BFF"/, page);
   }
 });
@@ -114,7 +114,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v12");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v13");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
