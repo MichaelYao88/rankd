@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v10";
+var CACHE = "ranki-shell-v11";
 
 var PRECACHE = [
   "/",
@@ -44,7 +44,8 @@ var PRECACHE = [
   "/icons/icon-maskable-512.png",
   "/icons/apple-touch-icon.png",
   "/vendor/sortable.min.js",
-  "/vendor/xlsx.full.min.js"
+  "/vendor/xlsx.full.min.js",
+  "/vendor/qrcode.js"
 ];
 
 // No cross-origin font or static host is cached on purpose. The site uses

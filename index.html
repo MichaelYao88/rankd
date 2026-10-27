@@ -405,9 +405,8 @@
         <span class="source-tap">Tap to see the data</span>
       </a>
       <div class="share-row">
-        <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
-        <p class="challenge-link-note" id="challengeLinkNote" hidden></p>
-        <button class="pill-btn challenge-friend" id="challengeFriendBtn" type="button">Challenge a friend</button>
+        <button class="pill-btn primary" id="challengeFriendBtn" type="button">Challenge a friend</button>
+        <button class="pill-btn secondary" id="sharePuzzleBtn" type="button">Share this puzzle</button>
       </div>
       <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
       <aside class="crosspromo hidden" id="crossPromo" aria-label="Like Ranki?">
@@ -419,6 +418,10 @@
         </div>
       </aside>
       <div class="actions"><button class="pill-btn ghost" id="nextBtn">More puzzles →</button></div>
+      <div class="challenge-qr hidden" id="challengeQr">
+        <div class="challenge-qr-code" id="challengeQrCode" role="img" aria-label="QR code to take this challenge"></div>
+        <p class="challenge-qr-caption">Scan to take my challenge</p>
+      </div>
     </section>
     <!-- v12.2 AD SLOT: bottom banner, Practice only (body.mode-practice). On phones it sits right under the card and
          fitLayout() shrinks the card so the banner and the Guess button both stay on screen. -->
@@ -537,6 +540,7 @@
 <script src="site-config.js"></script>
 <script src="vendor/sortable.min.js"></script>
 <script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/qrcode.js"></script>
 <script src="puzzles-data.js"></script>
 <script src="practice-data.js"></script>
 <script src="community-seed.js"></script>

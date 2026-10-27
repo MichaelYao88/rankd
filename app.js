@@ -976,8 +976,8 @@ function googleProfile(user) {
   const avatar = /^https:\/\//i.test(rawAvatar) ? rawAvatar : "";
   return { name: name || null, avatar };
 }
-// Signed-in display name, or null. Null stays empty on the link, so the banner says "Your friend".
-// An old link that already carries a name still decodes to that name.
+// Signed-in Google display name, or null. Challenge links use that name,
+// or "Your friend" when the player has no account name.
 function getChallengerName() {
   return googleProfile(authUser).name || null;
 }
@@ -3090,6 +3090,7 @@ function showResult(res, opts) {
   $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   paintSourceCard(p);
+  renderChallengeQr(res);
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderYouVs(p, null, res);
   renderHeadToHead(res);
@@ -3878,59 +3879,87 @@ function renderHeadToHead(res) {
 function challengeNameForShare() {
   const RC = window.RankdChallenge;
   const raw = getChallengerName();
-  if (raw == null || raw === "") return "";
-  return RC ? RC.sanitizeName(raw) : String(raw).replace(/\s+/g, " ").trim().slice(0, 16);
+  const fallback = (RC && RC.DEFAULT_NAME) || "Your friend";
+  const picked = raw == null || String(raw).trim() === "" ? fallback : raw;
+  return RC ? RC.sanitizeName(picked) : String(picked).replace(/\s+/g, " ").trim().slice(0, 16);
 }
-async function shareOrCopyChallenge(text, url) {
+async function shareOrCopyChallenge(text, url, copiedToast) {
+  const toastMsg = copiedToast || "Challenge link copied!";
+  const payload = text && url && text.indexOf(url) === -1 ? text + "\n" + url : (text || url || "");
   if (typeof navigator.share === "function") {
     try {
-      await navigator.share({ title: CONFIG.brand, text: text, url: url });
+      const data = { title: CONFIG.brand, text: payload };
+      if (url) data.url = url;
+      await navigator.share(data);
       return "shared";
     } catch (e) {
       if (e && e.name === "AbortError") return "abort";
     }
   }
-  const payload = text;
   try {
     await navigator.clipboard.writeText(payload);
-    toast("Challenge link copied!");
+    toast(toastMsg);
     return "copied";
   } catch (e) {
     const ta = document.createElement("textarea");
     ta.value = payload;
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand("copy"); toast("Challenge link copied!"); }
+    try { document.execCommand("copy"); toast(toastMsg); }
     catch (err) { window.prompt("Copy this:", payload); }
     ta.remove();
     return "copied";
   }
 }
-async function shareChallengeFriend() {
+function buildChallengeShare(res) {
   const RC = window.RankdChallenge;
   const p = state.puzzle;
-  if (!RC || !p) return;
-  let r = getResult();
-  if (p.type === "rank") r = normRank(r);
+  if (!RC || !p) return null;
+  let r = res || getResult();
+  if (!r) return null;
+  if (p.type === "rank") r = normRank(r) || r;
   const score = scoreForChallenge(p, r);
-  if (!score) { toast("Finish the puzzle first"); return; }
+  if (!score) return null;
   const name = challengeNameForShare();
   const ref = puzzleChallengeRef();
-  if (!ref) return;
+  if (!ref) return null;
   const token = RC.encode({ k: ref.k, id: String(ref.id), tries: score.tries, dnf: score.dnf, acc: score.acc, grid: score.grid, name: name });
-  if (!token) { toast("Couldn't make a challenge link"); return; }
-  const url = shareUrl() + "&c=" + token;
-  const note = $("#challengeLinkNote");
-  if (note) {
-    note.hidden = false;
-    note.replaceChildren();
-    const a = document.createElement("a");
-    a.href = url;
-    a.textContent = url;
-    note.append("Challenge link: ", a);
+  if (!token) return null;
+  return { url: shareUrl() + "&c=" + token, name: name, score: score };
+}
+function challengeQrSvg(url) {
+  if (!url || typeof qrcode !== "function") return "";
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(url);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true });
+  } catch (e) {
+    return "";
   }
-  const text = RC.shareLine(name, score) + "\n" + url;
-  const how = await shareOrCopyChallenge(text, url);
+}
+function renderChallengeQr(res) {
+  const box = $("#challengeQr");
+  const frame = $("#challengeQrCode");
+  if (!box || !frame) return;
+  frame.replaceChildren();
+  const built = buildChallengeShare(res);
+  const svg = built ? challengeQrSvg(built.url) : "";
+  if (!svg) { box.classList.add("hidden"); return; }
+  frame.innerHTML = svg;
+  const drawn = frame.querySelector("svg");
+  if (drawn) drawn.setAttribute("aria-hidden", "true");
+  box.classList.remove("hidden");
+}
+async function shareChallengeFriend() {
+  const p = state.puzzle;
+  const built = buildChallengeShare();
+  if (!built || !p) { toast("Finish the puzzle first"); return; }
+  const text = resultText(built.url);
+  if (!text) { toast("Finish the puzzle first"); return; }
+  track("share_clicked", { mode: state.mode, puzzle_type: p.type });
+  window.__lastShare = text;
+  const how = await shareOrCopyChallenge(text, built.url, "Challenge link copied!");
   if (how === "shared" || how === "copied") track("challenge_link_created", { mode: state.mode, puzzle_type: p.type });
 }
 
@@ -3938,8 +3967,9 @@ async function shareChallengeFriend() {
 // Share links always name this puzzle. Daily and archive use #d=YYYY-MM-DD, practice uses
 // #r=<seed>, the all-puzzles list uses #p=<id>. Loading Zone preview uses ?preview=YYYY-MM-DD:
 // a future #d= link is refused and would open today. The schedule page (loadingzone.html)
-// is not a puzzle URL, so shares point at the game. Challenge links add &c= and are separate
-// from these spoiler-free / result shares.
+// is not a puzzle URL, so shares point at the game. "Share this puzzle" is that direct
+// link plus a short title. "Challenge a friend" uses the same locator with &c= and the
+// score / emoji grid.
 function gameShareBase() {
   const http = location.protocol.startsWith("http");
   const origin = http ? location.origin : "https://ranki.gg";
@@ -3960,6 +3990,17 @@ function shareUrl() {
 window.RankdShare = { url: shareUrl, base: gameShareBase };
 const fullTitle = p => p && p.type === "top1" ? heroHeadline(p) : (p.headline && p.question && p.headline !== p.question ? `${p.headline}: ${p.question}` : (p.headline || p.question));   // v11 share/list text
 function shareTitle() { return state.mode === "preview" ? `${CONFIG.brand} preview` : state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
+async function shareThisPuzzle() {
+  const p = state.puzzle;
+  if (!p) return;
+  const url = shareUrl();
+  const title = shareTitle();
+  if (!url || !title) return;
+  const text = title + "\n" + url;
+  track("share_clicked", { mode: state.mode, puzzle_type: p.type });
+  window.__lastShare = text;
+  await shareOrCopyChallenge(title, url, "Puzzle link copied!");
+}
 function challengeText() {
   const p = state.puzzle;
   const blurb = p.type === "top1" ? "Top 1: which country is #1? Five tries." : p.type === "name" ? "Name it: can you name any country that passes both rules?" : p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?";
@@ -3969,30 +4010,31 @@ function accuracyShareBit(p, r) {
   const card = resultCard(p, r);
   return card && card.accuracy != null ? ` · Accuracy ${card.accuracy}` : "";
 }
-function resultText() {
+function resultText(link) {
   const p = state.puzzle; let r = getResult(); if (p.type === "rank") r = normRank(r); if (!r || !r.done) return "";
+  const url = link || shareUrl();
   const acc = accuracyShareBit(p, r);
   if (p.type === "match") {
     const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})${acc}`;
-    return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
+    return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`;
   }
   if (p.type === "top1") {
     const line = r.solved ? `${p.emoji || ""} Top 1: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `${p.emoji || ""} Top 1: X/${CONFIG.rankMaxTries}${acc}`;
-    return `${shareTitle()} ${line.trim()}\n${guessSquares(r)}\n${fullTitle(p)}\n${shareUrl()}`;
+    return `${shareTitle()} ${line.trim()}\n${guessSquares(r)}\n${fullTitle(p)}\n${url}`;
   }
   if (p.type === "name") {
     const line = r.solved ? `✏️ Name it: solved in ${r.tries} ${r.tries === 1 ? "try" : "tries"}${acc}` : `✏️ Name it: X/${CONFIG.rankMaxTries}${acc}`;
     const grid = (r.marks || []).map(m => EMO[m] || "🟥").join("");
-    return `${shareTitle()} ${line}\n${grid}\n${fullTitle(p)}\n${shareUrl()}`;
+    return `${shareTitle()} ${line}\n${grid}\n${fullTitle(p)}\n${url}`;
   }
   if (p.type === "rank" || p.type === "tier" || (p.type === "top5" && r.attempts && r.attempts.length)) {
     const kind = p.type === "tier" ? "Tier it" : p.type === "top5" ? "Top 5" : "";
     const line = r.solved ? `${p.emoji || ""} ${kind ? kind + ": " : ""}solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `${p.emoji || ""} ${kind ? kind + ": " : ""}X/${CONFIG.rankMaxTries}${acc}`;
-    return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${shareUrl()}`;
+    return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`;
   }
   const h = hitsOf(p, r), m = missesOf(p, r), avg = avgRank(p, r), rows = [];
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map(x => EMO[x]).join(""));
-  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""}${acc} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${shareUrl()}`;
+  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""}${acc} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${url}`;
 }
 async function doShare(text) {
   if (!text) return;
@@ -4033,7 +4075,7 @@ function syncFabPad() {
 function parkFab() {
   const f = $("#fab"); if (!f) return;
   if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
-  const targets = [$("#shareChallengeTop"), $("#challengeFriendBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs")];
+  const targets = [$("#shareChallengeTop"), $("#challengeFriendBtn"), $("#sharePuzzleBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs"), $("#challengeQr")];
   document.querySelectorAll("#youVs .platform-pct").forEach(el => targets.push(el));
   const hit = targets.some(el => boxesOverlap(f, el));
   f.classList.toggle("fab-clear", hit);
@@ -4711,9 +4753,9 @@ if ($("#suggest")) $("#suggest").addEventListener("mousedown", e => {
 });
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
-$("#shareResultBtn").onclick = () => doShare(resultText());
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
+if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
