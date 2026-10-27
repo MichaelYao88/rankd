@@ -387,14 +387,47 @@ button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;
 .account-fallback{display:grid;place-items:center;background:var(--brand);color:#fff;font-size:11px;font-weight:800}
 .account-out{border:0;background:none;color:var(--muted);font-size:12px;font-weight:800;padding:6px 4px}
 .account-out:hover{color:var(--ink)}
-.account-lead{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 12px}
-.account-actions{display:flex;flex-direction:column;gap:10px}
-.account-actions .pill-btn{width:100%}
-.account-or{text-align:center;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:2px 0}
-.account-label{font-size:12px;font-weight:700;color:var(--muted)}
-#emailForm{display:flex;flex-direction:column;gap:8px}
-#emailInput{height:48px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);padding:0 12px;font-size:16px}
-.account-note{min-height:1.2em;font-size:13.5px;color:var(--muted);margin:0}
+.modal-box .account-sheet h2{margin:0 0 6px;padding-right:32px;font-size:26px;letter-spacing:-.04em;line-height:1.12}
+.account-lead{color:var(--muted);font-size:14.5px;line-height:1.45;margin:0 0 18px}
+.account-actions{display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.account-or{display:flex;align-items:center;gap:12px;margin:0;color:var(--muted);font-size:13px;font-weight:600;letter-spacing:0}
+.account-or::before,.account-or::after{content:"";height:1px;flex:1;background:rgba(var(--ink-rgb),.14)}
+.account-email{display:flex;flex-direction:column;gap:8px}
+.account-email-field{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:8px;border:1px solid rgba(var(--ink-rgb),.18);background:var(--bg)}
+.account-email-field:focus-within{border-color:rgba(var(--brand-rgb),.65);box-shadow:0 0 0 3px rgba(var(--brand-rgb),.16)}
+.account-mail{width:20px;height:20px;flex:none;display:grid;place-items:center;color:var(--muted)}
+.account-mail svg{width:20px;height:20px;display:block}
+#emailInput{flex:1;min-width:0;height:100%;border:0;background:transparent;padding:0;font-size:16px;font-weight:600;outline:none}
+#emailInput::placeholder{color:var(--muted);font-weight:600}
+.account-email-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:400px;height:40px;margin:0 auto;padding:0 12px;border-radius:8px;border:1px solid rgba(var(--ink-rgb),.18);background:var(--surface2);color:var(--ink);font-family:Helvetica,"Helvetica Neue",Arial,sans-serif;font-size:14px;font-weight:700;line-height:20px;letter-spacing:-.011em}
+.account-email-btn:hover{background:rgba(var(--ink-rgb),.04)}
+.account-email-btn:active{transform:scale(.99)}
+.account-email-btn:disabled{opacity:.55;cursor:default;transform:none}
+.account-email-btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+.account-note{min-height:0;font-size:13.5px;line-height:1.4;color:var(--muted);margin:0}
+.account-note:empty{display:none}
+.account-note.is-error{color:var(--bad)}
+.account-switch{text-align:center;margin:2px 0 0;font-size:14px;line-height:1.4;color:var(--muted)}
+.account-switch button{border:0;background:none;padding:0;color:var(--link);font-size:inherit;font-weight:700;text-decoration:underline;text-underline-offset:2px}
+.account-switch button:hover{color:var(--ink)}
+.account-switch button:focus-visible{outline:2px solid var(--brand);outline-offset:2px;border-radius:4px}
+.overlay.sheet .account-sheet::before{content:"";display:block;width:36px;height:4px;border-radius:999px;background:rgba(var(--ink-rgb),.2);margin:-8px auto 16px}
+@media (min-width:561px){.overlay.sheet .account-sheet::before{display:none}}
+/* Sign in with Google — light theme. https://developers.google.com/identity/branding-guidelines */
+.gsi-material-button{-webkit-appearance:none;appearance:none;display:block;width:100%;max-width:400px;margin:0 auto;height:40px;padding:0 12px;box-sizing:border-box;position:relative;overflow:hidden;border:1px solid #747775;border-radius:4px;background-color:#fff;background-image:none;color:#1f1f1f;cursor:pointer;font-family:Roboto,"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14px;font-weight:500;line-height:20px;letter-spacing:.25px;text-align:center;white-space:nowrap;user-select:none;vertical-align:middle;transition:background-color .218s,border-color .218s,box-shadow .218s}
+.gsi-material-button .gsi-material-button-icon{position:absolute;left:0;top:50%;width:20px;height:20px;margin:0;transform:translateY(-50%)}
+.gsi-material-button .gsi-material-button-icon svg{display:block;width:20px;height:20px}
+.gsi-material-button .gsi-material-button-content-wrapper{display:flex;align-items:center;justify-content:center;height:100%;width:100%;position:relative}
+.gsi-material-button .gsi-material-button-contents{padding:0 28px;font-family:Roboto,"Helvetica Neue",Helvetica,Arial,sans-serif;font-weight:500;font-size:14px;line-height:20px;letter-spacing:.25px;overflow:hidden;text-overflow:ellipsis}
+.gsi-material-button .gsi-material-button-state{transition:opacity .218s;position:absolute;inset:0;opacity:0;pointer-events:none}
+.gsi-material-button:disabled{cursor:default;background-color:#ffffff61;border-color:#1f1f1f1f}
+.gsi-material-button:disabled .gsi-material-button-contents,.gsi-material-button:disabled .gsi-material-button-icon{opacity:.38}
+.gsi-material-button:not(:disabled):hover{box-shadow:0 1px 2px 0 rgba(60,64,67,.30),0 1px 3px 1px rgba(60,64,67,.15)}
+.gsi-material-button:not(:disabled):hover .gsi-material-button-state{background-color:#303030;opacity:.08}
+.gsi-material-button:not(:disabled):active .gsi-material-button-state,.gsi-material-button:not(:disabled):focus .gsi-material-button-state{background-color:#303030;opacity:.12}
+[data-theme="dark"] .gsi-material-button{background-color:#131314;border-color:#8E918F;color:#E3E3E3}
+[data-theme="dark"] .gsi-material-button:disabled{background-color:#13131461;border-color:#8e918f1f}
+[data-theme="dark"] .gsi-material-button:not(:disabled):hover .gsi-material-button-state,[data-theme="dark"] .gsi-material-button:not(:disabled):active .gsi-material-button-state,[data-theme="dark"] .gsi-material-button:not(:disabled):focus .gsi-material-button-state{background-color:#e3e3e3}
 .premium-kicker{text-align:center;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin:8px 0 0}
 .premium-card{background:var(--surface2);border-radius:24px;padding:22px 18px 18px;box-shadow:var(--shadow-soft)}
 .premium-pitch{font-size:16.5px;line-height:1.45;margin:0 0 12px}
