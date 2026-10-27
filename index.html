@@ -220,10 +220,17 @@
           <a class="mini-source" href="https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5" target="_blank" rel="noopener">
             <span class="mini-source-line">Data: UNODC via World Bank ↗</span>
             <span class="mini-open-wrap">
-              <span class="mini-opened">
-                <b>UNODC via World Bank</b>
-                <span>per 100k women, 2022</span>
-                <span class="mini-url">data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5</span>
+              <span class="source-card">
+                <span class="source-card-top">
+                  <span class="source-fav" aria-hidden="true">
+                    <img alt="" width="18" height="18" src="https://data.worldbank.org/favicon.ico" referrerpolicy="no-referrer" decoding="async" onerror="this.hidden=true;var n=this.nextElementSibling;if(n)n.hidden=false">
+                    <svg class="source-fav-fallback" viewBox="0 0 24 24" hidden><path d="M10 13.5a4.5 4.5 0 0 0 6.36.14l1.77-1.77a4.5 4.5 0 0 0-6.36-6.36L10.2 7.08" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 10.5a4.5 4.5 0 0 0-6.36-.14L5.87 12.13a4.5 4.5 0 0 0 6.36 6.36l1.57-1.57" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  </span>
+                  <span class="source-domain">data.worldbank.org</span>
+                </span>
+                <span class="source-pub">UNODC via World Bank</span>
+                <span class="source-dataset">Female homicide rate, 2022</span>
+                <span class="source-tap">Tap to see the data</span>
               </span>
             </span>
           </a>
@@ -378,7 +385,6 @@
       <div class="answer hidden" id="answerBox"></div>
       <div class="fact" id="fact"></div>
       <p class="support hidden" id="support"></p>
-      <a class="source" id="sourceLink" target="_blank" rel="noopener">Data: <span id="sourceName"></span> ↗</a>
 
       <div class="community">
         <div class="community-head"><span>What most players thought</span><span class="badge" id="communityBadge">Coming soon</span></div>
@@ -386,6 +392,18 @@
       </div>
 
       <div class="you-vs hidden" id="youVs"></div>
+      <a class="source-card hidden" id="sourceLink" target="_blank" rel="noopener">
+        <span class="source-card-top">
+          <span class="source-fav" aria-hidden="true">
+            <img id="sourceFav" alt="" width="18" height="18" referrerpolicy="no-referrer" decoding="async">
+            <svg id="sourceFavFallback" class="source-fav-fallback" viewBox="0 0 24 24" hidden><path d="M10 13.5a4.5 4.5 0 0 0 6.36.14l1.77-1.77a4.5 4.5 0 0 0-6.36-6.36L10.2 7.08" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M14 10.5a4.5 4.5 0 0 0-6.36-.14L5.87 12.13a4.5 4.5 0 0 0 6.36 6.36l1.57-1.57" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </span>
+          <span class="source-domain" id="sourceDomain"></span>
+        </span>
+        <span class="source-pub" id="sourceName"></span>
+        <span class="source-dataset" id="sourceDataset"></span>
+        <span class="source-tap">Tap to see the data</span>
+      </a>
       <div class="share-row">
         <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
         <p class="challenge-link-note" id="challengeLinkNote" hidden></p>
