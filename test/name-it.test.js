@@ -255,11 +255,6 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
   const tail = scheduled.slice(-22).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 22 + i), order: Math.round(p.order) }));
   assert.equal(JSON.stringify(tail), JSON.stringify([
-    { id: "name-hdi-s", date: "2027-03-18", order: 164 },
-    { id: "name-pop-stan-land-m", date: "2027-03-19", order: 165 },
-    { id: "name-le-i", date: "2027-03-20", order: 166 },
-    { id: "name-forest-c", date: "2027-03-21", order: 167 },
-    { id: "cannabis-use", date: "2027-03-22", order: 168 },
     { id: "cocaine-use", date: "2027-03-23", order: 169 },
     { id: "ipsos-gender-identity", date: "2027-03-24", order: 170 },
     { id: "ipsos-gender-identity-b", date: "2027-03-25", order: 171 },
@@ -276,7 +271,12 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
     { id: "road-deaths-2021", date: "2027-04-05", order: 182 },
     { id: "name-hdi-between-s", date: "2027-04-06", order: 183 },
     { id: "name-age-between-c", date: "2027-04-07", order: 184 },
-    { id: "name-road-between-u", date: "2027-04-08", order: 185 }
+    { id: "name-road-between-u", date: "2027-04-08", order: 185 },
+    { id: "wealth-share-top10", date: "2027-04-09", order: 186 },
+    { id: "wealth-share-top1", date: "2027-04-10", order: 187 },
+    { id: "match-meat-cuts", date: "2027-04-11", order: 188 },
+    { id: "cocaine-destination", date: "2027-04-12", order: 189 },
+    { id: "top1-pop-density", date: "2027-04-13", order: 190 }
   ]));
   const loss = { type: "name", solved: false, done: true, marks: ["bad", "bad", "bad", "bad", "bad"] };
   assert.equal(appBox.window.RankdShared.rating.ratingShout(loss), "Ignorant!");
