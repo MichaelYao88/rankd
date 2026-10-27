@@ -1447,12 +1447,74 @@ window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
   googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
 };
+/** Data year for source lines: p.year → item years → trailing year in stat. Omit if none. */
+function dataYear(p) {
+  if (!p) return "";
+  const cands = [];
+  if (p.year != null && String(p.year).trim()) cands.push(String(p.year).trim());
+  for (const it of (p.items || p.people || [])) {
+    const y = it && (it.year != null ? it.year : it.data_year);
+    if (y != null && String(y).trim()) cands.push(String(y).trim());
+  }
+  const sm = String(p.stat || "").match(/,\s*((?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:19|20)\d{2})?)\s*$/i);
+  if (sm) cands.push(sm[1].replace(/\s+/g, " ").trim());
+  for (const raw of cands) {
+    const s = raw.replace(/\s+/g, " ").trim();
+    if (!s) continue;
+    if (/^(?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:(?:19|20)?\d{2}))?$/i.test(s))
+      return s.replace(/\s+/g, "").replace(/FY/i, "FY");
+    if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}\s*[–\-]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}$/i.test(s))
+      return s.replace(/\s*[–\-]\s*/, "–");
+    const m = s.match(/\b(?:FY\s*)?((?:19|20)\d{2})\b/i);
+    if (m) return /\bFY\s*\d{4}\b/i.test(s) ? "FY" + m[1] : m[1];
+  }
+  return "";
+}
+function datasetTitle(p) {
+  if (!p) return "";
+  const clean = s => String(s || "").replace(/\p{Regional_Indicator}|\p{Extended_Pictographic}/gu, " ").replace(/\s+/g, " ").trim();
+  const generic = /^match each clue\b/i;
+  const parts = [p.stat, p.question, p.headline, p.title].map(clean).filter(Boolean);
+  return parts.find(s => !generic.test(s)) || "";
+}
+function sourceDatasetLine(p) {
+  const title = datasetTitle(p);
+  const year = dataYear(p);
+  if (!title) return year || "";
+  if (!year) return title;
+  const escaped = year.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  if (new RegExp("(?:^|[^0-9])" + escaped + "(?:[^0-9]|$)", "i").test(title)) return title;
+  return title + ", " + year;
+}
+// Shared with the home How to play source card (.source-card). Favicon is the
+// site's own /favicon.ico. No Open Graph image is requested.
+function sourceCardModel(p) {
+  const publisher = String((p && p.source) || "").replace(/\s+/g, " ").trim() || "Source";
+  const rawUrl = String((p && p.sourceUrl) || "").trim();
+  let domain = "", favicon = "", url = "";
+  try {
+    const u = new URL(rawUrl);
+    if (u.protocol === "http:" || u.protocol === "https:") {
+      url = u.href;
+      domain = u.hostname.replace(/^www\./i, "");
+      favicon = u.origin + "/favicon.ico";
+    }
+  } catch (e) {}
+  return {
+    publisher,
+    dataset: sourceDatasetLine(p),
+    domain,
+    favicon,
+    url,
+    tap: "Tap to see the data",
+  };
+}
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
     top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
-    premium: window.RankdPremium };
+    sourceCardModel, premium: window.RankdPremium };
   window.RankdArchive = {
     baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
     getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
@@ -1623,32 +1685,6 @@ function sourceBrand(p) {
   s = s.split(/[,;·|]/)[0].replace(/\s+/g, " ").trim();
   if (s.length > 28) s = s.slice(0, 26).replace(/\s+\S*$/, "") + "…";
   return s ? s.toUpperCase() : "";
-}
-/** Data year for the hero source line: p.year → item years → trailing year in stat. Omit if none. */
-function dataYear(p) {
-  if (!p) return "";
-  const cands = [];
-  if (p.year != null && String(p.year).trim()) cands.push(String(p.year).trim());
-  for (const it of (p.items || p.people || [])) {
-    const y = it && (it.year != null ? it.year : it.data_year);
-    if (y != null && String(y).trim()) cands.push(String(y).trim());
-  }
-  const sm = String(p.stat || "").match(/,\s*((?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:19|20)\d{2})?)\s*$/i);
-  if (sm) cands.push(sm[1].replace(/\s+/g, " ").trim());
-  for (const raw of cands) {
-    const s = raw.replace(/\s+/g, " ").trim();
-    if (!s) continue;
-    // clean year / FY / range
-    if (/^(?:FY\s*)?(?:19|20)\d{2}(?:\s*[–\-]\s*(?:(?:19|20)?\d{2}))?$/i.test(s))
-      return s.replace(/\s+/g, "").replace(/FY/i, "FY");
-    // "Oct 2021–Oct 2026" style windows
-    if (/^(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}\s*[–\-]\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(?:19|20)\d{2}$/i.test(s))
-      return s.replace(/\s*[–\-]\s*/, "–");
-    // pull a year out of noisy labels ("Equaldex live (scraped 2026-10-23)", "Factbook / Wikipedia 2026")
-    const m = s.match(/\b(?:FY\s*)?((?:19|20)\d{2})\b/i);
-    if (m) return /\bFY\s*\d{4}\b/i.test(s) ? "FY" + m[1] : m[1];
-  }
-  return "";
 }
 function renderHero() {
   const p = state.puzzle, n = dayNumber(state.dateKey) + 1;
@@ -2879,6 +2915,39 @@ function settleResultScroll() {
   if (reduced) requestAnimationFrame(() => { scrollResultIntoView(); requestAnimationFrame(after); });
   else setTimeout(() => { scrollResultIntoView(); setTimeout(after, 750); }, 650);
 }
+function paintSourceCard(p) {
+  const a = $("#sourceLink");
+  if (!a) return;
+  const card = sourceCardModel(p);
+  const name = $("#sourceName");
+  const ds = $("#sourceDataset");
+  const host = $("#sourceDomain");
+  const img = $("#sourceFav");
+  const fb = $("#sourceFavFallback");
+  if (!card.url) {
+    a.classList.add("hidden");
+    a.removeAttribute("href");
+    return;
+  }
+  a.href = card.url;
+  a.classList.remove("hidden");
+  if (name) name.textContent = card.publisher;
+  if (ds) {
+    ds.textContent = card.dataset;
+    ds.classList.toggle("hidden", !card.dataset);
+  }
+  if (host) host.textContent = card.domain;
+  if (!img) return;
+  const showIcon = () => { img.hidden = true; if (fb) fb.hidden = false; };
+  const showFav = () => { img.hidden = false; if (fb) fb.hidden = true; };
+  img.onload = () => { if (img.naturalWidth > 0) showFav(); else showIcon(); };
+  img.onerror = showIcon;
+  if (img.getAttribute("src") !== card.favicon) {
+    showIcon();
+    img.src = card.favicon;
+  } else if (img.complete && img.naturalWidth > 0) showFav();
+  else showIcon();
+}
 function showResult(res, opts) {
   const p = state.puzzle;
   pendingResultScroll = !!(opts && opts.scroll);
@@ -2925,8 +2994,7 @@ function showResult(res, opts) {
   }
   $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
-  $("#sourceName").textContent = p.source || "source";
-  const a = $("#sourceLink"); if (p.sourceUrl) { a.href = p.sourceUrl; a.classList.remove("hidden"); } else a.classList.add("hidden");
+  paintSourceCard(p);
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderYouVs(p, null, res);
   renderHeadToHead(res);
