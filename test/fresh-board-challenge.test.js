@@ -258,6 +258,13 @@ function tokenOf(text) {
   const m = String(text || "").match(/[?&#]c=([A-Za-z0-9_-]+)/);
   return m ? m[1] : "";
 }
+// One calendar day before the app's today key. Age 1 stays inside the free archive window
+// (today plus the six days before it) in any timezone, including after the clock moves on.
+function dayBefore(key) {
+  const [y, m, d] = String(key).split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d - 1));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
 function goodMarks(n) { return Array.from({ length: n }, () => "good"); }
 function badMarks(n) { return Array.from({ length: n }, () => "bad"); }
 
@@ -427,11 +434,13 @@ test("challenge share, the result qr, and the first play", async () => {
   assert.match(dailyText, new RegExp("#d=" + dailyDate));
   assert.ok(tokenOf(dailyText));
 
-  api.goDate("2026-10-21");
-  assert.equal(api.state.mode, "archive");
-  const archText = await shareFinished(api.state.puzzle, "archive", "2026-10-21");
-  assert.match(archText, /#d=2026-10-21/);
+  const archiveDay = dayBefore(dailyDate);
+  api.goDate(archiveDay);
+  assert.equal(api.state.mode, "archive", archiveDay + " from " + dailyDate);
+  const archText = await shareFinished(api.state.puzzle, "archive", archiveDay);
+  assert.match(archText, new RegExp("#d=" + archiveDay));
   assert.equal(RC.decode(tokenOf(archText)).k, "d");
+  assert.equal(RC.decode(tokenOf(archText)).id, archiveDay);
 
   api.goPractice(42);
   assert.equal(api.state.mode, "practice");
@@ -494,7 +503,7 @@ test("challenge share, the result qr, and the first play", async () => {
 
   posts.length = 0;
   const playedBeforeArchive = JSON.parse(localStorage.getItem("rankd.stats.v2")).played;
-  api.goDate("2026-10-21");
+  api.goDate(archiveDay);
   assert.equal(api.commitFinish(finishFor(api.state.puzzle, 1)), true);
   assert.equal(submits().length, 1);
   assert.equal(JSON.parse(localStorage.getItem("rankd.stats.v2")).played, playedBeforeArchive);
