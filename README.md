@@ -114,7 +114,7 @@ Daily puzzles mix several types into one rotation:
   Saudi Arabia 0.30 (2017, its only year in the series). Michael's exact six: it shares US + South Korea with `homicide-women` and New Zealand with
   `homicide-women-b`, so it is exempt from the max-1-shared rule (`DATASET_SHARE_EXEMPT` in build.py). Title "Female Homicide Rate 🇨🇦🇸🇦";
   `homicide-women` (past) keeps 🇮🇳🇺🇸 via `TITLE_PIN`.
-* **Swings Both Ways** (`ipsos-bisexual`, #044 Nov 18, sensitive): Ipsos LGBT+ Pride 2021 (27 countries), adults who identify as bisexual:
+* **Swings Both Ways** 🚲 (`ipsos-bisexual`, #044 Nov 18, sensitive): Ipsos LGBT+ Pride 2021 (27 countries), adults who identify as bisexual:
   India 9, Brazil 7, US 6, Canada 4, China 2, South Korea 1 (%). Also a Practice dataset (all 27). Caveat: online survey, more urban/educated samples in some countries.
   Gender identity was added later from the Ipsos 2023 per-country chart (`ipsos-gender-identity`, `ipsos-gender-identity-b`). A 2021 six-country cut tied, and the 2024 and 2025 reports do not publish that chart.
 * **Static pages**: `about.html`, `how-to-play.html`, `privacy.html` (footer + menu links; footer hidden during the phone fit). Contact email lives only in
