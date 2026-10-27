@@ -322,10 +322,8 @@ html.rankd-boot-archive #archiveView{display:block!important}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
 .share-row .pill-btn{padding:15px 10px;font-size:11px}
+.share-row .pill-btn.primary{grid-column:1 / -1}
 .share-row .challenge-friend{grid-column:1 / -1;letter-spacing:.12em;white-space:nowrap}
-.share-row .challenge-name{grid-column:1 / -1;display:flex;flex-direction:column;gap:6px;margin:0;font-size:12px;font-weight:700;letter-spacing:.02em;text-align:left}
-.share-row .challenge-name span{font-weight:600;color:var(--muted)}
-.share-row .challenge-name input{width:100%;height:44px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);padding:0 12px;font:inherit;font-size:16px;font-weight:650}
 .challenge-link-note{grid-column:1 / -1;margin:0;font-size:13px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
 .challenge-link-note a{font-weight:800}
 .top1-hints{display:flex;flex-direction:column;gap:6px;margin:0 0 8px}
