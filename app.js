@@ -80,6 +80,8 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.premium.v1       : retired. A local "1" does not grant Premium.
 //   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
+//   ranki.account.seen.v1  : this browser has had a Ranki session, so the header says Sign in.
+//                            Not a rankd. key, so Clear all data leaves it. Not the session itself.
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
 // The clear removes the keys above plus any
 // "rankd." / "rankd:" / "rankd_" / "rankd-" prefixed key in localStorage AND sessionStorage, and nothing else: the origin
@@ -841,7 +843,99 @@ function setPremiumCache(row) {
     : null;
   if (typeof applyPremium === "function") applyPremium();
 }
-function noteAuthUser(user) { authUser = user || null; }
+const ACCOUNT_SEEN_KEY = "ranki.account.seen.v1";
+function accountSeen() {
+  try { return localStorage.getItem(ACCOUNT_SEEN_KEY) === "1"; } catch (e) { return false; }
+}
+function markAccountSeen() {
+  try { localStorage.setItem(ACCOUNT_SEEN_KEY, "1"); } catch (e) {}
+}
+// Visitors look the same to Supabase either way. The flag only chooses the words.
+function accountIntent(mode) {
+  if (mode === "signup" || mode === "signin") return mode;
+  return accountSeen() ? "signin" : "signup";
+}
+function accountCopy(mode) {
+  const intent = accountIntent(mode);
+  const subtitle = "The same email unlocks Premium on Ranki and WhereIsShe.";
+  if (intent === "signin") {
+    return {
+      intent,
+      header: "Sign in",
+      title: "Welcome back",
+      subtitle,
+      google: "Sign in with Google",
+      email: "Sign in with email",
+      toggleLead: "New here?",
+      toggle: "Sign up",
+      menuSmall: "Google or email",
+    };
+  }
+  return {
+    intent: "signup",
+    header: "Sign up",
+    title: "Create your Ranki account",
+    subtitle,
+    google: "Sign up with Google",
+    email: "Sign up with email",
+    toggleLead: "Already have an account?",
+    toggle: "Sign in",
+    menuSmall: "Google or email",
+  };
+}
+// Official multicolor "G" from Google's Sign in with Google button. Do not recolor it.
+function googleGSvg() {
+  return `<svg viewBox="0 0 48 48" aria-hidden="true" focusable="false"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>`;
+}
+function mailSvg() {
+  return `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="m4.5 7.5 7.5 5.5 7.5-5.5"/></svg>`;
+}
+function accountModalHtml(mode) {
+  const copy = accountCopy(mode);
+  return `<div class="account-sheet" id="accountSheet">
+    <h2 id="accountTitle">${esc(copy.title)}</h2>
+    <p class="account-lead" id="accountLead">${esc(copy.subtitle)}</p>
+    <div class="account-actions">
+      <button type="button" class="gsi-material-button" id="googleBtn">
+        <span class="gsi-material-button-state" aria-hidden="true"></span>
+        <span class="gsi-material-button-content-wrapper">
+          <span class="gsi-material-button-icon">${googleGSvg()}</span>
+          <span class="gsi-material-button-contents" id="googleLabel">${esc(copy.google)}</span>
+        </span>
+      </button>
+      <div class="account-or" role="separator"><span>or</span></div>
+      <form id="emailForm" class="account-email">
+        <label class="account-email-field">
+          <span class="account-mail" aria-hidden="true">${mailSvg()}</span>
+          <input id="emailInput" type="email" autocomplete="email" inputmode="email" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="you@example.com" aria-label="Email">
+        </label>
+        <button type="submit" class="account-email-btn" id="emailBtn"><span class="account-mail" aria-hidden="true">${mailSvg()}</span><span id="emailLabel">${esc(copy.email)}</span></button>
+      </form>
+      <p class="account-note" id="emailNote" role="status"></p>
+      <p class="account-switch"><span id="accountSwitchLead">${esc(copy.toggleLead)}</span> <button type="button" id="accountToggle">${esc(copy.toggle)}</button></p>
+    </div>
+  </div>`;
+}
+// Return to this page's own origin. A hardcoded host would send ranki.gg back to localhost.
+function authRedirectUrl() {
+  try {
+    const loc = window.location;
+    let origin = loc.origin;
+    let path = loc.pathname;
+    if (!origin || origin === "null" || !path) {
+      const parsed = new URL(loc.href);
+      if (!origin || origin === "null") origin = parsed.origin;
+      if (!path) path = parsed.pathname;
+    }
+    return origin + (path || "/");
+  } catch (e) {
+    return "https://ranki.gg/";
+  }
+}
+function noteAuthUser(user) {
+  authUser = user || null;
+  if (authUser) markAccountSeen();
+}
 function premiumPriceLine() {
   return (CONFIG.premium && CONFIG.premium.priceLine) || "From $2.67/month · suggested $6.70";
 }
@@ -1446,6 +1540,7 @@ function inAdsenseSafeWindow(dateKey) {
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
   googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
+  accountSeen, markAccountSeen, accountCopy, accountModalHtml, authRedirectUrl,
 };
 /** Data year for source lines: p.year → item years → trailing year in stat. Omit if none. */
 function dataYear(p) {
@@ -4447,7 +4542,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
   openModal(`<h2>Menu</h2><div class="menu-list">
     ${signedIn
       ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · Ranki + WhereIsShe" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
-      : `<button id="mSignIn">Sign in<small>Continue with Google or email</small></button>`}
+      : `<button id="mSignIn">${esc(accountCopy().header)}<small>${esc(accountCopy().menuSmall)}</small></button>`}
     <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
     <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
     <button id="mTheme">${themeLabel()}</button>
@@ -4737,18 +4832,8 @@ document.addEventListener("keydown", e => {
   }
 });
 
-function authRedirectUrl() {
-  try {
-    const url = new URL(location.href);
-    url.hash = "";
-    url.search = "";
-    return url.origin + url.pathname;
-  } catch (e) {
-    return "https://ranki.gg/";
-  }
-}
 function accountLabel() {
-  if (!authUser) return "Sign in";
+  if (!authUser) return accountCopy().header;
   return googleProfile(authUser).name || String(authUser.email || "").trim() || "Account";
 }
 function renderAccount() {
@@ -4757,8 +4842,9 @@ function renderAccount() {
   if (!btn) return;
   btn.replaceChildren();
   if (!authUser) {
-    btn.textContent = "Sign in";
-    btn.setAttribute("aria-label", "Sign in");
+    const label = accountCopy().header;
+    btn.textContent = label;
+    btn.setAttribute("aria-label", label);
     if (out) out.hidden = true;
     return;
   }
@@ -4807,8 +4893,9 @@ function paintPremiumScreen() {
   }
   btn.disabled = false;
   if (!authUser) {
-    btn.textContent = "Sign in to go Premium";
-    if (status) status.textContent = "Sign in with Google or email, then checkout opens.";
+    const label = accountCopy().header;
+    btn.textContent = label + " to go Premium";
+    if (status) status.textContent = label + " with Google or email, then checkout opens.";
     return;
   }
   btn.textContent = "Go Premium";
@@ -4822,24 +4909,34 @@ function goPremium() {
   paintPremiumScreen();
   setHash("#premium");
 }
-function signInModal() {
-  openModal(`<h2>Sign in</h2>
-    <p class="account-lead">Continue with Google or email. The same email unlocks Premium on Ranki and WhereIsShe.</p>
-    <div class="account-actions">
-      <button type="button" class="pill-btn primary" id="googleBtn">Continue with Google</button>
-      <p class="account-or">or</p>
-      <form id="emailForm">
-        <label class="account-label" for="emailInput">Email</label>
-        <input id="emailInput" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com">
-        <button type="submit" class="pill-btn" id="emailBtn">Continue with email</button>
-      </form>
-      <p class="account-note" id="emailNote" role="status"></p>
-    </div>`);
-  $("#modal").classList.add("sheet");
-  $("#googleBtn").onclick = () => startGoogle();
-  $("#emailForm").addEventListener("submit", e => { e.preventDefault(); startEmail($("#emailInput").value); });
-  const field = $("#emailInput");
-  if (field) field.focus();
+function paintAccountCopy(copy) {
+  const title = $("#accountTitle");
+  if (!title) return;
+  title.textContent = copy.title;
+  const lead = $("#accountLead");
+  if (lead) lead.textContent = copy.subtitle;
+  const google = $("#googleLabel");
+  if (google) google.textContent = copy.google;
+  const email = $("#emailLabel");
+  if (email) email.textContent = copy.email;
+  const switchLead = $("#accountSwitchLead");
+  if (switchLead) switchLead.textContent = copy.toggleLead;
+  const toggle = $("#accountToggle");
+  if (!toggle) return;
+  toggle.textContent = copy.toggle;
+  toggle.onclick = () => signInModal(copy.intent === "signin" ? "signup" : "signin");
+}
+function signInModal(mode) {
+  const copy = accountCopy(mode);
+  const modal = $("#modal");
+  const already = modal && !modal.classList.contains("hidden") && $("#accountSheet");
+  if (!already) {
+    openModal(accountModalHtml(copy.intent));
+    $("#modal").classList.add("sheet");
+    $("#googleBtn").onclick = () => startGoogle();
+    $("#emailForm").addEventListener("submit", e => { e.preventDefault(); startEmail($("#emailInput").value); });
+  }
+  paintAccountCopy(copy);
 }
 async function startGoogle() {
   if (!sb) { toast("Sign-in isn't available in this browser yet"); return; }
@@ -4853,7 +4950,7 @@ async function startEmail(raw) {
   const email = String(raw || "").trim();
   const note = $("#emailNote");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    if (note) note.textContent = "Enter a valid email.";
+    if (note) { note.textContent = "Enter a valid email."; note.classList.add("is-error"); }
     return;
   }
   if (!sb) { toast("Sign-in isn't available in this browser yet"); return; }
@@ -4865,10 +4962,10 @@ async function startEmail(raw) {
   });
   if (btn) btn.disabled = false;
   if (error) {
-    if (note) note.textContent = error.message || "Couldn't send the email.";
+    if (note) { note.textContent = error.message || "Couldn't send the email."; note.classList.add("is-error"); }
     return;
   }
-  if (note) note.textContent = "Check your email for a sign-in link.";
+  if (note) { note.textContent = "Check your email for a sign-in link."; note.classList.remove("is-error"); }
 }
 function openPremiumCheckout() {
   const base = CONFIG.premium && CONFIG.premium.checkoutUrl;
@@ -4957,6 +5054,8 @@ function startAuth() {
   }
 }
 if ($("#accountBtn")) $("#accountBtn").onclick = () => { if (authUser) goPremium(); else signInModal(); };
+window.RankdPremium.renderAccount = renderAccount;
+window.RankdPremium.signInModal = signInModal;
 if ($("#signOutBtn")) $("#signOutBtn").onclick = () => signOutAccount();
 if ($("#premiumCheckout")) $("#premiumCheckout").onclick = () => openPremiumCheckout();
 if ($("#premiumBack")) $("#premiumBack").onclick = () => goHome();

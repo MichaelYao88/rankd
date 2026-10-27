@@ -138,19 +138,109 @@ test("a Google name is the challenge name, and an email account is not", () => {
 });
 
 test("the sign-in screen and the Premium screen advertise both games", () => {
-  assert.match(appSrc, /Continue with Google/);
-  assert.match(appSrc, /Continue with email/);
+  assert.match(appSrc, /Sign up with Google/);
+  assert.match(appSrc, /Sign in with Google/);
+  assert.match(appSrc, /Sign up with email/);
+  assert.match(appSrc, /Sign in with email/);
   assert.match(appSrc, /storageKey: "rankd\.supabase\.auth"/);
   assert.match(appSrc, /claim_premium_email/);
   assert.match(appSrc, /signInWithOtp/);
   assert.match(appSrc, /signInWithOAuth/);
+  assert.match(appSrc, /detectSessionInUrl:\s*true/);
+  assert.match(appSrc, /flowType:\s*"pkce"/);
+  assert.match(appSrc, /redirectTo:\s*authRedirectUrl\(\)/);
   assert.match(html, /id="accountBtn"/);
   assert.match(html, /id="premiumView"/);
   assert.match(html, /Premium unlocks Ranki \+ WhereIsShe: no ads, full archive, and ad-free Practice\. From \$2\.67\/month · suggested \$6\.70/);
   assert.match(html, /supabase-js@2/);
   assert.equal(premium.premiumUpsellLabel(), "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
-  assert.match(privacy, /Continue with Google/);
-  assert.match(privacy, /Continue with email/);
+  assert.match(premium.accountCopy("signup").subtitle, /Ranki and WhereIsShe/);
+  assert.match(privacy, /Sign up with Google/);
+  assert.match(privacy, /Sign in with Google/);
+  assert.match(privacy, /Sign up with email/);
+  assert.match(privacy, /Sign in with email/);
+  assert.match(privacy, /ranki\.account\.seen\.v1/);
   assert.match(privacy, /rankd\.supabase\.auth/);
   assert.doesNotMatch(privacy, /we don't have accounts/i);
+});
+
+test("account labels follow the device seen flag", () => {
+  localStorage.removeItem("ranki.account.seen.v1");
+  premium.noteAuthUser(null);
+  assert.equal(premium.accountSeen(), false);
+  assert.equal(premium.accountCopy().intent, "signup");
+  assert.equal(premium.accountCopy().header, "Sign up");
+  assert.equal(premium.accountCopy().title, "Create your Ranki account");
+  assert.equal(premium.accountCopy().google, "Sign up with Google");
+  assert.equal(premium.accountCopy().email, "Sign up with email");
+  assert.equal(premium.accountCopy().toggleLead, "Already have an account?");
+  assert.equal(premium.accountCopy().toggle, "Sign in");
+
+  const signupHtml = premium.accountModalHtml();
+  assert.match(signupHtml, /Create your Ranki account/);
+  assert.match(signupHtml, /Sign up with Google/);
+  assert.match(signupHtml, /Sign up with email/);
+  assert.match(signupHtml, /Already have an account\?/);
+  assert.match(signupHtml, /id="accountToggle">Sign in</);
+  assert.match(signupHtml, /class="gsi-material-button"/);
+  assert.match(signupHtml, /#EA4335/);
+  assert.match(signupHtml, /#4285F4/);
+  assert.match(signupHtml, /#FBBC05/);
+  assert.match(signupHtml, /#34A853/);
+  assert.match(signupHtml, />or</);
+
+  premium.markAccountSeen();
+  assert.equal(localStorage.getItem("ranki.account.seen.v1"), "1");
+  assert.equal(premium.accountSeen(), true);
+  assert.equal(premium.accountCopy().intent, "signin");
+  assert.equal(premium.accountCopy().header, "Sign in");
+  assert.equal(premium.accountCopy().title, "Welcome back");
+  assert.equal(premium.accountCopy().google, "Sign in with Google");
+  assert.equal(premium.accountCopy().email, "Sign in with email");
+  assert.equal(premium.accountCopy().toggleLead, "New here?");
+  assert.equal(premium.accountCopy().toggle, "Sign up");
+
+  const signinHtml = premium.accountModalHtml();
+  assert.match(signinHtml, /Welcome back/);
+  assert.match(signinHtml, /Sign in with Google/);
+  assert.match(signinHtml, /New here\?/);
+  assert.match(signinHtml, /id="accountToggle">Sign up</);
+  assert.doesNotMatch(signinHtml, /Create your Ranki account/);
+
+  assert.equal(premium.accountCopy("signup").google, "Sign up with Google");
+  assert.match(premium.accountModalHtml("signup"), /Sign up with Google/);
+  assert.equal(premium.accountCopy("signin").title, "Welcome back");
+  assert.equal(premium.accountCopy("nope").intent, "signin");
+
+  localStorage.removeItem("ranki.account.seen.v1");
+  premium.noteAuthUser(googleUser());
+  assert.equal(premium.accountSeen(), true);
+  premium.noteAuthUser(null);
+  assert.equal(premium.accountSeen(), true);
+  assert.equal(premium.accountCopy().header, "Sign in");
+  localStorage.removeItem("ranki.account.seen.v1");
+});
+
+test("oauth redirect uses this page origin and path", () => {
+  const loc = sandbox.location;
+  const saved = { href: loc.href, origin: loc.origin, pathname: loc.pathname };
+  loc.href = "https://ranki.gg/index.html?code=abc#today";
+  loc.origin = "https://ranki.gg";
+  loc.pathname = "/index.html";
+  assert.equal(premium.authRedirectUrl(), "https://ranki.gg/index.html");
+  loc.href = "http://127.0.0.1:4173/play";
+  loc.origin = "http://127.0.0.1:4173";
+  loc.pathname = "/play";
+  assert.equal(premium.authRedirectUrl(), "http://127.0.0.1:4173/play");
+  loc.href = saved.href;
+  loc.origin = saved.origin;
+  loc.pathname = saved.pathname;
+  const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
+  assert.match(css, /#747775/);
+  assert.match(css, /#131314/);
+  assert.match(css, /#8E918F/);
+  assert.match(css, /font-family:Roboto/);
+  assert.match(css, /border-radius:4px/);
+  assert.match(css, /font-size:14px/);
+  assert.match(css, /font-weight:500/);
 });
