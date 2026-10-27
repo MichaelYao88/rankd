@@ -32,11 +32,12 @@ Daily puzzles mix several types into one rotation:
   with a 5-second skip countdown. Today's daily never gets one (`CONFIG.interstitialOnDaily`).
 * **Single top banner ad.** It sits under the header, where fermi.gg puts its leaderboard ad. It's a labeled
   placeholder, and comments in `index.html` show where the AdSense code goes.
-* **Sharing:** there are two buttons.
-  * *Share today's puzzle* is spoiler-free: the question plus a deep link.
-  * *Share my result* includes the score, or the number of tries, plus the emoji grid. For example:
-    `Ranki.gg #016 🥔 Top 5: solved in 3 tries` plus five squares a row.
-  * Links deep-link to the puzzle: `#d=YYYY-MM-DD` for a daily or archive puzzle, `#p=<puzzle_id>` for practice,
+* **Sharing:** during a puzzle, *Share today's puzzle* is spoiler-free: the question plus a deep link.
+  On the results screen there are two buttons.
+  * *Challenge a friend* shares the score and emoji grid together with a challenge link (`&c=`), named from the account display name or "Your friend".
+  * *Share this puzzle* shares only a short title and the direct puzzle link, with no result and no challenge params.
+  * A QR code of that challenge link sits at the bottom of the result.
+  * Links deep-link to the puzzle: `#d=YYYY-MM-DD` for a daily or archive puzzle, `#r=<seed>` for practice, `#p=<puzzle_id>` for the all-puzzles list,
     and `#archive` for the Archive.
   * Set `CONFIG.siteUrl` once the site has a domain. From `file://` a placeholder URL is used.
 * **Settings** (☰ → Settings):

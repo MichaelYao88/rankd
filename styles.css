@@ -337,12 +337,17 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 }
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
-.share-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
-.share-row .pill-btn{padding:15px 10px;font-size:11px}
-.share-row .pill-btn.primary{grid-column:1 / -1}
-.share-row .challenge-friend{grid-column:1 / -1;letter-spacing:.12em;white-space:nowrap}
-.challenge-link-note{grid-column:1 / -1;margin:0;font-size:13px;font-weight:700;line-height:1.4;overflow-wrap:anywhere}
-.challenge-link-note a{font-weight:800}
+.share-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
+.share-row .pill-btn{width:100%;padding:16px 14px;font-size:12.5px;letter-spacing:.12em;line-height:1.15}
+.share-row .pill-btn.secondary{background:var(--surface2);color:var(--ink)}
+.challenge-qr{display:flex;flex-direction:column;align-items:center;width:100%;margin:22px 0 4px;padding:18px 16px 16px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+.challenge-qr-code{width:168px;height:168px;padding:0;border-radius:12px;background:#fff;line-height:0;overflow:hidden}
+.challenge-qr-code svg{display:block;width:168px;height:168px}
+.challenge-qr-caption{margin:12px 0 0;font-size:13px;font-weight:700;letter-spacing:-.01em;line-height:1.3;text-align:center;color:var(--muted)}
+@media (max-width:400px){
+  .share-row .pill-btn{padding:15px 12px;font-size:12px;letter-spacing:.08em}
+  .challenge-qr{margin-top:18px;padding:16px 14px 14px}
+}
 .top1-hints{display:flex;flex-direction:column;gap:6px;margin:0 0 8px}
 .top1-hints:empty,.top1-hints.hidden{display:none}
 .hero.is-top1 .top1-hints .lasthint{margin:0;color:inherit}

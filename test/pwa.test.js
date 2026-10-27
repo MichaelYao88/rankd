@@ -114,7 +114,8 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v10");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v11");
+  assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
 test("ad, analytics, and Supabase requests are not intercepted", () => {
@@ -161,7 +162,7 @@ test("navigations and puzzle data are network-first; static assets revalidate", 
   for (const file of ["puzzles-data.js", "practice-data.js", "community-seed.js", "puzzles.csv", "community-stats.json", "hint_bank.csv"]) {
     assert.equal(sw.rankiPlan(req("https://ranki.gg/" + file)), "network-first", file);
   }
-  for (const file of ["app.js", "styles.css", "pwa.js", "challenge.js", "favicon.svg", "icons/icon-512.png", "vendor/sortable.min.js"]) {
+  for (const file of ["app.js", "styles.css", "pwa.js", "challenge.js", "favicon.svg", "icons/icon-512.png", "vendor/sortable.min.js", "vendor/qrcode.js"]) {
     assert.equal(sw.rankiPlan(req("https://ranki.gg/" + file)), "stale-while-revalidate", file);
   }
   assert.match(read("sw.js"), /"\/challenge\.js"/);

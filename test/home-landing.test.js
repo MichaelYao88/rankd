@@ -205,9 +205,10 @@ test("the results source card matches the how-to preview and sits above share", 
   const result = html.slice(html.indexOf('id="result"'), html.indexOf('id="adBottomShell"'));
   const fact = result.indexOf('id="fact"');
   const source = result.indexOf('id="sourceLink"');
-  const share = result.indexOf('id="shareResultBtn"');
   const challenge = result.indexOf('id="challengeFriendBtn"');
-  assert.ok(fact >= 0 && source > fact && share > source && challenge > source);
+  const puzzle = result.indexOf('id="sharePuzzleBtn"');
+  assert.ok(fact >= 0 && source > fact && challenge > source && puzzle > challenge);
+  assert.doesNotMatch(result, /id="shareResultBtn"/);
   assert.match(result, /class="source-card hidden" id="sourceLink"/);
   assert.match(result, /id="sourceName"/);
   assert.match(result, /id="sourceDataset"/);
