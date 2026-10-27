@@ -255,7 +255,6 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
   const tail = scheduled.slice(-22).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 22 + i), order: Math.round(p.order) }));
   assert.equal(JSON.stringify(tail), JSON.stringify([
-    { id: "cocaine-use", date: "2027-03-23", order: 169 },
     { id: "ipsos-gender-identity", date: "2027-03-24", order: 170 },
     { id: "ipsos-gender-identity-b", date: "2027-03-25", order: 171 },
     { id: "top1-potatoes", date: "2027-03-26", order: 172 },
@@ -276,7 +275,8 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
     { id: "wealth-share-top1", date: "2027-04-10", order: 187 },
     { id: "match-meat-cuts", date: "2027-04-11", order: 188 },
     { id: "cocaine-destination", date: "2027-04-12", order: 189 },
-    { id: "top1-pop-density", date: "2027-04-13", order: 190 }
+    { id: "top1-pop-density", date: "2027-04-13", order: 190 },
+    { id: "statista-vegetarian-vegan", date: "2027-04-14", order: 191 }
   ]));
   const loss = { type: "name", solved: false, done: true, marks: ["bad", "bad", "bad", "bad", "bad"] };
   assert.equal(appBox.window.RankdShared.rating.ratingShout(loss), "Ignorant!");
