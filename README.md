@@ -46,11 +46,12 @@ Daily puzzles mix several types into one rotation:
   * Load spreadsheet, and reset to the built-in puzzles.
 * **"What players thought was right":** the results panel leads with first-guess consensus for the world and, when there
   are enough plays, for the country derived from the connection. `% correct` stays underneath. Numbers come from the Ranki
-  Supabase `community-stats` Edge Function (`CONFIG.COMMUNITY_STATS_URL`). A finished Daily or Archive game is sent to the
+  Supabase `community-stats` Edge Function (`CONFIG.COMMUNITY_STATS_URL`).   Only the first completed Daily or Archive play of a puzzle is sent to the
   `submit-play` Edge Function from `CommunityStats.submit()` near the top of `app.js` (first guess, second guess when there
-  was one, and a server-side country code — the IP is not stored). Practice, Studio and `?preview=` are not inserted.
+  was one, a device id, the account id when signed in, and a server-side country code — the IP is not stored). A replay does not insert another row.
+  Practice, the all-puzzles list, Studio and `?preview=` are not inserted.
   `community-stats.json` stays in the repo as the seeded fallback (`?stats=local` forces it; `?cc=TW` only picks a bucket).
-* Your results, streak and stats are kept in `localStorage`.
+* Opening a daily, archive, practice, or all-puzzles game starts a fresh board. The first finish is what `localStorage` keeps for the archive tick, the streak, and personal stats. A replay does not change those.
 
 ## Editing puzzles (`puzzles.xlsx`)
 | sheet | one row per | columns |

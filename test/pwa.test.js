@@ -114,7 +114,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v11");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v12");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
@@ -167,6 +167,19 @@ test("navigations and puzzle data are network-first; static assets revalidate", 
   }
   assert.match(read("sw.js"), /"\/challenge\.js"/);
   assert.match(read("sw.js"), /"\/country-facts\.js"/);
+});
+
+test("a script response that is actually html is not cached or served", () => {
+  const html = { headers: { get: (name) => name === "content-type" ? "text/html; charset=utf-8" : "" } };
+  const js = { headers: { get: (name) => name === "content-type" ? "application/javascript" : "" } };
+  const missing = { headers: { get: () => "" } };
+  assert.equal(sw.rankiJsResponseOk(html, "https://ranki.gg/vendor/qrcode.js"), false);
+  assert.equal(sw.rankiJsResponseOk(html, { url: "https://ranki.gg/community-seed.js" }), false);
+  assert.equal(sw.rankiJsResponseOk(html, "https://ranki.gg/app.js"), false);
+  assert.equal(sw.rankiJsResponseOk(js, "https://ranki.gg/vendor/qrcode.js"), true);
+  assert.equal(sw.rankiJsResponseOk(missing, "https://ranki.gg/challenge.js"), true);
+  assert.equal(sw.rankiJsResponseOk(html, "https://ranki.gg/index.html"), true);
+  assert.match(read("sw.js"), /rankiJsResponseOk/);
 });
 
 test("ad code and ads.txt are unchanged by the PWA tags", () => {

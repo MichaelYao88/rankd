@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v11";
+var CACHE = "ranki-shell-v12";
 
 var PRECACHE = [
   "/",
@@ -164,9 +164,30 @@ function offlineResponse() {
   return new Response("Offline", { status: 503, statusText: "Offline", headers: { "Content-Type": "text/plain;charset=utf-8" } });
 }
 
+function rankiRequestPath(request) {
+  try {
+    if (typeof request === "string") return request;
+    return new URL(request.url).pathname;
+  } catch (e) { return ""; }
+}
+
+// A stale worker must not keep an HTML document under a script URL. That
+// makes qrcode.js (and community-seed.js) fail to parse, which hides the
+// challenge QR and makes "Challenge a friend" look unfinished.
+function rankiJsResponseOk(res, request) {
+  var path = rankiRequestPath(request);
+  if (!/\.js$/i.test(path)) return true;
+  var ct = "";
+  try { ct = res && res.headers && res.headers.get ? String(res.headers.get("content-type") || "") : ""; }
+  catch (e) { ct = ""; }
+  if (/html/i.test(ct)) return false;
+  return true;
+}
+
 async function store(cache, key, res) {
   try {
     if (!res || res.status !== 200) return false;
+    if (!rankiJsResponseOk(res, key)) return false;
     if (res.type && res.type !== "basic" && res.type !== "default") return false;
     var copy = new Response(await res.clone().blob(), { status: res.status, statusText: res.statusText, headers: new Headers(res.headers) });
     await cache.put(key, copy);
@@ -223,6 +244,7 @@ async function networkFirst(request) {
 async function staleWhileRevalidate(request) {
   var cache = await caches.open(CACHE);
   var cached = await cache.match(request);
+  if (cached && !rankiJsResponseOk(cached, request)) cached = null;
   var refresh = networkFetch(request).then(function (fresh) {
     if (fresh && fresh.status === 200 && fresh.type === "basic") return store(cache, request, fresh).then(function () { return fresh; });
     return fresh;
@@ -252,6 +274,7 @@ self.addEventListener("fetch", function (event) {
 });
 
 self.rankiCACHE = CACHE;
+self.rankiJsResponseOk = rankiJsResponseOk;
 self.rankiShouldBypass = rankiShouldBypass;
 self.rankiBypassReason = rankiBypassReason;
 self.rankiPlan = rankiPlan;

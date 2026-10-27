@@ -68,7 +68,9 @@ if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_A
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
   archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
-//   rankd.results.v2  : puzzle progress for every mode (d: daily + archive, p: All puzzles, r: random Practice history)
+//   rankd.results.v2  : the first finished play of each puzzle (d: daily + archive, p: All puzzles, r: practice).
+//                       Replays and half-finished boards are not written here. Opening a puzzle does not restore it.
+//   rankd.device.v1   : this browser's id for the first community play of a puzzle. Cleared with the other rankd. keys.
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
 //   rankd.settings.v1 : theme and streamer mode (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
@@ -478,6 +480,7 @@ function communityPlayRow(result) {
   return {
     puzzle_id: String(result.puzzleId), day_key: result.day, mode, puzzle_type: type, solved, perfect, payload,
     first_guess: first, second_guess: second,
+    device_id: deviceId(), user_id: accountId(),
   };
 }
 function regionName(code) {
@@ -487,6 +490,29 @@ function regionName(code) {
     const name = new Intl.DisplayNames(["en"], { type: "region" }).of(c);
     return name && name !== c ? name : c;
   } catch { return c; }
+}
+function deviceId() {
+  const key = "rankd.device.v1";
+  const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  try {
+    const cur = localStorage.getItem(key);
+    if (cur && uuidRe.test(cur)) return cur.toLowerCase();
+    const gen = (globalThis.crypto && typeof crypto.randomUUID === "function") ? crypto.randomUUID()
+      : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+        const n = Math.random() * 16 | 0;
+        return (c === "x" ? n : (n & 0x3 | 0x8)).toString(16);
+      });
+    const out = String(gen).toLowerCase();
+    if (!uuidRe.test(out)) return null;
+    localStorage.setItem(key, out);
+    return out;
+  } catch { return null; }
+}
+function accountId() {
+  try {
+    const id = authUser && authUser.id;
+    return typeof id === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id.toLowerCase() : null;
+  } catch { return null; }
 }
 const ViewerGeo = {
   _memo: undefined,
@@ -1641,13 +1667,44 @@ function goPractice(seed, opts) {
 
 // ================================================================ state
 const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null,
-  challenge: null, challengeToken: "", challengeOpenedFresh: false };
+  challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null };
 const puzzleForDay = n => PUZZLES[((n % PUZZLES.length) + PUZZLES.length) % PUZZLES.length];
 const resultKey = () => state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
 const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, at: Date.now() };
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
+function activePlay() {
+  const p = state.puzzle;
+  if (!p) return null;
+  if (p.type === "rank") return state.rank;
+  if (p.type === "match") return state.match;
+  if (p.type === "tier") return state.tier;
+  return state.guess;
+}
+function boardInProgress(g) {
+  if (!g || g.done) return false;
+  if (Array.isArray(g.attempts) && g.attempts.length) return true;
+  if (Array.isArray(g.guesses) && g.guesses.length) return true;
+  return false;
+}
+// Drafts stay in memory. Writing them would replace the stored first finish, and the next open would resume the draft.
+function rememberDraft(g) {
+  if (state.mode === "preview") setResult(g);
+}
+// The first completed play is the one that counts: community row, streak, personal stats, archive tick.
+// A later finish of the same puzzle updates nothing in storage. Sharing uses state.liveResult.
+function commitFinish(g) {
+  state.liveResult = g;
+  if (!g) return false;
+  if (state.mode === "preview") { setResult(g); return false; }
+  const prior = getResult();
+  if (prior && isDone(prior)) return false;
+  setResult(g);
+  if (isToday()) recordStats(g);
+  if (state.puzzle) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
+  return true;
+}
 const isToday = () => state.mode === "daily";
 function puzzleOnlyHash() {
   if (!state.puzzle || state.mode === "preview" || state.mode === "home") return "";
@@ -1833,15 +1890,14 @@ function renderName(saved) {
     maxTries: CONFIG.rankMaxTries,
     onFit: scheduleFit,
     onToast: toast,
-    onDraft(g) { setResult(g); fitLayout(); },
+    onDraft(g) { rememberDraft(g); fitLayout(); },
     onFinish(g, opts) {
       const restore = !!(opts && opts.restore);
-      setResult(g);
-      if (!restore && isToday()) recordStats(g);
+      if (restore) { state.liveResult = g; if (state.mode === "preview") setResult(g); }
+      else commitFinish(g);
       const tier = !restore ? winTier(g) : null;
       const cheer = !restore ? cheerChoice(g, false) : null;
       if (cheer) Fx.celebrate(cheer, "name");
-      if (!restore) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
       const reveal = () => showResult(g, { scroll: !restore });
       if (restore) reveal();
       else afterSubmit(reveal, tier);
@@ -1861,7 +1917,16 @@ function openPuzzle(p) {
   const t5board = $("#t5board"); if (t5board) t5board.classList.add("hidden");
   const hintsEl = $("#hints"); if (hintsEl) hintsEl.classList.add("hidden");
   setHash(linkHash());
-  const saved = getResult();
+  state.liveResult = null;
+  state.rank = null;
+  state.match = null;
+  state.tier = null;
+  state.guess = null;
+  // Daily, archive, practice, and the all-puzzles list always open a fresh board.
+  // The stored row is the first finish only, and a reload must not put it back on the cards.
+  // The other game objects are cleared too, so a finished board from the previous puzzle
+  // is not treated as this one's result.
+  const saved = state.mode === "preview" ? getResult() : null;
   if (freshRound(saved)) track("game_started", { mode: state.mode, puzzle_type: p.type });
   const h2h = $("#h2h"); if (h2h) { h2h.classList.add("hidden"); h2h.replaceChildren(); }
   p.type === "name" ? renderName(saved) : p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop1(saved);
@@ -1985,7 +2050,7 @@ function orderChanged(order) {   // after a drag or arrow move: keep pinned card
   const p = state.puzzle, ol = $("#cards"), g = state.rank;
   const fixed = enforcePinned(p, order, g.pinned), els = {}; [...ol.children].forEach(li => els[li.dataset.i] = li);
   if (fixed.join() !== order.join()) { snapshot(ol); fixed.forEach(i => ol.appendChild(els[i])); flip(ol); }
-  state.order = fixed; g.cur = fixed; if (g.attempts.length) setResult(g);
+  state.order = fixed; g.cur = fixed; if (g.attempts.length) rememberDraft(g);
   $$("#cards .card.bad").forEach(li => li.classList.remove("bad", "shake"));
   renumber(); updateRankHint();
 }
@@ -2043,8 +2108,7 @@ function submitRank() {
   if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
     g.done = true; g.solved = solved;
     Object.assign(g, { marks, order: [...state.order], points: marks.filter(m => m === "good").length, max: marks.length, values: true });
-    setResult(g); if (isToday()) recordStats(g);
-    CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    commitFinish(g);
     trackGameCompleted(g);
     $("#board").classList.add("locked"); state.sortable?.option("disabled", true);
     $("#submitBtn").parentElement.classList.add("hidden"); $("#hint").classList.add("hidden"); renderTryDots();
@@ -2055,7 +2119,7 @@ function submitRank() {
     setTimeout(() => afterSubmit(() => revealRank(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
-  setResult(g); renderTryDots(); feedback(marks, false); updateRankHint();
+  rememberDraft(g); renderTryDots(); feedback(marks, false); updateRankHint();
   { const cheer = cheerChoice(g, isIdentityRank(p)); if (cheer) Fx.celebrate(cheer, "rank"); }
   toast(`${g.pinned.length}/${marks.length} right · ${CONFIG.rankMaxTries - g.attempts.length} ${CONFIG.rankMaxTries - g.attempts.length === 1 ? "try" : "tries"} left`);
 }
@@ -2148,7 +2212,7 @@ function matchAssign(k, i) {   // clue k -> person i (swap if person i already h
   const g = state.match; if (g.done || g.pinned.includes(k)) return;
   const other = g.cur.indexOf(i); if (other >= 0 && g.pinned.includes(other)) return;
   if (other >= 0 && other !== k) g.cur[other] = g.cur[k];
-  g.cur[k] = i; state.mSel = null; if (g.attempts.length) setResult(g);
+  g.cur[k] = i; state.mSel = null; if (g.attempts.length) rememberDraft(g);
   paintMatch();
   const li = $(`#mClues .m-clue[data-c="${k}"]`); if (li) { li.classList.remove("pop"); void li.offsetWidth; li.classList.add("pop"); }
 }
@@ -2173,8 +2237,7 @@ function submitMatch() {
   $$("#mClues .m-clue").forEach(li => { const k = +li.dataset.c; li.classList.remove("shake", "pop"); void li.offsetWidth; li.classList.add(marks[k] === "good" ? "pop" : "shake"); });
   if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
     g.done = true; g.solved = solved; Object.assign(g, { marks, points: marks.filter(m => m === "good").length, max: marks.length });
-    setResult(g); if (isToday()) recordStats(g);
-    CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    commitFinish(g);
     trackGameCompleted(g);
     $("#matchGame").classList.add("locked"); paintMatch(); $$("#mClues .m-clue").forEach(li => { const k = +li.dataset.c; li.classList.toggle("good", marks[k] === "good"); li.classList.toggle("bad", marks[k] !== "good"); });
     const tier = winTier(g);
@@ -2183,7 +2246,7 @@ function submitMatch() {
     setTimeout(() => afterSubmit(() => revealMatch(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
-  setResult(g); paintMatch();
+  rememberDraft(g); paintMatch();
   { const cheer = cheerChoice(g, false); if (cheer) Fx.celebrate(cheer, "rank"); }
   toast(`${g.pinned.length}/${marks.length} right · ${CONFIG.rankMaxTries - g.attempts.length} ${CONFIG.rankMaxTries - g.attempts.length === 1 ? "try" : "tries"} left`);
 }
@@ -2302,7 +2365,7 @@ function tierAssign(i, ti) {
   g.cur = g.cur.slice(); g.cur[i] = ti;
   state.tierSel = null;
   $$("#tierRows .tier-chip.bad").forEach(c => c.classList.remove("bad", "shake"));
-  paintTier(); updateTierHint(); if (g.attempts.length) setResult(g);
+  paintTier(); updateTierHint(); if (g.attempts.length) rememberDraft(g);
 }
 function renderTierTries() {
   const g = state.tier, max = CONFIG.rankMaxTries;
@@ -2344,8 +2407,7 @@ function submitTier() {
   if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
     g.done = true; g.solved = solved;
     Object.assign(g, { marks, assign: [...g.cur], points: marks.filter(m => m === "good").length, max: marks.length });
-    setResult(g); if (isToday()) recordStats(g);
-    CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    commitFinish(g);
     trackGameCompleted(g);
     $("#tierGame").classList.add("locked");
     $("#tierSubmit").parentElement.classList.add("hidden"); $("#tierHint").classList.add("hidden"); renderTierTries();
@@ -2355,7 +2417,7 @@ function submitTier() {
     setTimeout(() => afterSubmit(() => revealTier(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
-  setResult(g); renderTierTries(); updateTierHint();
+  rememberDraft(g); renderTierTries(); updateTierHint();
   { const cheer = cheerChoice(g, isIdentityTier(p)); if (cheer) Fx.celebrate(cheer, "rank"); }
   toast(`${g.pinned.length}/${marks.length} right · ${CONFIG.rankMaxTries - g.attempts.length} ${CONFIG.rankMaxTries - g.attempts.length === 1 ? "try" : "tries"} left`);
 }
@@ -2514,8 +2576,7 @@ function submitTop1(c) {
   top1CloseSuggest();
   if (g.solved || g.guesses.length >= CONFIG.rankMaxTries) {
     g.done = true;
-    setResult(g); if (isToday()) recordStats(g);
-    CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    commitFinish(g);
     trackGameCompleted(g);
     const form = $("#guessForm"); if (form) form.classList.add("hidden");
     $("#guessGame").classList.add("locked");
@@ -2524,7 +2585,7 @@ function submitTop1(c) {
     afterSubmit(() => showResult(g, { scroll: true }), cheer);
     return;
   }
-  setResult(g); top1Paint();
+  rememberDraft(g); top1Paint();
   if (input) input.focus();
 }
 function top1MarkHtml(g) {
@@ -2694,7 +2755,7 @@ function t5Place(key, slot) {
     if (from >= 0) g.cur[from] = occupant || null;
   }
   state.t5Sel = null;
-  if (g.attempts.length) setResult(g);
+  if (g.attempts.length) rememberDraft(g);
   paintTop5();
   updateTop5Hint();
 }
@@ -2773,8 +2834,7 @@ function submitTop5() {
   paintTop5(marks);
   if (solved || g.attempts.length >= CONFIG.rankMaxTries) {
     g.done = true; g.marks = marks;
-    setResult(g); if (isToday()) recordStats(g);
-    CommunityStats.submit({ puzzleId: p.id, day: state.dateKey, mode: state.mode, ...g });
+    commitFinish(g);
     trackGameCompleted(g);
     $("#guessGame").classList.add("locked");
     $("#t5Submit").parentElement.classList.add("hidden");
@@ -2786,7 +2846,7 @@ function submitTop5() {
     setTimeout(() => afterSubmit(() => revealTop5(g, true), tier), solved ? (tier === "explosive" ? 1100 : 700) : 650);
     return;
   }
-  setResult(g); renderTop5Tries(); renderHints(); updateTop5Hint();
+  rememberDraft(g); renderTop5Tries(); renderHints(); updateTop5Hint();
   { const cheer = cheerChoice(g, false); if (cheer) Fx.celebrate(cheer, "top5"); }
   const left = CONFIG.rankMaxTries - g.attempts.length;
   toast(`${g.pinned.length}/5 right · ${left} ${left === 1 ? "try" : "tries"} left`);
@@ -2960,7 +3020,7 @@ function afterSubmit(reveal, tier) {
 // first (same rules: never in streamer mode, needs an interstitial ad unit on the live site). Finished puzzles go straight on.
 function practiceNext() {
   if (state.busy) return;
-  if (state.mode !== "practice" || !state.puzzle || isDone(getResult())) return goPractice();
+  if (state.mode !== "practice" || !state.puzzle || isDone(activePlay())) return goPractice();
   const why = !Ads.allowed() ? "streamer" : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: "practice-skip", tier: null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) return goPractice();
@@ -3045,6 +3105,7 @@ function paintSourceCard(p) {
 }
 function showResult(res, opts) {
   const p = state.puzzle;
+  if (res) state.liveResult = res;
   pendingResultScroll = !!(opts && opts.scroll);
   $("#scoreBig").classList.remove("is-words");
   if (res.type === "match") {
@@ -3807,18 +3868,43 @@ function gridFromResult(p, r) {
   const row = marks.map(markCode).join("");
   return row ? [row] : [];
 }
+function fallbackAccuracy(p, r) {
+  const tries = Number(r && r.tries);
+  if (!Number.isInteger(tries) || tries < 1) return null;
+  const solved = p && p.type === "top5" && !(r.attempts && r.attempts.length) ? !!r.won : !!r.solved;
+  if (!solved) return 1;
+  if (tries <= 1) return 100;
+  const start = 99 - 20 * (tries - 2);
+  return start < 1 ? 1 : Math.max(1, Math.min(100, start));
+}
 function scoreForChallenge(p, r) {
   if (!p || !r) return null;
   if (p.type === "rank") r = normRank(r) || r;
   if (!isDone(r)) return null;
   const card = resultCard(p, r);
-  if (!card || !Number.isInteger(card.accuracy)) return null;
+  const acc = card && Number.isInteger(card.accuracy) ? card.accuracy : fallbackAccuracy(p, r);
+  if (!Number.isInteger(acc)) return null;
   const tries = Number(r.tries);
   if (!Number.isInteger(tries)) return null;
   const grid = gridFromResult(p, r);
   if (!grid.length) return null;
   const dnf = p.type === "top1" ? !r.solved : p.type === "top5" ? !r.won : !r.solved;
-  return { tries, dnf, acc: card.accuracy, grid };
+  return { tries, dnf, acc, grid };
+}
+function finishedPlay(res) {
+  const p = state.puzzle;
+  const ready = x => {
+    if (!x) return null;
+    const y = p && p.type === "rank" ? (normRank(x) || x) : x;
+    return y && isDone(y) ? y : null;
+  };
+  const direct = ready(res) || ready(state.liveResult);
+  if (direct) return direct;
+  const board = activePlay();
+  const boardDone = ready(board);
+  if (boardDone) return boardDone;
+  if (board && boardInProgress(board)) return null;
+  return ready(getResult());
 }
 function renderChallengeBanner() {
   const el = $("#challengeBanner");
@@ -3915,9 +4001,8 @@ function buildChallengeShare(res) {
   const RC = window.RankdChallenge;
   const p = state.puzzle;
   if (!RC || !p) return null;
-  let r = res || getResult();
+  const r = finishedPlay(res);
   if (!r) return null;
-  if (p.type === "rank") r = normRank(r) || r;
   const score = scoreForChallenge(p, r);
   if (!score) return null;
   const name = challengeNameForShare();
@@ -3927,10 +4012,17 @@ function buildChallengeShare(res) {
   if (!token) return null;
   return { url: shareUrl() + "&c=" + token, name: name, score: score };
 }
+function qrMaker() {
+  if (typeof qrcode === "function") return qrcode;
+  if (typeof globalThis !== "undefined" && typeof globalThis.qrcode === "function") return globalThis.qrcode;
+  if (typeof window !== "undefined" && typeof window.qrcode === "function") return window.qrcode;
+  return null;
+}
 function challengeQrSvg(url) {
-  if (!url || typeof qrcode !== "function") return "";
+  const make = qrMaker();
+  if (!url || !make) return "";
   try {
-    const qr = qrcode(0, "M");
+    const qr = make(0, "M");
     qr.addData(url);
     qr.make();
     return qr.createSvgTag({ cellSize: 4, margin: 16, scalable: true });
@@ -3943,24 +4035,31 @@ function renderChallengeQr(res) {
   const frame = $("#challengeQrCode");
   if (!box || !frame) return;
   frame.replaceChildren();
-  const built = buildChallengeShare(res);
-  const svg = built ? challengeQrSvg(built.url) : "";
+  const live = finishedPlay(res);
+  const built = live ? buildChallengeShare(live) : null;
+  const url = built ? built.url : (live ? shareUrl() : "");
+  const svg = url ? challengeQrSvg(url) : "";
   if (!svg) { box.classList.add("hidden"); return; }
   frame.innerHTML = svg;
   const drawn = frame.querySelector("svg");
   if (drawn) drawn.setAttribute("aria-hidden", "true");
+  const cap = box.querySelector(".challenge-qr-caption");
+  if (cap) cap.textContent = built ? "Scan to take my challenge" : "Scan to play this puzzle";
   box.classList.remove("hidden");
 }
 async function shareChallengeFriend() {
   const p = state.puzzle;
-  const built = buildChallengeShare();
-  if (!built || !p) { toast("Finish the puzzle first"); return; }
-  const text = resultText(built.url);
-  if (!text) { toast("Finish the puzzle first"); return; }
+  const live = finishedPlay();
+  if (!p || !live) { toast("Finish the puzzle first"); return; }
+  const built = buildChallengeShare(live);
+  const url = built ? built.url : shareUrl();
+  let text = "";
+  try { text = resultText(url, live); } catch (e) { text = ""; }
+  if (!text) text = shareTitle() + "\n" + fullTitle(p) + "\n" + url;
   track("share_clicked", { mode: state.mode, puzzle_type: p.type });
   window.__lastShare = text;
-  const how = await shareOrCopyChallenge(text, built.url, "Challenge link copied!");
-  if (how === "shared" || how === "copied") track("challenge_link_created", { mode: state.mode, puzzle_type: p.type });
+  const how = await shareOrCopyChallenge(text, url, built ? "Challenge link copied!" : "Result copied!");
+  if ((how === "shared" || how === "copied") && built) track("challenge_link_created", { mode: state.mode, puzzle_type: p.type });
 }
 
 // ================================================================ sharing
@@ -4010,8 +4109,8 @@ function accuracyShareBit(p, r) {
   const card = resultCard(p, r);
   return card && card.accuracy != null ? ` · Accuracy ${card.accuracy}` : "";
 }
-function resultText(link) {
-  const p = state.puzzle; let r = getResult(); if (p.type === "rank") r = normRank(r); if (!r || !r.done) return "";
+function resultText(link, res) {
+  const p = state.puzzle; const r = finishedPlay(res); if (!p || !r) return "";
   const url = link || shareUrl();
   const acc = accuracyShareBit(p, r);
   if (p.type === "match") {
@@ -4621,7 +4720,7 @@ function settingsModal() {
     <p style="font-size:12px;color:var(--muted)">What Rankd stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
   $$(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
     settings[sg.dataset.set] = b.dataset.v; saveSettings(); sg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
-    if (sg.dataset.set === "theme") applyTheme(); else if (sg.dataset.set === "stream") applyStreamer(); else if (state.puzzle?.type === "rank" && !$("#playView").classList.contains("hidden")) renderRank(getResult(), true);
+    if (sg.dataset.set === "theme") applyTheme(); else if (sg.dataset.set === "stream") applyStreamer(); else if (state.puzzle?.type === "rank" && !$("#playView").classList.contains("hidden")) renderRank(state.rank, true);
   }));
   $("#mLoad").onclick = () => $("#fileInput").click(); $("#mTemplate").onclick = downloadCsv;
   $("#mClear").onclick = clearDataModal;
