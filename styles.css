@@ -380,7 +380,31 @@ html.rankd-boot-archive #archiveView{display:block!important}
 .arch.locked{opacity:.72;cursor:not-allowed}
 .arch.locked .ah,.arch.locked .asub{filter:grayscale(.15)}
 .arch .ar.lock{background:rgba(var(--brand-rgb),.12);color:var(--brand);letter-spacing:.04em}
-.prem-upsell{color:var(--brand);font-weight:700}
+button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--brand);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.account-btn{border:0;background:var(--surface2);color:var(--ink);height:34px;border-radius:999px;padding:0 10px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;max-width:46vw;box-shadow:var(--shadow-soft)}
+.account-btn:active{transform:scale(.98)}
+.account-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:88px}
+.account-avatar,.account-fallback{width:22px;height:22px;border-radius:50%;flex:none}
+.account-avatar{object-fit:cover;background:rgba(var(--ink-rgb),.08)}
+.account-fallback{display:grid;place-items:center;background:var(--brand);color:#fff;font-size:11px;font-weight:800}
+.account-out{border:0;background:none;color:var(--muted);font-size:12px;font-weight:800;padding:6px 4px}
+.account-out:hover{color:var(--ink)}
+.account-lead{color:var(--muted);font-size:14px;line-height:1.45;margin:0 0 12px}
+.account-actions{display:flex;flex-direction:column;gap:10px}
+.account-actions .pill-btn{width:100%}
+.account-or{text-align:center;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin:2px 0}
+.account-label{font-size:12px;font-weight:700;color:var(--muted)}
+#emailForm{display:flex;flex-direction:column;gap:8px}
+#emailInput{height:48px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);padding:0 12px;font-size:16px}
+.account-note{min-height:1.2em;font-size:13.5px;color:var(--muted);margin:0}
+.premium-kicker{text-align:center;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin:8px 0 0}
+.premium-card{background:var(--surface2);border-radius:24px;padding:22px 18px 18px;box-shadow:var(--shadow-soft)}
+.premium-pitch{font-size:16.5px;line-height:1.45;margin:0 0 12px}
+.premium-price{font-size:18px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+.premium-note{color:var(--muted);font-size:13.5px;line-height:1.45;margin:0 0 16px}
+.premium-actions{display:flex;flex-direction:column;gap:10px}
+.premium-actions .pill-btn{width:100%}
+.premium-status{min-height:1.2em;color:var(--muted);font-size:13.5px;line-height:1.4;margin:12px 0 0}
 
 /* ---------- overlays ---------- */
 .overlay{position:fixed;inset:0;z-index:50;background:rgba(20,22,28,.58);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;animation:fadeIn .2s}
@@ -690,6 +714,13 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   .tab{padding:7px 11px;font-size:10.5px;letter-spacing:.12em}
   .gear-btn{width:34px;height:34px}
   .ad-banner{margin:6px 10px 0}
+  .account-btn{height:32px;padding:0 8px;font-size:11px}
+}
+@media (max-width:420px){
+  .topbar{gap:4px}
+  .topbar .tab{padding:6px 6px;letter-spacing:.04em;font-size:10px}
+  .account-name{max-width:64px}
+  .account-out{padding:4px 2px}
 }
 
 /* ---------- v12.2 Tier it ---------- */
