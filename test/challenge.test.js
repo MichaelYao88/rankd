@@ -121,8 +121,10 @@ test("the page wires the button, the events, and the archive bypass", () => {
   assert.match(html, /id="shareChallengeTop"/);
   assert.doesNotMatch(html, /id="shareChallengeBtn"/);
   assert.doesNotMatch(html, /id="challengeNameInput"/);
-  const hook = app.slice(app.indexOf("function getChallengerName"), app.indexOf("function challengeNameForShare"));
-  assert.match(hook, /return null/);
+  const hookStart = app.indexOf("function getChallengerName");
+  const hook = app.slice(hookStart, app.indexOf("function applyStreamer"));
+  assert.match(hook, /googleProfile\(authUser\)\.name \|\| null/);
+  assert.equal(app.indexOf("function getChallengerName", hookStart + 1), -1);
   const nameFn = app.slice(app.indexOf("function challengeNameForShare"), app.indexOf("async function shareOrCopyChallenge"));
   assert.match(nameFn, /getChallengerName/);
   assert.doesNotMatch(nameFn, /challengeNameInput/);

@@ -28,11 +28,20 @@ const CONFIG = {
   // Community compare snapshots. Live site reads the Ranki Supabase Edge Function.
   // community-stats.json stays in the repo and is the offline fallback (same seeded shape).
   COMMUNITY_STATS_URL: "https://fkxbqftqxvgqrtvkpglx.supabase.co/functions/v1/community-stats",
-  // Anon key is public (RLS: insert-only on plays). Never put the service role in this file.
+  // Anon key is public. Plays stay insert-only. A signed-in user can read only their
+  // own profile and entitlement. Never put the service role in this file.
   SUPABASE_URL: "https://fkxbqftqxvgqrtvkpglx.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
-  // Premium (Lemon/Supabase later). enabled:false = everyone is free.
-  premium: { enabled: false },
+  // Shared Premium for Ranki and WhereIsShe (Lemon store mikelyaps, test mode).
+  // checkoutUrl is the existing WhereIsShe checkout. Replace it if a dedicated
+  // product is created. An empty checkoutUrl shows "Premium coming soon".
+  // enabled:false forces everyone free (kill switch). Entitlement comes from Supabase, not localStorage.
+  premium: {
+    enabled: true,
+    checkoutUrl: "https://mikelyaps.lemonsqueezy.com/checkout/buy/ca1efbfa-7ab8-4fe6-b96a-694c1f5691fa",
+    priceLine: "From $2.67/month · suggested $6.70",
+    pitch: "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice.",
+  },
   // PostHog product analytics (same project as WhereIsShe; events are split with site:"ranki").
   // The loader, posthog.init and register({ site: "ranki" }) live in the index.html <head> snippet.
   // phc_ is the public client token, not a service secret. Studio and ?preview= do not capture.
@@ -66,6 +75,9 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
 //                            including today. Kept as stored when the ad step changes; never rescaled.
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
+//   rankd.supabase.auth    : Supabase session for this project only (not WhereIsShe's key). Sign out clears it.
+//   rankd.premium.intent   : sessionStorage flag to resume checkout after sign-in. Not an entitlement.
+//   rankd.premium.v1       : retired. A local "1" does not grant Premium.
 //   rankd.country.v1       : coarse ISO country code (no IP) so the results panel can pick a community bucket. Session + local, 12h.
 //   rankd.crosspromo.v1    : WhereIsShe card (dismissedAt ISO, lastShown). Fixed key — never remapped onto rankd.preview.*
 // Ads (RankdAds) and win animations (RankdFx) keep their state in memory only. The cross-promo session cap is in memory too.
@@ -807,10 +819,71 @@ mq.addEventListener?.("change", () => settings.theme === "system" && applyTheme(
 (function () { const q = new URLSearchParams(location.search).get("stream");
   if (q === "1" || q === "0") { settings.stream = q === "1" ? "on" : "off"; saveSettings(); } })();
 const streamerOn = () => settings.stream === "on";
+let authUser = null;
+let premiumCache = null;
+let sb = null;
+function entitlementIsActive(row, now) {
+  if (!row || row.premium !== true) return false;
+  const end = row.current_period_end;
+  if (end == null || end === "") return true;
+  const t = Date.parse(end);
+  return Number.isFinite(t) && t > (now == null ? Date.now() : now);
+}
 function isPremium() {
-  // Stub: CONFIG.premium.enabled must be true before any entitlement is honored.
   if (!CONFIG.premium || !CONFIG.premium.enabled) return false;
-  try { return localStorage.getItem("rankd.premium.v1") === "1"; } catch (e) { return false; }
+  return entitlementIsActive(premiumCache, Date.now());
+}
+function setPremiumCache(row) {
+  premiumCache = row && typeof row === "object"
+    ? { premium: row.premium === true, current_period_end: row.current_period_end || null }
+    : null;
+  if (typeof applyPremium === "function") applyPremium();
+}
+function noteAuthUser(user) { authUser = user || null; }
+function premiumPriceLine() {
+  return (CONFIG.premium && CONFIG.premium.priceLine) || "From $2.67/month · suggested $6.70";
+}
+function premiumPitch() {
+  return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice.";
+}
+function premiumUpsellLabel() { return premiumPitch() + " " + premiumPriceLine(); }
+function premiumUpsellHtml() {
+  return `<button type="button" class="prem-upsell">${premiumUpsellLabel()}</button>`;
+}
+function premiumCheckoutUrl(checkoutUrl, user) {
+  const base = String(checkoutUrl || "").trim();
+  if (!base || !user || !user.id) return "";
+  const params = [
+    ["checkout[custom][user_id]", String(user.id)],
+    ["checkout[custom][app]", "ranki"],
+  ];
+  const email = String(user.email || "").trim();
+  if (email) params.push(["checkout[email]", email]);
+  const q = params.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
+  return base + (base.includes("?") ? "&" : "?") + q;
+}
+function googleProfile(user) {
+  if (!user) return { name: null, avatar: "" };
+  const identities = Array.isArray(user.identities) ? user.identities : [];
+  const googleId = identities.find(i => i && i.provider === "google");
+  const appMeta = user.app_metadata && typeof user.app_metadata === "object" ? user.app_metadata : {};
+  const providers = Array.isArray(appMeta.providers) ? appMeta.providers : [];
+  const isGoogle = !!googleId || appMeta.provider === "google" || providers.indexOf("google") !== -1;
+  if (!isGoogle) return { name: null, avatar: "" };
+  const data = googleId && googleId.identity_data && typeof googleId.identity_data === "object" ? googleId.identity_data : {};
+  const meta = user.user_metadata && typeof user.user_metadata === "object" ? user.user_metadata : {};
+  let name = String(data.full_name || data.name || meta.full_name || meta.name || "").replace(/\s+/g, " ").trim();
+  const challengeApi = window.RankdChallenge;
+  if (challengeApi && typeof challengeApi.sanitizeName === "function") name = challengeApi.sanitizeName(name);
+  else name = Array.from(name).slice(0, 16).join("").trim();
+  const rawAvatar = String(data.avatar_url || data.picture || meta.avatar_url || meta.picture || "");
+  const avatar = /^https:\/\//i.test(rawAvatar) ? rawAvatar : "";
+  return { name: name || null, avatar };
+}
+// Signed-in display name, or null. Null stays empty on the link, so the banner says "Your friend".
+// An old link that already carries a name still decodes to that name.
+function getChallengerName() {
+  return googleProfile(authUser).name || null;
 }
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
 function applyPremium() {
@@ -1047,12 +1120,12 @@ function archiveUnlockToast() {
   return `Unlocked ${archiveAdUnlockDays()} more days — tap again for older puzzles`;
 }
 function archiveLongAdCopy() {
-  return `Watch to unlock the next ${archiveAdUnlockDays()} days of the archive. Premium unlocks everything with no ads.`;
+  return `Watch to unlock the next ${archiveAdUnlockDays()} days of the archive. ${premiumUpsellLabel()}`;
 }
 function archiveListHeaderHtml(unlocked, lastDayNumber) {
   const freeN = archiveBaseDays();
   const shown = Math.min(unlocked, lastDayNumber + 1);
-  return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. <span class="prem-upsell">Premium = full archive, no ads.</span>`;
+  return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. ${premiumUpsellHtml()}`;
 }
 // Home-page sample: the same three countries as the first-visit overlay
 // (puzzle homicide-women, UNODC via World Bank 2022, per 100k women).
@@ -1353,11 +1426,16 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
+window.RankdPremium = {
+  entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
+  googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
+};
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
-    top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints };
+    top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
+    premium: window.RankdPremium };
   window.RankdArchive = {
     baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
     getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
@@ -3609,12 +3687,6 @@ function renderHeadToHead(res) {
   el.append(line, vs, grid);
   el.classList.remove("hidden");
 }
-// No accounts yet. When sign-in exists, return that account's display name.
-// Null keeps the shared name empty: the banner says "Your friend", and an old link that already
-// carries a name still decodes to that name.
-function getChallengerName() {
-  return null;
-}
 function challengeNameForShare() {
   const RC = window.RankdChallenge;
   const raw = getChallengerName();
@@ -3934,7 +4006,7 @@ function runHowtoDemo() {
   }, 780);
 }
 function maybeShowHowto() {
-  if (state.mode === "home") return;
+  if (state.mode === "home" || state.view === "premium") return;
   if (howtoSeen()) return;
   const el = $("#howtoOverlay"); if (!el) return;
   el.classList.remove("hidden");
@@ -4026,13 +4098,14 @@ function syncTopBanner() {
 function showView(v) {
   document.documentElement.classList.remove("rankd-boot-play", "rankd-boot-archive");
   if (v !== "play") showFab(false);
-  const play = $("#playView"), arch = $("#archiveView"), home = $("#homeView");
+  const play = $("#playView"), arch = $("#archiveView"), home = $("#homeView"), prem = $("#premiumView");
   if (play) play.classList.toggle("hidden", v !== "play");
   if (arch) arch.classList.toggle("hidden", v !== "archive");
   if (home) home.classList.toggle("hidden", v !== "home");
+  if (prem) prem.classList.toggle("hidden", v !== "premium");
   document.body.classList.toggle("mode-home", v === "home");
   if (v === "home") document.body.classList.remove("mode-practice");
-  const tab = v === "home" ? "today" : v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
+  const tab = v === "home" ? "today" : v === "premium" ? "" : v === "archive" ? "archive" : state.mode === "all" ? "all" : state.mode === "practice" ? "practice" : state.mode === "archive" ? "archive" : "today";
   $$(".tab").forEach(b => b.classList.toggle("active", b.dataset.view === tab));
   syncTopBanner();
   syncPlaying();
@@ -4125,7 +4198,7 @@ function showLongAd({ reason, onDone, onCancel } = {}) {
   let s = longAdSeconds(); state.busy = true;
   note.textContent = reason === "practice" ? "Practice" : "Archive unlock";
   copy.textContent = reason === "practice"
-    ? "Free Practice shows a longer ad every 5 games (plus normal interstitials). Premium is ad-free."
+    ? `Free Practice shows a longer ad every 5 games (plus normal interstitials). ${premiumUpsellLabel()}`
     : archiveLongAdCopy();
   timer.textContent = String(s);
   btn.disabled = true; btn.textContent = `Continue in ${s}`;
@@ -4264,7 +4337,13 @@ function statsModal() {
 }
 const themeLabel = () => effectiveTheme() === "dark" ? "☀️ Light mode<small>Switch the theme</small>" : "🌙 Dark mode<small>Switch the theme</small>";
 function menuModal() {   // v11: the single gear opens this sheet (stats + theme moved here from the old corner buttons)
+  const signedIn = !!authUser;
+  const who = signedIn ? (googleProfile(authUser).name || authUser.email || "Account") : "";
   openModal(`<h2>Menu</h2><div class="menu-list">
+    ${signedIn
+      ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · Ranki + WhereIsShe" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
+      : `<button id="mSignIn">Sign in<small>Continue with Google or email</small></button>`}
+    <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
     <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
     <button id="mTheme">${themeLabel()}</button>
     ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${isToday() ? "Share today's puzzle" : "Share this puzzle"}<small>Spoiler-free link</small></button>` : ""}
@@ -4278,6 +4357,10 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
     <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
+  if ($("#mSignIn")) $("#mSignIn").onclick = () => { closeModal(); signInModal(); };
+  if ($("#mSignOut")) $("#mSignOut").onclick = () => { closeModal(); signOutAccount(); };
+  if ($("#mAccount")) $("#mAccount").onclick = () => { closeModal(); goPremium(); };
+  if ($("#mPremium")) $("#mPremium").onclick = () => { closeModal(); goPremium(); };
   $("#modal").classList.add("sheet");
   if ($("#mShare")) $("#mShare").onclick = () => { closeModal(); doShare(challengeText()); };
   $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal; $("#mAbout").onclick = aboutModal;
@@ -4304,10 +4387,14 @@ function settingsModal() {
 }
 function clearDataModal() {   // v11.1: confirm step for "Clear all data"
   openModal(`<div id="clearConfirm" role="alertdialog" aria-labelledby="clearTitle" aria-describedby="clearDesc"><h2 id="clearTitle">Clear all data?</h2>
-    <p id="clearDesc">This will erase your <b>stats, streaks, puzzle progress, practice history, challenge name and settings</b> on this device. It can't be undone.</p>
+    <p id="clearDesc">This will erase your <b>stats, streaks, puzzle progress, practice history, challenge name and settings</b> on this device, and sign you out. It can't be undone.</p>
     <div class="confirm-row"><button class="pill-btn outline" id="clearCancel">Cancel</button><button class="pill-btn danger" id="clearConfirmBtn">Clear</button></div></div>`);
   $("#clearCancel").onclick = settingsModal; $("#clearCancel").focus();
-  $("#clearConfirmBtn").onclick = () => { RankdData.clear(); location.replace(location.pathname); };   // drop ?stream= / #hash so nothing is re-written
+  $("#clearConfirmBtn").onclick = () => {
+    const done = () => { RankdData.clear(); location.replace(location.pathname); };   // drop ?stream= / #hash so nothing is re-written
+    if (sb) sb.auth.signOut().then(done, done);
+    else done();
+  };
 }
 function listModal() {   // v11: pre-launch browser of EVERY puzzle (past + future), filterable by mode; hidden when CONFIG.SHOW_ALL_PUZZLES = false
   if (!CONFIG.SHOW_ALL_PUZZLES) return;
@@ -4545,6 +4632,238 @@ document.addEventListener("keydown", e => {
   }
 });
 
+function authRedirectUrl() {
+  try {
+    const url = new URL(location.href);
+    url.hash = "";
+    url.search = "";
+    return url.origin + url.pathname;
+  } catch (e) {
+    return "https://ranki.gg/";
+  }
+}
+function accountLabel() {
+  if (!authUser) return "Sign in";
+  return googleProfile(authUser).name || String(authUser.email || "").trim() || "Account";
+}
+function renderAccount() {
+  const btn = $("#accountBtn");
+  const out = $("#signOutBtn");
+  if (!btn) return;
+  btn.replaceChildren();
+  if (!authUser) {
+    btn.textContent = "Sign in";
+    btn.setAttribute("aria-label", "Sign in");
+    if (out) out.hidden = true;
+    return;
+  }
+  const g = googleProfile(authUser);
+  const label = accountLabel();
+  if (g.avatar) {
+    const img = document.createElement("img");
+    img.className = "account-avatar";
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.src = g.avatar;
+    btn.appendChild(img);
+  } else {
+    const mark = document.createElement("span");
+    mark.className = "account-fallback";
+    mark.textContent = (label.trim().charAt(0) || "A").toUpperCase();
+    btn.appendChild(mark);
+  }
+  const name = document.createElement("span");
+  name.className = "account-name";
+  name.textContent = label;
+  btn.appendChild(name);
+  btn.setAttribute("aria-label", "Account, " + label);
+  if (out) out.hidden = false;
+}
+function paintPremiumScreen() {
+  const btn = $("#premiumCheckout");
+  const status = $("#premiumStatus");
+  const price = $("#premiumPrice");
+  const pitch = $("#premiumPitch");
+  if (price) price.textContent = premiumPriceLine();
+  if (pitch) pitch.textContent = premiumPitch();
+  if (!btn) return;
+  const url = String((CONFIG.premium && CONFIG.premium.checkoutUrl) || "").trim();
+  if (isPremium()) {
+    btn.disabled = true;
+    btn.textContent = "You're Premium";
+    if (status) status.textContent = "Premium is on for this account on Ranki and WhereIsShe.";
+    return;
+  }
+  if (!url) {
+    btn.disabled = true;
+    btn.textContent = "Premium coming soon";
+    if (status) status.textContent = "Checkout isn't open yet.";
+    return;
+  }
+  btn.disabled = false;
+  if (!authUser) {
+    btn.textContent = "Sign in to go Premium";
+    if (status) status.textContent = "Sign in with Google or email, then checkout opens.";
+    return;
+  }
+  btn.textContent = "Go Premium";
+  if (status) status.textContent = "Lemon Squeezy hosts checkout. Monthly, pay what you want.";
+}
+function goPremium() {
+  closeModal();
+  state.view = "premium";
+  state.mode = "home";
+  showView("premium");
+  paintPremiumScreen();
+  setHash("#premium");
+}
+function signInModal() {
+  openModal(`<h2>Sign in</h2>
+    <p class="account-lead">Continue with Google or email. The same email unlocks Premium on Ranki and WhereIsShe.</p>
+    <div class="account-actions">
+      <button type="button" class="pill-btn primary" id="googleBtn">Continue with Google</button>
+      <p class="account-or">or</p>
+      <form id="emailForm">
+        <label class="account-label" for="emailInput">Email</label>
+        <input id="emailInput" type="email" autocomplete="email" inputmode="email" required placeholder="you@example.com">
+        <button type="submit" class="pill-btn" id="emailBtn">Continue with email</button>
+      </form>
+      <p class="account-note" id="emailNote" role="status"></p>
+    </div>`);
+  $("#modal").classList.add("sheet");
+  $("#googleBtn").onclick = () => startGoogle();
+  $("#emailForm").addEventListener("submit", e => { e.preventDefault(); startEmail($("#emailInput").value); });
+  const field = $("#emailInput");
+  if (field) field.focus();
+}
+async function startGoogle() {
+  if (!sb) { toast("Sign-in isn't available in this browser yet"); return; }
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: authRedirectUrl(), queryParams: { prompt: "select_account" } },
+  });
+  if (error) toast(error.message || "Google sign-in failed");
+}
+async function startEmail(raw) {
+  const email = String(raw || "").trim();
+  const note = $("#emailNote");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (note) note.textContent = "Enter a valid email.";
+    return;
+  }
+  if (!sb) { toast("Sign-in isn't available in this browser yet"); return; }
+  const btn = $("#emailBtn");
+  if (btn) btn.disabled = true;
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: authRedirectUrl() },
+  });
+  if (btn) btn.disabled = false;
+  if (error) {
+    if (note) note.textContent = error.message || "Couldn't send the email.";
+    return;
+  }
+  if (note) note.textContent = "Check your email for a sign-in link.";
+}
+function openPremiumCheckout() {
+  const base = CONFIG.premium && CONFIG.premium.checkoutUrl;
+  if (!String(base || "").trim()) return;
+  if (!authUser) {
+    try { sessionStorage.setItem("rankd.premium.intent", "1"); } catch (e) {}
+    signInModal();
+    return;
+  }
+  const url = premiumCheckoutUrl(base, authUser);
+  if (!url) return;
+  window.open(url, "_blank", "noopener,noreferrer");
+}
+async function signOutAccount() {
+  try { if (sb) await sb.auth.signOut(); } catch (e) {}
+  noteAuthUser(null);
+  setPremiumCache(null);
+  renderAccount();
+  paintPremiumScreen();
+}
+async function refreshAccount() {
+  renderAccount();
+  if (!sb || !authUser) {
+    setPremiumCache(null);
+    paintPremiumScreen();
+    return;
+  }
+  try { await sb.rpc("claim_premium_email"); } catch (e) {}
+  let row = null;
+  try {
+    const { data } = await sb.from("entitlements").select("premium, current_period_end, status, source_product").eq("user_id", authUser.id).maybeSingle();
+    row = data || null;
+  } catch (e) { row = null; }
+  setPremiumCache(row);
+  const g = googleProfile(authUser);
+  if (g.name || g.avatar) {
+    try {
+      await sb.from("profiles").update({
+        display_name: g.name,
+        avatar_url: g.avatar || null,
+      }).eq("user_id", authUser.id);
+    } catch (e) {}
+  }
+  renderAccount();
+  paintPremiumScreen();
+  const arch = $("#archiveView");
+  if (arch && !arch.classList.contains("hidden")) goArchive();
+}
+let checkoutResumeDone = false;
+function maybeResumeCheckout(event) {
+  if (checkoutResumeDone || !authUser) return;
+  if (event !== "SIGNED_IN" && event !== "INITIAL_SESSION") return;
+  let intent = "";
+  try { intent = sessionStorage.getItem("rankd.premium.intent") || ""; } catch (e) {}
+  if (intent !== "1") return;
+  checkoutResumeDone = true;
+  try { sessionStorage.removeItem("rankd.premium.intent"); } catch (e) {}
+  const base = CONFIG.premium && CONFIG.premium.checkoutUrl;
+  const url = premiumCheckoutUrl(base, authUser);
+  if (url) window.open(url, "_blank", "noopener,noreferrer");
+}
+function startAuth() {
+  renderAccount();
+  paintPremiumScreen();
+  const lib = window.supabase;
+  if (!lib || typeof lib.createClient !== "function" || !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY) return;
+  try {
+    sb = lib.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, {
+      auth: {
+        storageKey: "rankd.supabase.auth",
+        flowType: "pkce",
+        detectSessionInUrl: true,
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    });
+    sb.auth.onAuthStateChange((event, session) => {
+      try {
+        noteAuthUser(session && session.user);
+        refreshAccount();
+        maybeResumeCheckout(event);
+      } catch (e) {}
+    });
+  } catch (e) {
+    sb = null;
+  }
+}
+if ($("#accountBtn")) $("#accountBtn").onclick = () => { if (authUser) goPremium(); else signInModal(); };
+if ($("#signOutBtn")) $("#signOutBtn").onclick = () => signOutAccount();
+if ($("#premiumCheckout")) $("#premiumCheckout").onclick = () => openPremiumCheckout();
+if ($("#premiumBack")) $("#premiumBack").onclick = () => goHome();
+document.addEventListener("click", e => {
+  const hit = e.target && e.target.closest && e.target.closest(".prem-upsell");
+  if (!hit) return;
+  e.preventDefault();
+  dismissLongAd();
+  goPremium();
+});
+startAuth();
+
 applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
@@ -4557,6 +4876,7 @@ function route() {
   const p = h.match(/(?:^#|[?&#])p=([^&]+)/);
   const rs = h.match(/(?:^#|[?&#])r=(\d+)/);
   const opts = token ? { challengeToken: token } : null;
+  if (/^#premium(?:$|&)/.test(h)) return goPremium();
   if (/^#archive(?:$|&)/.test(h)) return goArchive();
   if (d) return goDate(d[1], opts);
   if (rs && Practice.ok()) return goPractice(+rs[1], opts);

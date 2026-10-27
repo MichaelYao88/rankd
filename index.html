@@ -69,9 +69,13 @@
     <button class="tab" data-view="archive" role="tab">Archive</button>
     <button class="tab" data-view="practice" role="tab">Practice</button>
   </nav>
+  <div class="topbar-tools" id="topbarTools">
+  <button type="button" class="account-btn" id="accountBtn" aria-label="Sign in">Sign in</button>
+  <button type="button" class="account-out" id="signOutBtn" hidden>Sign out</button>
   <button class="round-btn gear-btn" id="menuBtn" aria-label="Menu, stats and settings" title="Menu, stats and settings">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
   </button>
+  </div>
 </header>
 
 <!-- ===== AD SLOT: top banner. Practice always; a short archive day (#d= past, board under 6 rows) when the
@@ -380,7 +384,7 @@
   <!-- ======== ARCHIVE VIEW ======== -->
   <section id="archiveView" class="hidden">
     <h2 class="section-title"><span class="hl">Archive</span></h2>
-    <p class="section-sub">Free archive: the latest <b>7</b> days are free. Watch an ad to open the next 5 days. <span class="prem-upsell">Premium = full archive, no ads.</span></p>
+    <p class="section-sub">Free archive: the latest <b>7</b> days are free. Watch an ad to open the next 5 days. <button type="button" class="prem-upsell">Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70</button></p>
     <div class="plist-search-wrap">
       <input class="plist-search" id="archiveSearch" type="search" placeholder="Search countries, headlines, sources…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search the archive" aria-controls="archiveList">
       <button type="button" class="plist-search-clear" id="archiveSearchClear" aria-label="Clear search" hidden>×</button>
@@ -388,6 +392,21 @@
     <p class="plist-count" id="archiveCount" aria-live="polite"></p>
     <p class="plist-empty hidden" id="archiveEmpty" role="status"></p>
     <ol class="archive-list" id="archiveList"></ol>
+  </section>
+
+  <section id="premiumView" class="hidden" aria-labelledby="premiumTitle">
+    <p class="premium-kicker">Ranki + WhereIsShe</p>
+    <h2 class="section-title" id="premiumTitle"><span class="hl">Go Premium</span></h2>
+    <div class="premium-card">
+      <p class="premium-pitch" id="premiumPitch">Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice.</p>
+      <p class="premium-price" id="premiumPrice">From $2.67/month · suggested $6.70</p>
+      <p class="premium-note">One monthly subscription, pay what you want. Minimum $2.67, suggested $6.70. The same email unlocks both games.</p>
+      <div class="premium-actions">
+        <button type="button" class="pill-btn primary" id="premiumCheckout">Go Premium</button>
+        <button type="button" class="pill-btn ghost" id="premiumBack">Back</button>
+      </div>
+      <p class="premium-status" id="premiumStatus" role="status"></p>
+    </div>
   </section>
 </main>
 <button class="fab hidden" id="fab" type="button">Next puzzle →</button>
@@ -423,7 +442,7 @@
     <div class="long-ad-timer" id="longAdTimer" aria-live="polite">20</div>
     <div class="long-ad-fill" id="longAdFill"><div class="long-ad-ph">Long ad placeholder<br><small>Rewarded / 15–30s · wired for a real unit later</small></div></div>
     <button type="button" class="pill-btn outline" id="longAdContinue" disabled>Continue in 20</button>
-    <p class="long-ad-prem">Want no ads? <span class="prem-upsell">Premium</span> unlocks the full archive + ad-free Practice.</p>
+    <p class="long-ad-prem">Want no ads? <button type="button" class="prem-upsell">Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70</button></p>
   </div>
 </div>
 
@@ -471,6 +490,7 @@
 <script src="challenge.js"></script>
 <script src="country-facts.js"></script>
 <script src="pwa.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.js" crossorigin="anonymous"></script>
 <script src="app.js"></script>
 
 </body>
