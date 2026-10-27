@@ -545,7 +545,7 @@
     return doc;
   }
 
-  if (typeof module !== "undefined" && require.main === module) {
+  if (typeof module !== "undefined" && typeof require === "function" && require.main === module) {
     const arg = process.argv[2];
     if (arg === "--self-test") {
       selfTest();

@@ -2286,12 +2286,19 @@ var qrcode = function() {
 
 }();
 
-(function (factory) {
-  if (typeof define === 'function' && define.amd) {
-      define([], factory);
-  } else if (typeof exports === 'object') {
-      module.exports = factory();
+// Always publish the generator as a real global. The old UMD tail assigned
+// module.exports when `exports` was an object and threw if `module` was missing,
+// which dropped the QR off the result screen.
+(function (root, lib) {
+  if (!lib) return;
+  if (typeof define === "function" && define.amd) {
+    try { define([], function () { return lib; }); } catch (e) {}
   }
-}(function () {
-    return qrcode;
-}));
+  if (typeof module === "object" && module && module.exports) {
+    try { module.exports = lib; } catch (e) {}
+  }
+  try { root.qrcode = lib; } catch (e) {}
+  if (typeof window !== "undefined") {
+    try { window.qrcode = lib; } catch (e) {}
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this, qrcode);

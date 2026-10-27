@@ -186,11 +186,12 @@ test("the result ends with a client-side qr of the challenge link", () => {
   assert.match(result, /Scan to take my challenge/);
   assert.match(html, /src="vendor\/qrcode\.js"/);
   assert.doesNotMatch(html, /https?:\/\/[^"']*qrcode/i);
-  assert.match(app, /qrcode\(0,\s*"M"\)/);
+  assert.match(app, /function qrMaker/);
+  assert.match(app, /make\(0,\s*"M"\)/);
   assert.match(app, /createSvgTag/);
   assert.match(app, /renderChallengeQr\(res\)/);
   assert.match(css, /\.challenge-qr-code\{[^}]*168px/);
-  assert.match(sw, /ranki-shell-v11/);
+  assert.match(sw, /ranki-shell-v12/);
   assert.match(sw, /"\/vendor\/qrcode\.js"/);
   assert.equal(fs.existsSync(path.join(root, "vendor/qrcode.js")), true);
 

@@ -14,6 +14,10 @@
 // If first_guess / second_guess columns are not migrated yet, the insert
 // retries without them. payload.firstGuess and payload.secondGuess are
 // always stored.
+//
+// device_id and user_id are the first-play guard. A unique violation
+// (23505) is a replay and returns { ok: true, duplicate: true }. If those
+// columns are not migrated yet, the insert retries without them.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const CORS = {
@@ -27,7 +31,8 @@ const PUZZLE_ID = /^[a-z0-9][a-z0-9-]{0,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const ISO = /^[A-Z]{2}$/;
 const MODES = new Set(["daily", "archive"]);
-const TYPES = new Set(["rank", "top5", "tier", "match"]);
+const TYPES = new Set(["rank", "top5", "tier", "match", "top1", "name"]);
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function json(body: unknown, status = 200, extra: Record<string, string> = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -166,6 +171,15 @@ function sanitizeGuess(raw: unknown, type: string): Record<string, unknown> | nu
     }).filter((x): x is Record<string, unknown> => !!x);
     return pairs.length ? { kind: "match", pairs } : null;
   }
+  if (type === "top1" || type === "name") {
+    const base = piece(row);
+    if (!base) return null;
+    const out: Record<string, unknown> = { kind: type, ...base };
+    if (type === "top1" && Number.isInteger(row.rank) && (row.rank as number) >= 1 && (row.rank as number) <= 400) {
+      out.rank = row.rank;
+    }
+    return out;
+  }
   if (type === "top5") {
     const name = clip(row.name, 80);
     const key = clip(row.key, 80);
@@ -239,6 +253,8 @@ Deno.serve(async (req: Request) => {
   if (!url || !key) return json({ error: "unavailable" }, 500);
 
   const countryCode = await countryFromRequest(req);
+  const deviceId = clip(body.device_id, 40).toLowerCase();
+  const userId = clip(body.user_id, 40).toLowerCase();
   const record: Record<string, unknown> = {
     puzzle_id: puzzleId,
     day_key: day,
@@ -250,14 +266,24 @@ Deno.serve(async (req: Request) => {
     country_code: countryCode,
     first_guess: first,
     second_guess: second,
+    device_id: UUID.test(deviceId) ? deviceId : null,
+    user_id: UUID.test(userId) ? userId : null,
   };
 
   const supabase = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
   let { error } = await supabase.from("plays").insert(record);
+  if (error && /device_id|user_id/i.test(error.message || "")) {
+    delete record.device_id;
+    delete record.user_id;
+    ({ error } = await supabase.from("plays").insert(record));
+  }
   if (error && /first_guess|second_guess/i.test(error.message || "")) {
     delete record.first_guess;
     delete record.second_guess;
     ({ error } = await supabase.from("plays").insert(record));
+  }
+  if (error && (error.code === "23505" || /duplicate key/i.test(error.message || ""))) {
+    return json({ ok: true, duplicate: true });
   }
   if (error) {
     console.error("submit-play insert", error.code || "error");
