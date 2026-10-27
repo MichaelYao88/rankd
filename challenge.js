@@ -139,12 +139,12 @@
     const acc = "accuracy " + score.acc;
     if (score.dnf) {
       return who
-        ? who + " didn't finish this Ranki puzzle (" + score.tries + " " + word + ", " + acc + "). Can you beat them?"
-        : "I didn't finish this Ranki puzzle (" + score.tries + " " + word + ", " + acc + "). Can you beat me?";
+        ? who + " didn't finish this ranki.gg puzzle (" + score.tries + " " + word + ", " + acc + "). Can you beat them?"
+        : "I didn't finish this ranki.gg puzzle (" + score.tries + " " + word + ", " + acc + "). Can you beat me?";
     }
     return who
-      ? who + " solved this Ranki puzzle in " + score.tries + " " + word + " (" + acc + "). Can you beat them?"
-      : "I solved this Ranki puzzle in " + score.tries + " " + word + " (" + acc + "). Can you beat me?";
+      ? who + " solved this ranki.gg puzzle in " + score.tries + " " + word + " (" + acc + "). Can you beat them?"
+      : "I solved this ranki.gg puzzle in " + score.tries + " " + word + " (" + acc + "). Can you beat me?";
   }
 
   const SQUARE = { G: "🟩", R: "🟥", M: "⬜", Y: "🟨", O: "🟧" };

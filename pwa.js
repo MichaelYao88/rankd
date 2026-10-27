@@ -135,8 +135,8 @@
     btn.type = "button";
     btn.id = "pwaInstall";
     btn.className = "round-btn pwa-install";
-    btn.setAttribute("aria-label", "Install Ranki");
-    btn.title = "Install Ranki";
+    btn.setAttribute("aria-label", "Install ranki.gg");
+    btn.title = "Install ranki.gg";
     btn.appendChild(installIcon());
     btn.addEventListener("click", promptInstall);
     var x = document.createElement("button");
@@ -163,7 +163,7 @@
     bar.id = "pwaIosHint";
     bar.className = "pwa-ios-hint";
     var text = document.createElement("span");
-    text.appendChild(document.createTextNode("Add Ranki: Share, then "));
+    text.appendChild(document.createTextNode("Add ranki.gg: Share, then "));
     var b = document.createElement("b");
     b.textContent = "Add to Home Screen";
     text.appendChild(b);
@@ -187,7 +187,7 @@
     var button = document.createElement("button");
     button.type = "button";
     button.id = "mInstall";
-    button.appendChild(document.createTextNode("Install Ranki"));
+    button.appendChild(document.createTextNode("Install ranki.gg"));
     var small = document.createElement("small");
     small.textContent = "Add it to your home screen";
     button.appendChild(small);

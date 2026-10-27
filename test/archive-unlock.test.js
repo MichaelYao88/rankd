@@ -119,8 +119,8 @@ test("a missing, short, or broken save still opens the free 7 days", () => {
 
 test("player-facing copy says 5 for the ad and keeps the 7-day base", () => {
   assert.equal(archive.toast(), "Unlocked 5 more days — tap again for older puzzles");
-  const upsell = '<button type="button" class="prem-upsell">Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70</button>';
-  assert.equal(archive.longAdCopy(), "Watch to unlock the next 5 days of the archive. Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
+  const upsell = '<button type="button" class="prem-upsell">Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70</button>';
+  assert.equal(archive.longAdCopy(), "Watch to unlock the next 5 days of the archive. Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
   const header = archive.headerHtml(7, 19);
   assert.equal(header, 'Free: <b>7</b> days unlocked (base 7). Watch an ad for the next 5 days. ' + upsell);
   assert.equal(archive.headerHtml(21, 19), 'Free: <b>20</b> days unlocked (base 7). Watch an ad for the next 5 days. ' + upsell);

@@ -11,7 +11,7 @@ if (window.RankiPwa) window.RankiPwa.start();
 
 // ================================================================ config
 const CONFIG = {
-  brand: "Ranki.gg",  // v12.2 visible wordmark; localStorage keys stay rankd.*
+  brand: "ranki.gg",  // v12.2 visible wordmark; localStorage keys stay rankd.*
   // Public URL used in share links. From file:// we can't share a local path, so a placeholder is used.
   siteUrl: (location.protocol.startsWith("http") ? location.origin + location.pathname : "https://rankd.example/"),
   // Daily No. 1 date. Set this to your launch date. (Prototype: set 2 weeks back so the Archive has content.)
@@ -40,7 +40,7 @@ const CONFIG = {
     enabled: true,
     checkoutUrl: "https://mikelyaps.lemonsqueezy.com/checkout/buy/ca1efbfa-7ab8-4fe6-b96a-694c1f5691fa",
     priceLine: "From $2.67/month · suggested $6.70",
-    pitch: "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice.",
+    pitch: "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.",
   },
   // PostHog product analytics (same project as WhereIsShe; events are split with site:"ranki").
   // The loader, posthog.init and register({ site: "ranki" }) live in the index.html <head> snippet.
@@ -883,7 +883,7 @@ function accountIntent(mode) {
 }
 function accountCopy(mode) {
   const intent = accountIntent(mode);
-  const subtitle = "The same email unlocks Premium on Ranki and WhereIsShe.";
+  const subtitle = "The same email unlocks Premium on ranki.gg and whereisshe.gg.";
   if (intent === "signin") {
     return {
       intent,
@@ -900,7 +900,7 @@ function accountCopy(mode) {
   return {
     intent: "signup",
     header: "Sign up",
-    title: "Create your Ranki account",
+    title: "Create your ranki.gg account",
     subtitle,
     google: "Sign up with Google",
     email: "Sign up with email",
@@ -966,7 +966,7 @@ function premiumPriceLine() {
   return (CONFIG.premium && CONFIG.premium.priceLine) || "From $2.67/month · suggested $6.70";
 }
 function premiumPitch() {
-  return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks Ranki + WhereIsShe: no ads, full archive, and ad-free Practice.";
+  return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.";
 }
 function premiumUpsellLabel() { return premiumPitch() + " " + premiumPriceLine(); }
 function premiumUpsellHtml() {
@@ -4682,7 +4682,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
   const who = signedIn ? (googleProfile(authUser).name || authUser.email || "Account") : "";
   openModal(`<h2>Menu</h2><div class="menu-list">
     ${signedIn
-      ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · Ranki + WhereIsShe" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
+      ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · ranki.gg + whereisshe.gg" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
       : `<button id="mSignIn">${esc(accountCopy().header)}<small>${esc(accountCopy().menuSmall)}</small></button>`}
     <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
     <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
@@ -4694,7 +4694,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mSettings">⚙️ Settings<small>Theme, streamer mode, load your spreadsheet</small></button>
     <button id="mHow">❓ How to play</button>
     <button id="mAbout">📚 About &amp; sources</button>
-    <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About Rankd<small>What it is, how we source the data, who makes it</small></a>
+    <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, how we source the data, who makes it</small></a>
     <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
     <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
@@ -4717,7 +4717,7 @@ function settingsModal() {
     <button id="mTemplate">⬇️ Download current puzzles as CSV<small>puzzles.csv for Rank it (Top 5 sheets: see puzzles.xlsx)</small></button>
     ${custom ? `<button id="mReset">↩️ Back to built-in puzzles<small>Using: ${esc(custom.name)} (${custom.puzzles.length} puzzles)</small></button>` : ""}</div>
     <h3>Your data</h3><button class="danger-btn" id="mClear">🗑️ Clear all data…<small>Stats, streaks, progress, practice history, challenge name and settings on this device</small></button>
-    <p style="font-size:12px;color:var(--muted)">What Rankd stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
+    <p style="font-size:12px;color:var(--muted)">What ranki.gg stores and how ads use cookies: <a href="privacy.html">Privacy policy</a></p>`);
   $$(".seg").forEach(sg => sg.querySelectorAll("button").forEach(b => b.onclick = () => {
     settings[sg.dataset.set] = b.dataset.v; saveSettings(); sg.querySelectorAll("button").forEach(x => x.classList.toggle("on", x === b));
     if (sg.dataset.set === "theme") applyTheme(); else if (sg.dataset.set === "stream") applyStreamer(); else if (state.puzzle?.type === "rank" && !$("#playView").classList.contains("hidden")) renderRank(state.rank, true);
@@ -4793,7 +4793,7 @@ function howModal() {
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {
-  openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">Rankd is a prototype. Every value and hint comes from the source linked below.</p>
+  openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">ranki.gg is a prototype. Every value and hint comes from the source linked below.</p>
     <ol class="src-list">${PUZZLES.map(p => `<li>${esc(p.emoji)} ${esc(fullTitle(p))}<br>${p.sourceUrl ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.source || p.sourceUrl)}</a>` : esc(p.source)}${
       p.type === "top5" ? `<br><small>Hints: World Bank (population SP.POP.TOTL; GDP per capita NY.GDP.PCAP.CD, current US$; capital cities), 6-continent grouping, standard landlocked list</small>` : ""}</li>`).join("")}</ol>`);
 }
@@ -5023,7 +5023,7 @@ function paintPremiumScreen() {
   if (isPremium()) {
     btn.disabled = true;
     btn.textContent = "You're Premium";
-    if (status) status.textContent = "Premium is on for this account on Ranki and WhereIsShe.";
+    if (status) status.textContent = "Premium is on for this account on ranki.gg and whereisshe.gg.";
     return;
   }
   if (!url) {

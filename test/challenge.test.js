@@ -91,9 +91,9 @@ test("fewer tries wins, accuracy breaks a tie, a finish beats DNF", () => {
 
 test("share text names the score and leaves the squares in the token", () => {
   const line = RC.shareLine("Alex", { tries: 3, acc: 82, dnf: false });
-  assert.equal(line, "Alex solved this Ranki puzzle in 3 tries (accuracy 82). Can you beat them?");
+  assert.equal(line, "Alex solved this ranki.gg puzzle in 3 tries (accuracy 82). Can you beat them?");
   assert.equal(line.includes("🟩"), false);
-  assert.equal(RC.shareLine("", { tries: 1, acc: 100, dnf: false }), "I solved this Ranki puzzle in 1 try (accuracy 100). Can you beat me?");
+  assert.equal(RC.shareLine("", { tries: 1, acc: 100, dnf: false }), "I solved this ranki.gg puzzle in 1 try (accuracy 100). Can you beat me?");
   assert.match(RC.shareLine("", { tries: 5, acc: 40, dnf: true }), /didn't finish/);
 });
 
@@ -191,7 +191,7 @@ test("the result ends with a client-side qr of the challenge link", () => {
   assert.match(app, /createSvgTag/);
   assert.match(app, /renderChallengeQr\(res\)/);
   assert.match(css, /\.challenge-qr-code\{[^}]*168px/);
-  assert.match(sw, /ranki-shell-v12/);
+  assert.match(sw, /ranki-shell-v13/);
   assert.match(sw, /"\/vendor\/qrcode\.js"/);
   assert.equal(fs.existsSync(path.join(root, "vendor/qrcode.js")), true);
 
