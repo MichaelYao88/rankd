@@ -316,6 +316,7 @@
           <span class="direction" id="t5Dir">Which country is #1?</span>
         </div>
         <div class="tries tries-below" id="guessTries" aria-live="polite"></div>
+        <div class="top1-hints hidden" id="top1Hints" aria-live="polite"></div>
         <ol class="guesses top1-guesses" id="top1Guesses" aria-live="polite"></ol>
         <form class="guess-form" id="guessForm" autocomplete="off">
           <div class="combo">
@@ -358,6 +359,10 @@
       <div class="share-row">
         <button class="pill-btn primary" id="shareResultBtn">Share my result</button>
         <button class="pill-btn" id="shareChallengeBtn">Share today's puzzle</button>
+        <label class="challenge-name" for="challengeNameInput">Name on the challenge <span>(optional)</span>
+          <input id="challengeNameInput" type="text" maxlength="16" autocomplete="nickname" placeholder="Leave blank — we’ll say “Your friend”" enterkeyhint="done">
+        </label>
+        <p class="challenge-link-note" id="challengeLinkNote" hidden></p>
         <button class="pill-btn challenge-friend" id="challengeFriendBtn" type="button">Challenge a friend</button>
       </div>
       <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
@@ -468,6 +473,7 @@
 <script src="name-puzzles.js"></script>
 <script src="name-it.js"></script>
 <script src="challenge.js"></script>
+<script src="country-facts.js"></script>
 <script src="pwa.js"></script>
 <script src="app.js"></script>
 
