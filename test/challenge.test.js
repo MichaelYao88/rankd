@@ -104,10 +104,26 @@ test("top 5 challenge grids keep one row of marks per lock-in", () => {
   assert.ok(fn.indexOf("r.attempts") < fn.indexOf("r.marks"), "per-try marks come before the last-try fallback");
 });
 
+test("an empty name still encodes and reads as Your friend", () => {
+  const token = RC.encode({ ...sample, name: "" });
+  assert.ok(token);
+  const back = RC.decode(token);
+  assert.equal(back.name, "");
+  assert.match(RC.bannerLine(back), /^Your friend solved this in 3 tries/);
+  assert.equal(RC.shareLine("", { tries: 1, acc: 100, dnf: false }).startsWith("I solved"), true);
+});
+
 test("the page wires the button, the events, and the archive bypass", () => {
   const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(html, /id="challengeFriendBtn"/);
+  assert.match(html, /id="challengeNameInput"/);
+  const nameFn = app.slice(app.indexOf("function challengeNameForShare"), app.indexOf("async function shareOrCopyChallenge"));
+  assert.match(nameFn, /challengeNameInput/);
+  assert.doesNotMatch(nameFn, /prompt\s*\(/);
+  const shareFn = app.slice(app.indexOf("async function shareChallengeFriend"), app.indexOf("function gameShareBase"));
+  assert.doesNotMatch(shareFn, /if\s*\(\s*!name\s*\)\s*return/);
+  assert.match(shareFn, /challengeLinkNote/);
   assert.match(html, /id="challengeBanner"/);
   assert.match(html, /id="h2h"/);
   assert.match(html, /src="challenge\.js"/);

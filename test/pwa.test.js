@@ -114,7 +114,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v4");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v5");
 });
 
 test("ad, analytics, and Supabase requests are not intercepted", () => {
@@ -165,6 +165,7 @@ test("navigations and puzzle data are network-first; static assets revalidate", 
     assert.equal(sw.rankiPlan(req("https://ranki.gg/" + file)), "stale-while-revalidate", file);
   }
   assert.match(read("sw.js"), /"\/challenge\.js"/);
+  assert.match(read("sw.js"), /"\/country-facts\.js"/);
 });
 
 test("ad code and ads.txt are unchanged by the PWA tags", () => {
