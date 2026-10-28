@@ -1105,7 +1105,7 @@ body.mode-practice .ad-bottom.ad-collapsed,.ad-bottom-shell.is-collapsed{display
   body.kb .ad-bottom-shell{display:none!important}
 }
 
-/* v12.2: static pages (about.html, privacy.html, how-to-play.html) + footer links */
+/* v12.2: static pages (about.html, privacy.html, how-to-play.html, terms.html) + footer links */
 .foot-links{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;margin-top:8px}
 .foot-links a{color:var(--muted);text-decoration:underline;text-underline-offset:2px}
 .page-top{display:flex;justify-content:space-between;align-items:center;max-width:760px;margin:0 auto;padding:16px 18px 0}

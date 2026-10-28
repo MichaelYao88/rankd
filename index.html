@@ -95,8 +95,8 @@
 </header>
 
 <!-- ===== AD SLOT: top banner. Practice always; a short archive day (#d= past, board under 6 rows) when the
-     Lock control still fits. CSS hides #adTop (no reserved gap) until app.js adds .ad-on. Placeholder locally;
-     on the live site AdSense fills .ad-fill the first time the slot is actually visible, and collapses it if
+     Lock control still fits. CSS hides #adTop (no reserved gap) until app.js adds .ad-on.
+     On the live site AdSense fills .ad-fill the first time the slot is actually visible, and collapses it if
      there's no ad-unit ID, no fill or the script is blocked. Daily, the archive list, and All puzzles stay off. -->
 <!-- Every ad container carries class "ad-slot": streamer mode (html.streamer) and Premium (html.premium) hide them all.
      "Remove ad" sits in a strip above the slot, never on the creative or the iframe. -->
@@ -104,7 +104,7 @@
   <div class="ad-remove-bar" data-premium-upsell="banner">
     <button type="button" class="ad-remove prem-upsell" id="adTopRemove">Remove ad ✕</button>
   </div>
-  <div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+  <div class="ad-slot ad-banner" id="adTop" data-ad="top-banner"><span class="ad-tag">Ad</span><div class="ad-fill"></div></div>
 </div>
 
 
@@ -387,7 +387,7 @@
       <p class="support hidden" id="support"></p>
 
       <div class="community">
-        <div class="community-head"><span>What most players thought</span><span class="badge" id="communityBadge">Coming soon</span></div>
+        <div class="community-head"><span>What most players thought</span><span class="badge" id="communityBadge">Community</span></div>
         <div id="communityBody" class="community-body"></div>
       </div>
 
@@ -429,7 +429,7 @@
       <div class="ad-remove-bar" data-premium-upsell="banner">
         <button type="button" class="ad-remove prem-upsell" id="adBottomRemove">Remove ad ✕</button>
       </div>
-      <div class="ad-slot ad-banner ad-bottom" id="adBottom" data-ad="practice-bottom-banner"><span class="ad-tag">Ad</span><div class="ad-fill">Banner ad placeholder · 320×50 / 728×90</div></div>
+      <div class="ad-slot ad-banner ad-bottom" id="adBottom" data-ad="practice-bottom-banner"><span class="ad-tag">Ad</span><div class="ad-fill"></div></div>
     </div>
   </section>
 
@@ -464,12 +464,12 @@
 <button class="fab hidden" id="fab" type="button">Next puzzle →</button>
 
 <footer class="foot">
-  ranki.gg prototype · Data: WHO, World Bank, FAO, IIHS, Our World in Data &amp; others · <a href="#" id="aboutLink">Sources</a>
+  © 2026 ranki.gg · Data: WHO, World Bank, FAO, IIHS, Our World in Data &amp; others · <a href="#" id="aboutLink">Sources</a>
   <!-- v12.2: static pages (also in the menu). The footer is hidden while a puzzle is being played on a phone (body.fit). -->
-  <nav class="foot-links" aria-label="Site"><a href="about.html" id="footAbout">About</a><a href="how-to-play.html" id="footHow">How to play</a><a href="privacy.html" id="footPrivacy">Privacy</a><a href="mailto:mikelyaps@gmail.com" id="footContact" data-contact-link>Contact</a></nav>
+  <nav class="foot-links" aria-label="Site"><a href="about.html" id="footAbout">About</a><a href="how-to-play.html" id="footHow">How to play</a><a href="privacy.html" id="footPrivacy">Privacy</a><a href="terms.html" id="footTerms">Terms</a><a href="mailto:mikelyaps@gmail.com" id="footContact" data-contact-link>Contact</a></nav>
 </footer>
 
-<!-- ===== INTERSTITIAL AD (placeholder) =====
+<!-- ===== INTERSTITIAL AD =====
      Shown on archive/practice puzzles only, between submitting and the reveal. Never on today's daily.
      v12.2: also in Practice when the player asks for the next random puzzle without finishing the current one.
      For production use an AdSense "Ad placement" / vignette or a Google Ad Manager interstitial instead. -->
@@ -480,7 +480,7 @@
     <div class="ad-slot inter-creative" data-ad="interstitial">
       <div class="inter-fill">
         <!-- ADSENSE: interstitial / large rectangle unit goes here -->
-        <div class="inter-ph"><span>Interstitial ad placeholder<br><small>336×280 · full-screen on mobile</small></span></div>
+        <div class="inter-ph"></div>
       </div>
     </div>
     <!-- /interstitial ad slot: Remove ads control is outside this slot -->
@@ -491,15 +491,15 @@
 </div>
 
 
-<!-- v12.2 LONG AD (placeholder rewarded / unlock). Each archive ad unlocks the next 5 days; also every 5th Practice game.
-     Replace .long-ad-fill with a real rewarded/interstitial unit later; showLongAd() is the hook. -->
+<!-- v12.2 LONG AD (rewarded / unlock). Each archive ad unlocks the next 5 days; also every 5th Practice game.
+     showLongAd() is the hook. -->
 <div class="overlay hidden" id="longAd" aria-modal="true" role="dialog" aria-labelledby="longAdTitle">
   <div class="long-ad-box">
     <div class="long-ad-top"><span class="ad-tag">Ad</span><span class="long-ad-note" id="longAdNote">Unlock</span></div>
     <h2 id="longAdTitle">Watching ad…</h2>
     <p class="long-ad-copy" id="longAdCopy">Watch to unlock the next 5 days of the archive. Premium unlocks everything with no ads.</p>
     <div class="long-ad-timer" id="longAdTimer" aria-live="polite">20</div>
-    <div class="long-ad-fill" id="longAdFill"><div class="long-ad-ph">Long ad placeholder<br><small>Rewarded / 15–30s · wired for a real unit later</small></div></div>
+    <div class="long-ad-fill" id="longAdFill"><div class="long-ad-ph"></div></div>
     <button type="button" class="pill-btn outline" id="longAdContinue" disabled>Continue in 20</button>
     <p class="long-ad-prem">Want no ads? <button type="button" class="prem-upsell">Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70</button></p>
   </div>

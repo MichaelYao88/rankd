@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v13";
+var CACHE = "ranki-shell-v14";
 
 var PRECACHE = [
   "/",
@@ -22,6 +22,7 @@ var PRECACHE = [
   "/about.html",
   "/privacy.html",
   "/how-to-play.html",
+  "/terms.html",
   "/styles.css",
   "/app.js",
   "/site-config.js",

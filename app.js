@@ -1,4 +1,4 @@
-/* Rankd prototype: daily stats game. "rank" (Rank it: drag to order) and "top1" (Top 1: type the #1 country,
+/* Rankd: daily stats game. "rank" (Rank it: drag to order) and "top1" (Top 1: type the #1 country,
    up to 5 tries, each guess shows that country's real rank). Top 5 lists play as Top 1.
    No build step; works from file://. */
 (() => {
@@ -14,7 +14,7 @@ const CONFIG = {
   brand: "ranki.gg",  // v12.2 visible wordmark; localStorage keys stay rankd.*
   // Public URL used in share links. From file:// we can't share a local path, so a placeholder is used.
   siteUrl: (location.protocol.startsWith("http") ? location.origin + location.pathname : "https://rankd.example/"),
-  // Daily No. 1 date. Set this to your launch date. (Prototype: set 2 weeks back so the Archive has content.)
+  // Daily No. 1 date. Set this to your launch date. (Set two weeks back so the Archive has content.)
   dailyEpoch: "2026-10-06",
   interstitialSeconds: 5,           // skip countdown
   interstitialOnDaily: false,       // never interrupt today's daily
@@ -34,7 +34,7 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
   // Shared Premium for Ranki and WhereIsShe (Lemon store mikelyaps, test mode).
   // checkoutUrl is the existing WhereIsShe checkout. Replace it if a dedicated
-  // product is created. An empty checkoutUrl shows "Premium coming soon".
+  // product is created. An empty checkoutUrl shows "Premium unavailable".
   // enabled:false forces everyone free (kill switch). Entitlement comes from Supabase, not localStorage.
   premium: {
     enabled: true,
@@ -3725,7 +3725,7 @@ async function renderCommunity(p, res) {
   if (!state.puzzle || state.puzzle.id !== p.id) { pendingResultScroll = false; scheduleFit(); return; }
   if (!data && p.type === "name" && window.RankdName && RankdName.seedSnapshot) data = RankdName.seedSnapshot(p);
   if (!data) {
-    badge.textContent = "Coming soon";
+    badge.textContent = "Community";
     if (headLabel) headLabel.textContent = "What most players thought";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
     renderYouVs(p, null, res || getResult());
@@ -4696,7 +4696,8 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mAbout">📚 About &amp; sources</button>
     <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, how we source the data, who makes it</small></a>
     <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
-    <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a></div>`);
+    <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a>
+    <a class="menu-link" id="mTerms" href="terms.html">📄 Terms<small>Rules for playing ranki.gg</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
   if ($("#mSignIn")) $("#mSignIn").onclick = () => { closeModal(); signInModal(); };
   if ($("#mSignOut")) $("#mSignOut").onclick = () => { closeModal(); signOutAccount(); };
@@ -4793,7 +4794,7 @@ function howModal() {
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
 function aboutModal() {
-  openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">ranki.gg is a prototype. Every value and hint comes from the source linked below.</p>
+  openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">Every value and hint comes from the source linked below.</p>
     <ol class="src-list">${PUZZLES.map(p => `<li>${esc(p.emoji)} ${esc(fullTitle(p))}<br>${p.sourceUrl ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.source || p.sourceUrl)}</a>` : esc(p.source)}${
       p.type === "top5" ? `<br><small>Hints: World Bank (population SP.POP.TOTL; GDP per capita NY.GDP.PCAP.CD, current US$; capital cities), 6-continent grouping, standard landlocked list</small>` : ""}</li>`).join("")}</ol>`);
 }
@@ -5028,7 +5029,7 @@ function paintPremiumScreen() {
   }
   if (!url) {
     btn.disabled = true;
-    btn.textContent = "Premium coming soon";
+    btn.textContent = "Premium unavailable";
     if (status) status.textContent = "Checkout isn't open yet.";
     return;
   }
