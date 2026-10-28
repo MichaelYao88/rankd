@@ -82,6 +82,7 @@ test("every HTML page links the manifest and iOS tags", () => {
     "about.html",
     "privacy.html",
     "how-to-play.html",
+    "terms.html",
     "studio.html",
     "loadingzone.html",
     "loadingzone/index.html",
@@ -99,7 +100,7 @@ test("every HTML page links the manifest and iOS tags", () => {
 });
 
 test("the service worker is registered from the game and static pages, not Studio", () => {
-  for (const page of ["index.html", "about.html", "privacy.html", "how-to-play.html"]) {
+  for (const page of ["index.html", "about.html", "privacy.html", "how-to-play.html", "terms.html"]) {
     assert.match(read(page), /src="pwa\.js"/, page);
   }
   for (const page of ["studio.html", "loadingzone.html", "loadingzone/index.html"]) {
@@ -114,7 +115,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v13");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v14");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
