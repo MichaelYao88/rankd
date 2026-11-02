@@ -54,6 +54,7 @@ function bootStudio() {
   vm.createContext(appBox);
   vm.runInContext(read("puzzles-data.js"), appBox, { filename: "puzzles-data.js" });
   vm.runInContext(read("name-puzzles.js"), appBox, { filename: "name-puzzles.js" });
+  vm.runInContext(read("part1-puzzles.js"), appBox, { filename: "part1-puzzles.js" });
   vm.runInContext(read("app.js"), appBox, { filename: "app.js" });
   return appBox.window;
 }
@@ -82,7 +83,7 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
     assert.equal(picked.id, repeat.id);
     assert.equal(again.RankdBonus.forDay(n).id, picked.id);
     assert.equal(picked.id === mainOn(puzzles, n).id, false, "overlaps main on day " + n);
-    assert.ok(bonus.types.includes(picked.type), picked.type);
+    assert.ok(bonus.types.includes(picked.type) || picked.part1Only, picked.type + " " + picked.id);
     if (keyFrom(n) <= CUTOFF) assert.equal(!!picked.sensitive, false, picked.id + " on " + keyFrom(n));
     ids.push(picked.id);
     againIds.push(picked.id);
@@ -107,6 +108,25 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
   assert.equal(sawSensitive, true);
   win.RankdShared.CONFIG.adsenseSafeThrough = CUTOFF;
   for (let n = 0; keyFrom(n) <= CUTOFF; n++) assert.equal(!!bonus.forDay(n).sensitive, false, keyFrom(n));
+
+  const letters = ["c-population", "d-population", "e-population", "g-population", "i-population"];
+  const seen = new Set();
+  for (let n = 0; n < puzzles.length * 4; n++) {
+    const picked = bonus.forDay(n);
+    if (letters.includes(picked.id)) seen.add(picked.id);
+    assert.equal(puzzles.some(p => p.id === picked.id && !p.part1Only) || letters.includes(picked.id), true, picked.id);
+  }
+  assert.deepEqual([...seen].sort(), letters.slice().sort());
+  for (const id of letters) assert.equal(puzzles.some(p => p.id === id), false, id + " stays off the daily schedule");
+  const part1 = win.RANKD_PART1;
+  assert.equal(part1.length, 5);
+  for (const p of part1) {
+    assert.equal(p.part1Only, true, p.id);
+    assert.equal(p.type, "rank", p.id);
+    assert.ok(p.items.length >= 5 && p.items.length <= 6, p.id);
+    const vals = p.items.map(it => it.value);
+    for (let i = 1; i < vals.length; i++) assert.ok((vals[i - 1] - vals[i]) / vals[i - 1] >= 0.08, p.id);
+  }
 });
 
 function classListFor(el) {
@@ -233,7 +253,7 @@ function bootGame() {
   sandbox.localStorage = localStorage;
   sandbox.sessionStorage = sessionStorage;
   vm.createContext(sandbox);
-  for (const file of ["site-config.js", "puzzles-data.js", "practice-data.js", "community-seed.js", "puzzle-search.js", "name-puzzles.js", "name-it.js", "challenge.js", "country-facts.js"]) {
+  for (const file of ["site-config.js", "puzzles-data.js", "practice-data.js", "community-seed.js", "puzzle-search.js", "name-puzzles.js", "part1-puzzles.js", "name-it.js", "challenge.js", "country-facts.js"]) {
     vm.runInContext(read(file), sandbox, { filename: file });
   }
   let app = read("app.js");
@@ -294,8 +314,9 @@ test("streaks, stats and the plays table ignore the bonus", () => {
   api.state.liveResult = api.getResult();
   const text = api.resultText("https://ranki.gg/#d=" + day);
   const lines = text.split("\n");
-  assert.equal(lines.filter(line => line.startsWith("Bonus · ")).length, 1);
-  assert.match(lines[lines.length - 2], /^Bonus · /);
+  assert.equal(lines.filter(line => line.startsWith("Part 1 · ")).length, 1);
+  assert.match(lines[lines.length - 2], /^Part 1 · /);
+  assert.equal(lines.filter(line => line.startsWith("Part 2 · ")).length, 1);
   assert.equal(lines[lines.length - 1], "https://ranki.gg/#d=" + day);
 
   localStorage.removeItem("rankd.stats.v2");
