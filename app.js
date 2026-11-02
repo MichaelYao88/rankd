@@ -1086,6 +1086,7 @@ function freshRound(saved) {
   return true;
 }
 function trackGameCompleted(res) {
+  if (state.slot === "bonus") return;
   const type = (state.puzzle && state.puzzle.type) || res.type;
   const legacyGuesses = type === "top5" && Array.isArray(res.guesses) && !(res.attempts && res.attempts.length);
   const guesses = legacyGuesses ? res.guesses.length : (Number(res.tries) || (Array.isArray(res.attempts) ? res.attempts.length : 0));
@@ -1607,6 +1608,95 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
+// Daily bonus. One short puzzle after that day's main ranker, chosen from puzzles
+// the app already plays: Top 1, Name it, Tier it, and Match it (the multiple-choice
+// pairing round). Deterministic, not that day's main puzzle, not repeated inside
+// BONUS_GAP days, a different theme when one is free, and never sensitive on or
+// before CONFIG.adsenseSafeThrough. Streaks, stats and the plays table stay on the main ranker.
+const BONUS_TYPES = ["top1", "name", "tier", "match"];
+const BONUS_TYPE_SET = new Set(BONUS_TYPES);
+const BONUS_GAP = 14;
+const THEME_KEEP = new Set(["hdi", "co2", "tea", "gdp"]);
+const THEME_STOP = new Set("the and for with from that this rate rates per top name match daily item items world share index most year data group groups country countries people adult adults between above under higher lower rank tier".split(" "));
+function puzzleOnDay(n) {
+  if (!PUZZLES.length) return null;
+  const i = ((n % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
+  return PUZZLES[i];
+}
+function themeTokens(p) {
+  const raw = String((p && p.id) || "") + " " + String((p && p.dataset) || "");
+  const out = new Set();
+  for (const part of raw.toLowerCase().split(/[^a-z0-9]+/)) {
+    if (!part || THEME_STOP.has(part)) continue;
+    let w = part;
+    if (w.length > 4 && w.endsWith("s")) w = w.slice(0, -1);
+    if (!w || THEME_STOP.has(w) || /^(19\d{2}|20[0-3]\d)$/.test(w)) continue;
+    if (w.length >= 4 || THEME_KEEP.has(w)) out.add(w);
+  }
+  return out;
+}
+function sameTheme(a, b) {
+  const A = themeTokens(a), B = themeTokens(b);
+  for (const t of A) if (B.has(t)) return true;
+  return false;
+}
+function bonusResultLine(p, r) {
+  if (!p || !r) return "";
+  const kind = PUZZLE_TYPE_LABEL[p.type] || "Bonus";
+  const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
+  const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
+  if (!solved) return `Bonus · ${kind} · X/${CONFIG.rankMaxTries}`;
+  return `Bonus · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
+}
+function bonusPool(dateKey, main, banned) {
+  const safe = inAdsenseSafeWindow(dateKey);
+  const out = [];
+  for (const p of PUZZLES) {
+    if (!p || !BONUS_TYPE_SET.has(p.type) || !p.id) continue;
+    if (main && p.id === main.id) continue;
+    if (banned && banned.has(p.id)) continue;
+    if (safe && p.sensitive) continue;
+    out.push(p);
+  }
+  return out;
+}
+function pickBonus(pool, n) {
+  if (!pool.length) return null;
+  const list = pool.slice().sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  let x = Math.imul(n + 1, 0x9E3779B1) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x7FEB352D) >>> 0;
+  x = Math.imul(x ^ (x >>> 15), 0x846CA68B) >>> 0;
+  x = (x ^ (x >>> 16)) >>> 0;
+  return list[x % list.length];
+}
+let bonusMemo = [];
+let bonusMemoList = null;
+let bonusMemoCut = null;
+function bonusForDayNumber(n) {
+  n = Math.round(n);
+  if (!Number.isFinite(n) || n < 0 || !PUZZLES.length) return null;
+  const cut = CONFIG.adsenseSafeThrough || "";
+  if (bonusMemoList !== PUZZLES || bonusMemoCut !== cut) {
+    bonusMemo = [];
+    bonusMemoList = PUZZLES;
+    bonusMemoCut = cut;
+  }
+  if (n < bonusMemo.length) return bonusMemo[n];
+  for (let i = bonusMemo.length; i <= n; i++) {
+    const dateKey = keyFromDay(i);
+    const main = puzzleOnDay(i);
+    const banned = new Set();
+    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) if (bonusMemo[i - k]) banned.add(bonusMemo[i - k].id);
+    const open = ban => bonusPool(dateKey, main, ban);
+    let pool = open(banned).filter(p => !sameTheme(p, main));
+    if (!pool.length) pool = open(banned);
+    if (!pool.length) pool = open(new Set()).filter(p => !sameTheme(p, main));
+    if (!pool.length) pool = open(new Set());
+    bonusMemo[i] = pickBonus(pool, i);
+  }
+  return bonusMemo[n];
+}
+window.RankdBonus = { forDay: bonusForDayNumber, gap: BONUS_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
   googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
@@ -1679,7 +1769,7 @@ if (window.RANKD_STUDIO) {
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
     top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
-    sourceCardModel, premium: window.RankdPremium };
+    sourceCardModel, premium: window.RankdPremium, bonusForDay: bonusForDayNumber, bonusGap: BONUS_GAP, sameTheme };
   window.RankdArchive = {
     baseDays: archiveBaseDays, adUnlockDays: archiveAdUnlockDays, ageDays: archiveAgeDays,
     getUnlockedDays: getArchiveUnlockedDays, setUnlockedDays: setArchiveUnlockedDays,
@@ -1711,9 +1801,16 @@ function goPractice(seed, opts) {
 
 // ================================================================ state
 const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null,
-  challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null };
-const puzzleForDay = n => PUZZLES[((n % PUZZLES.length) + PUZZLES.length) % PUZZLES.length];
-const resultKey = () => state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
+  challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null, slot: "main" };
+const puzzleForDay = n => puzzleOnDay(n);
+function dayOffersBonus() {
+  return state.mode === "daily" || state.mode === "archive" || state.mode === "preview";
+}
+const resultKey = () => {
+  if (state.slot === "bonus" && dayOffersBonus())
+    return state.mode === "preview" ? `vb:${state.puzzle.id}:${state.dateKey}` : `b:${state.dateKey}`;
+  return state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
+};
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
 const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, at: Date.now() };
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
@@ -1745,9 +1842,50 @@ function commitFinish(g) {
   const prior = getResult();
   if (prior && isDone(prior)) return false;
   setResult(g);
+  // The bonus is a separate first-play row. It never moves the streak, the stats, or the plays table.
+  if (state.slot === "bonus") {
+    track("bonus_played", { mode: state.mode, puzzle_type: (state.puzzle && state.puzzle.type) || g.type });
+    return true;
+  }
   if (isToday()) recordStats(g);
   if (state.puzzle) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
   return true;
+}
+function storedRow(key, id) {
+  const row = load(LS.results, {})[key];
+  if (!row || row.id !== id) return null;
+  return row;
+}
+function storedMainDone(p) {
+  if (!p) return null;
+  const key = state.mode === "preview" ? `v:${p.id}:${state.dateKey}` : `d:${state.dateKey}`;
+  const row = storedRow(key, p.id);
+  if (!row) return null;
+  const y = p.type === "rank" ? (normRank(row) || row) : row;
+  return y && isDone(y) ? y : null;
+}
+function storedBonusDone() {
+  if (!dayOffersBonus()) return null;
+  const p = bonusForDayNumber(dayNumber(state.dateKey));
+  if (!p) return null;
+  const key = state.mode === "preview" ? `vb:${p.id}:${state.dateKey}` : `b:${state.dateKey}`;
+  const row = storedRow(key, p.id);
+  if (!row || !isDone(row)) return null;
+  return { puzzle: p, result: row };
+}
+function bonusShareLine() {
+  const pack = storedBonusDone();
+  return pack ? bonusResultLine(pack.puzzle, pack.result) : "";
+}
+function withBonusLine(text) {
+  const extra = bonusShareLine();
+  if (!extra) return text || "";
+  if (!text) return extra;
+  if (text.indexOf(extra) !== -1) return text;
+  const lines = String(text).split("\n");
+  const last = lines[lines.length - 1];
+  if (/^https?:\/\//.test(last)) { lines.splice(lines.length - 1, 0, extra); return lines.join("\n"); }
+  return text + "\n" + extra;
 }
 const isToday = () => state.mode === "daily";
 function puzzleOnlyHash() {
@@ -1887,6 +2025,7 @@ function renderHero() {
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
   document.querySelector(".hero-top").classList.toggle("practice", state.mode === "practice");
   $("#heroNo").textContent = state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
+  if (state.slot === "bonus") $("#heroNo").textContent = "Bonus · " + $("#heroNo").textContent;
   $("#heroKind").textContent = p.type === "top1" ? `🥇 Top 1` : p.type === "name" ? `✏️ Name it` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = heroHeadline(p);
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
@@ -1950,9 +2089,10 @@ function renderName(saved) {
   fitLayout();
 }
 
-function openPuzzle(p) {
+function openPuzzle(p, opts) {
   // A leftover Top 5 sheet (an old upload, or a saved link) plays as Top 1 on the same country list.
   if (p && p.type === "top5" && Array.isArray(p.countries)) p = { ...p, type: "top1" };
+  state.slot = opts && opts.bonus ? "bonus" : "main";
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
@@ -1971,7 +2111,7 @@ function openPuzzle(p) {
   // The other game objects are cleared too, so a finished board from the previous puzzle
   // is not treated as this one's result.
   const saved = state.mode === "preview" ? getResult() : null;
-  if (freshRound(saved)) track("game_started", { mode: state.mode, puzzle_type: p.type });
+  if (freshRound(saved) && state.slot !== "bonus") track("game_started", { mode: state.mode, puzzle_type: p.type });
   const h2h = $("#h2h"); if (h2h) { h2h.classList.add("hidden"); h2h.replaceChildren(); }
   p.type === "name" ? renderName(saved) : p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop1(saved);
   if (state.challengeOpenedFresh) {
@@ -3206,6 +3346,7 @@ function showResult(res, opts) {
   renderYouVs(p, null, res);
   renderHeadToHead(res);
   renderCommunity(p, res);
+  paintBonus(res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
@@ -3869,6 +4010,7 @@ function dismissCrossPromo() {
 }
 function maybeShowCrossPromo() {
   const el = $("#crossPromo"); if (!el) return;
+  if (state.slot === "bonus") { el.classList.add("hidden"); return; }
   // Already offered once this page session. Leave it alone if it's still up; don't open it again after they leave.
   if (crossPromoShownThisSession) return;
   const stats = load(LS.stats, null);
@@ -4050,9 +4192,10 @@ async function shareOrCopyChallenge(text, url, copiedToast) {
 }
 function buildChallengeShare(res) {
   const RC = window.RankdChallenge;
-  const p = state.puzzle;
+  const bonusView = state.slot === "bonus";
+  const p = bonusView ? puzzleOnDay(dayNumber(state.dateKey)) : state.puzzle;
   if (!RC || !p) return null;
-  const r = finishedPlay(res);
+  const r = bonusView ? storedMainDone(p) : finishedPlay(res);
   if (!r) return null;
   const score = scoreForChallenge(p, r);
   if (!score) return null;
@@ -4152,7 +4295,7 @@ async function shareThisPuzzle() {
   await shareOrCopyChallenge(title, url, "Puzzle link copied!");
 }
 function challengeText() {
-  const p = state.puzzle;
+  const p = state.slot === "bonus" ? puzzleOnDay(dayNumber(state.dateKey)) : state.puzzle;
   const blurb = p.type === "top1" ? "Top 1: which country is #1? Five tries." : p.type === "name" ? "Name it: can you name any country that passes both rules?" : p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?";
   return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${blurb}\n${shareUrl()}`.replace(/ \n/, "\n");
 }
@@ -4161,30 +4304,33 @@ function accuracyShareBit(p, r) {
   return card && card.accuracy != null ? ` · Accuracy ${card.accuracy}` : "";
 }
 function resultText(link, res) {
-  const p = state.puzzle; const r = finishedPlay(res); if (!p || !r) return "";
+  const bonusView = state.slot === "bonus";
+  const p = bonusView ? puzzleOnDay(dayNumber(state.dateKey)) : state.puzzle;
+  const r = bonusView ? storedMainDone(p) : finishedPlay(res);
+  if (!p || !r) return withBonusLine("");
   const url = link || shareUrl();
   const acc = accuracyShareBit(p, r);
   if (p.type === "match") {
     const line = r.solved ? `🔗 Match it: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `🔗 Match it: X/${CONFIG.rankMaxTries} (${r.points}/${p.people.length})${acc}`;
-    return `${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`;
+    return withBonusLine(`${shareTitle()} ${line}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`);
   }
   if (p.type === "top1") {
     const line = r.solved ? `${p.emoji || ""} Top 1: solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `${p.emoji || ""} Top 1: X/${CONFIG.rankMaxTries}${acc}`;
-    return `${shareTitle()} ${line.trim()}\n${guessSquares(r)}\n${fullTitle(p)}\n${url}`;
+    return withBonusLine(`${shareTitle()} ${line.trim()}\n${guessSquares(r)}\n${fullTitle(p)}\n${url}`);
   }
   if (p.type === "name") {
     const line = r.solved ? `✏️ Name it: solved in ${r.tries} ${r.tries === 1 ? "try" : "tries"}${acc}` : `✏️ Name it: X/${CONFIG.rankMaxTries}${acc}`;
     const grid = (r.marks || []).map(m => EMO[m] || "🟥").join("");
-    return `${shareTitle()} ${line}\n${grid}\n${fullTitle(p)}\n${url}`;
+    return withBonusLine(`${shareTitle()} ${line}\n${grid}\n${fullTitle(p)}\n${url}`);
   }
   if (p.type === "rank" || p.type === "tier" || (p.type === "top5" && r.attempts && r.attempts.length)) {
     const kind = p.type === "tier" ? "Tier it" : p.type === "top5" ? "Top 5" : "";
     const line = r.solved ? `${p.emoji || ""} ${kind ? kind + ": " : ""}solved in ${r.tries} ${r.tries === 1 ? "try 🎯" : "tries"}${acc}` : `${p.emoji || ""} ${kind ? kind + ": " : ""}X/${CONFIG.rankMaxTries}${acc}`;
-    return `${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`;
+    return withBonusLine(`${shareTitle()} ${line.trim()}\n${rankGrid(r)}\n${fullTitle(p)}\n${url}`);
   }
   const h = hitsOf(p, r), m = missesOf(p, r), avg = avgRank(p, r), rows = [];
   for (let i = 0; i < r.marks.length; i += 10) rows.push(r.marks.slice(i, i + 10).map(x => EMO[x]).join(""));
-  return `${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""}${acc} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${url}`;
+  return withBonusLine(`${shareTitle()} 🖐️ Guess the top 5: Found ${h}/5${h >= 5 ? ` with ${plural(m, "miss")}` : ""}${acc} · avg rank #${avg}\n${rows.join("\n")}\n${fullTitle(p)}\n${url}`);
 }
 async function doShare(text) {
   if (!text) return;
@@ -4549,6 +4695,47 @@ function goHome() {
   setHash("");
   window.scrollTo({ top: 0 });
 }
+function hidePlayBoards() {
+  ["#rankGame", "#matchGame", "#tierGame", "#nameGame", "#guessGame", "#guessExtra", "#t5board"].forEach(sel => {
+    const el = $(sel);
+    if (el) el.classList.add("hidden");
+  });
+}
+function paintBonus(res) {
+  const line = $("#bonusLine");
+  const btn = $("#bonusBtn");
+  if (!line || !btn) return;
+  const bonus = dayOffersBonus() ? bonusForDayNumber(dayNumber(state.dateKey)) : null;
+  if (!bonus) { line.classList.add("hidden"); btn.classList.add("hidden"); return; }
+  const pack = storedBonusDone();
+  const shown = pack ? pack.result : (state.slot === "bonus" && res && isDone(res) ? res : null);
+  if (shown) {
+    line.textContent = bonusResultLine(pack ? pack.puzzle : bonus, shown);
+    line.classList.remove("hidden");
+  } else line.classList.add("hidden");
+  btn.textContent = state.slot === "bonus" ? "Back to daily result" : "Bonus round";
+  btn.classList.remove("hidden");
+}
+function playBonus() {
+  if (!dayOffersBonus()) return false;
+  const p = bonusForDayNumber(dayNumber(state.dateKey));
+  if (!p) return false;
+  openPuzzle(p, { bonus: true });
+  return true;
+}
+function showMainResult() {
+  const p = puzzleOnDay(dayNumber(state.dateKey));
+  const res = storedMainDone(p);
+  state.slot = "main";
+  if (!p || !res) { if (p) openPuzzle(p); return; }
+  state.puzzle = p;
+  state.liveResult = res;
+  renderHero();
+  hidePlayBoards();
+  showResult(res);
+}
+window.RankdBonus.play = playBonus;
+window.RankdBonus.back = showMainResult;
 function goToday(opts) {
   state.mode = "daily"; state.dateKey = todayKey();
   bindChallenge(opts && opts.challengeToken, { k: "d", id: state.dateKey });
@@ -4673,8 +4860,11 @@ function goArchive() {
     const head = p.type === "top1" ? heroHeadline(p) : (p.headline || p.question);
     const sub = p.type === "top1" ? (p.question && p.question !== head ? p.question : "") : (p.headline && p.headline !== p.question ? p.question : "");
     const modeLabel = p.type === "name" ? "Name it" : p.type === "top1" ? "Top 1" : p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it";
+    const bonusP = bonusForDayNumber(n);
+    const bonusHead = bonusP ? (bonusP.type === "top1" ? heroHeadline(bonusP) : (bonusP.headline || bonusP.question || "")) : "";
+    const bonusBit = bonusHead ? `<span class="abonus">Bonus · ${esc(bonusHead)}</span>` : "";
     rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
-      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(head)}</span>${sub ? `<span class="asub">${esc(sub)}</span>` : ""}<small>${modeLabel}</small></span>${badge}</button></li>`);
+      <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(head)}</span>${sub ? `<span class="asub">${esc(sub)}</span>` : ""}<small>${modeLabel}</small>${bonusBit}</span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
   $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
@@ -4925,6 +5115,7 @@ if ($("#suggest")) $("#suggest").addEventListener("mousedown", e => {
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
+if ($("#bonusBtn")) $("#bonusBtn").onclick = () => { if (state.slot === "bonus") showMainResult(); else playBonus(); };
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
