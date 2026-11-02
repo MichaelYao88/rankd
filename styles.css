@@ -338,6 +338,8 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
+.bonus-line{margin:0;text-align:center;font-size:14px;font-weight:700;letter-spacing:-.01em}
+.aq .abonus{display:block;margin-top:3px;font-weight:650;font-size:12.5px;letter-spacing:0;text-transform:none}
 .share-row .pill-btn{width:100%;padding:16px 14px;font-size:12.5px;letter-spacing:.12em;line-height:1.15}
 .share-row .pill-btn.secondary{background:var(--surface2);color:var(--ink)}
 .challenge-qr{display:flex;flex-direction:column;align-items:center;width:100%;margin:22px 0 4px;padding:18px 16px 16px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
