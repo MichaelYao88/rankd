@@ -72,7 +72,7 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //                       Replays and half-finished boards are not written here. Opening a puzzle does not restore it.
 //   rankd.device.v1   : this browser's id for the first community play of a puzzle. Cleared with the other rankd. keys.
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
-//   rankd.settings.v1 : theme and streamer mode (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
+//   rankd.settings.v1 : theme, streamer mode, and sound (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
 //                            including today. Kept as stored when the ad step changes; never rescaled.
@@ -832,6 +832,50 @@ let PUZZLES = (custom && custom.puzzles?.filter(KNOWN).length) ? custom.puzzles.
 const settings = Object.assign({ theme: "system", stream: "off" }, load(LS.settings, {}));
 delete settings.showValues;   // v12.1: the show-values setting is gone; values are always shown (old saved "off" is overridden)
 const saveSettings = () => save(LS.settings, settings);
+// Soft UI tones. No audio files. Nothing plays until a pointer or key gesture
+// creates the context, and a saved sound:"off" keeps it quiet. Default is on.
+const Snd = {
+  ctx: null,
+  ready: false,
+  arm() {
+    if (this.ready) { if (this.ctx && this.ctx.state === "suspended") this.ctx.resume(); return; }
+    this.ready = true;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try { this.ctx = new AC(); } catch (e) { this.ctx = null; }
+    if (this.ctx && this.ctx.state === "suspended") this.ctx.resume();
+  },
+  on() { return settings.sound !== "off"; },
+  env(freq, t, dur, type, peak, slide) {
+    if (!this.ready || !this.on() || !this.ctx) return;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(40, slide), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur + 0.02);
+  },
+  tick() {
+    if (!this.ctx) return;
+    this.env(720, this.ctx.currentTime, 0.05, "sine", 0.03, 380);
+  },
+  lock() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this.env(620, t, 0.06, "triangle", 0.04);
+    this.env(930, t + 0.05, 0.08, "sine", 0.028);
+  },
+  success() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    [523.25, 659.25, 783.99].forEach((f, i) => this.env(f, t + i * 0.07, 0.14, "sine", 0.03));
+  },
+};
+const soundLabel = () => settings.sound === "off" ? "🔕 Sound off<small>Tap to turn sounds on</small>" : "🔔 Sound on<small>Tap to mute</small>";
+document.addEventListener("pointerdown", () => Snd.arm(), { capture: true });
+document.addEventListener("keydown", () => Snd.arm(), { capture: true });
 const mq = matchMedia("(prefers-color-scheme: dark)");
 const effectiveTheme = () => settings.theme === "system" ? (mq.matches ? "dark" : "light") : settings.theme;
 function applyTheme() {
@@ -1898,7 +1942,7 @@ function renderName(saved) {
       const tier = !restore ? winTier(g) : null;
       const cheer = !restore ? cheerChoice(g, false) : null;
       if (cheer) Fx.celebrate(cheer, "name");
-      const reveal = () => showResult(g, { scroll: !restore });
+      const reveal = () => showResult(g, { scroll: !restore, sound: !restore });
       if (restore) reveal();
       else afterSubmit(reveal, tier);
     },
@@ -2047,6 +2091,7 @@ function markPinned() {
     if (on) li.querySelector(".yourpick").textContent = "🔒 Locked"; });
 }
 function orderChanged(order) {   // after a drag or arrow move: keep pinned cards fixed, clear stale red marks
+  Snd.tick();
   const p = state.puzzle, ol = $("#cards"), g = state.rank;
   const fixed = enforcePinned(p, order, g.pinned), els = {}; [...ol.children].forEach(li => els[li.dataset.i] = li);
   if (fixed.join() !== order.join()) { snapshot(ol); fixed.forEach(i => ol.appendChild(els[i])); flip(ol); }
@@ -2101,6 +2146,7 @@ function submitRank() {
   if (state.busy || g.done || $("#board").classList.contains("locked")) return;
   const last = g.attempts[g.attempts.length - 1];
   if (last && last.order.join() === state.order.join()) { toast("Move a red card first"); shakeBad(); return; }
+  Snd.lock();
   const marks = scoreAttempt(p, state.order);
   g.attempts.push({ order: [...state.order], marks }); g.tries = g.attempts.length; g.cur = [...state.order];
   const right = correctOrder(p), need = right.map(i => p.items[i].value); g.pinned = state.order.filter((i, n) => p.items[i].value === need[n]);
@@ -2149,7 +2195,7 @@ function revealRank(res, animate) {
     li.querySelector(".yourpick").textContent = res.solved ? (res.tries === 1 ? "✓ first try" : "✓ solved") : markOf[i] === "good" ? "✓ you had it right" : `you put it #${userPos[i] + 1}`;
     li.classList.add("revealed"); if (animate) li.classList.add("pop");
   }, animate ? 200 + n * 160 : 0));
-  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => showResult(res, { scroll: true }), 1150 + right.length * 160); }
+  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => showResult(res, { scroll: true, sound: true }), 1150 + right.length * 160); }
   else { doMove(); fill(); showResult(res); }
 }
 
@@ -2231,6 +2277,7 @@ function submitMatch() {
   if (g.cur.some(x => x == null)) { toast(`Match all ${p.people.length} clues first`); return; }
   const last = g.attempts[g.attempts.length - 1];
   if (last && last.assign.join() === g.cur.join()) { toast("Move a red clue first"); $$("#mClues .m-clue.bad").forEach(li => { li.classList.remove("shake"); void li.offsetWidth; li.classList.add("shake"); }); return; }
+  Snd.lock();
   const marks = g.cur.map((who, k) => who === k ? "good" : "bad");
   g.attempts.push({ assign: [...g.cur], marks }); g.tries = g.attempts.length; g.pinned = marks.map((m, k) => m === "good" ? k : -1).filter(k => k >= 0);
   const solved = marks.every(m => m === "good");
@@ -2257,7 +2304,7 @@ function revealMatch(res, animate) {
     li.querySelector(".m-target").innerHTML = `${flagHtml(p.people[k])}<span class="tn"> ${esc(shortName(p.people[k]))}</span>${ok ? "" : ` <s>${flagHtml(p.people[last.assign[k]])}<span class="tn">${esc(shortName(p.people[last.assign[k]]))}</span></s>`}`;
     if (animate) setTimeout(() => li.classList.add("pop"), 120 * n); });
   $$("#mPeople .m-person").forEach(b => { const i = +b.dataset.p; b.querySelector(".m-got").textContent = letterOf(i); b.classList.toggle("good", last.marks[i] === "good"); b.classList.toggle("bad", last.marks[i] !== "good"); b.disabled = true; });
-  if (animate) setTimeout(() => showResult(res, { scroll: true }), 300 + 120 * p.people.length); else showResult(res);
+  if (animate) setTimeout(() => showResult(res, { scroll: true, sound: true }), 300 + 120 * p.people.length); else showResult(res);
 }
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
   return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
@@ -2395,6 +2442,7 @@ function submitTier() {
   if (g.cur.some(x => x == null)) { toast("Place every country into a tier first"); return; }
   const last = g.attempts[g.attempts.length - 1];
   if (last && last.assign.join() === g.cur.join()) { toast("Move a red chip first"); $$(".tier-chip.bad").forEach(c => { c.classList.remove("shake"); void c.offsetWidth; c.classList.add("shake"); }); return; }
+  Snd.lock();
   const marks = scoreTier(p, g.cur);
   g.attempts.push({ assign: [...g.cur], marks }); g.tries = g.attempts.length;
   const right = correctTierAssign(p);
@@ -2428,7 +2476,7 @@ function revealTier(res, animate) {
   g.cur = right.slice();
   paintTier(res.marks || scoreTier(p, right));
   if (animate) $$(".tier-chip").forEach(c => { c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); });
-  showResult(res, animate ? { scroll: true } : null); fitLayout();
+  showResult(res, animate ? { scroll: true, sound: true } : null); fitLayout();
 }
 function isIdentityTier(p) {
   if (!p || p.type !== "tier" || !p.items || !p.items.length) return false;
@@ -2582,7 +2630,7 @@ function submitTop1(c) {
     $("#guessGame").classList.add("locked");
     top1Paint();
     const cheer = cheerChoice(g, false); if (cheer) Fx.celebrate(cheer, "top1");
-    afterSubmit(() => showResult(g, { scroll: true }), cheer);
+    afterSubmit(() => showResult(g, { scroll: true, sound: true }), cheer);
     return;
   }
   rememberDraft(g); top1Paint();
@@ -2825,6 +2873,7 @@ function submitTop5() {
   if (g.cur.some(k => !k)) { toast("Fill all 5 slots"); return; }
   const last = g.attempts[g.attempts.length - 1];
   if (last && last.slots.join("|") === g.cur.join("|")) { toast("Move a red card first"); shakeTop5(); return; }
+  Snd.lock();
   const marks = scoreTop5(p, g.cur);
   g.attempts.push({ slots: g.cur.slice(), marks });
   g.tries = g.attempts.length;
@@ -2861,7 +2910,7 @@ function revealTop5(res, animate) {
     if (out) { out.textContent = line; out.classList.toggle("hidden", !line); }
     const dir = $("#t5Dir"); if (dir) dir.textContent = "The top 5";
   }
-  if (animate) setTimeout(() => showResult(res, { scroll: true }), 420); else showResult(res);
+  if (animate) setTimeout(() => showResult(res, { scroll: true, sound: true }), 420); else showResult(res);
 }
 (function top5Drag() {
   let d = null, suppressClick = false;
@@ -3104,6 +3153,7 @@ function paintSourceCard(p) {
   else showIcon();
 }
 function showResult(res, opts) {
+  if (opts && opts.sound) Snd.success();
   const p = state.puzzle;
   if (res) state.liveResult = res;
   pendingResultScroll = !!(opts && opts.scroll);
@@ -3160,6 +3210,7 @@ function showResult(res, opts) {
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn"].forEach(id => { const b = $(id); if (b) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
+  setTabTitle("play", true);
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
@@ -4436,6 +4487,23 @@ function syncTopBanner() {
   const phase = applyTopBanner();
   if (phase === "practice" || phase === "archive-on") AdSense.banner();
 }
+// Tab title for home, puzzle, archive, practice, premium, and results.
+// CONFIG.brand is ranki.gg. A shell cached before that rename kept the old
+// document title until the next full load, and hash navigation never replaced it.
+function screenTitle(view) {
+  const brand = CONFIG.brand;
+  if (view === "home") return `${brand} — Rank the stats. A daily game of surprising stats.`;
+  if (view === "archive") return `Archive · ${brand}`;
+  if (view === "premium") return `Premium · ${brand}`;
+  if (state.mode === "practice") return `${brand} Practice`;
+  if (state.mode === "preview" || state.mode === "all") return `${brand} preview`;
+  if (validKey(state.dateKey)) return `${brand} #${pad3(dayNumber(state.dateKey) + 1)}`;
+  return brand;
+}
+function setTabTitle(view, results) {
+  const base = screenTitle(results ? "play" : view);
+  document.title = results ? `${base} · Results` : base;
+}
 function showView(v) {
   document.documentElement.classList.remove("rankd-boot-play", "rankd-boot-archive");
   if (v !== "play") showFab(false);
@@ -4451,6 +4519,7 @@ function showView(v) {
   syncTopBanner();
   syncPlaying();
   if (v === "home") syncHomeMotion();
+  setTabTitle(v);
 }
 function fillHomeCard() {
   const key = todayKey();
@@ -4687,6 +4756,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
     <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
     <button id="mTheme">${themeLabel()}</button>
+    <button id="mSound">${soundLabel()}</button>
     ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${isToday() ? "Share today's puzzle" : "Share this puzzle"}<small>Spoiler-free link</small></button>` : ""}
     <button id="mArchive">🗓 Archive<small>Every past daily puzzle</small></button>
     ${Practice.ok() ? `<button id="mPractice">🎲 Practice<small>A new random puzzle from the full datasets</small></button>` : ""}
@@ -4699,6 +4769,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a>
     <a class="menu-link" id="mTerms" href="terms.html">📄 Terms<small>Rules for playing ranki.gg</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
+  if ($("#mSound")) $("#mSound").onclick = () => { Snd.arm(); settings.sound = settings.sound === "off" ? "on" : "off"; saveSettings(); $("#mSound").innerHTML = soundLabel(); };
   if ($("#mSignIn")) $("#mSignIn").onclick = () => { closeModal(); signInModal(); };
   if ($("#mSignOut")) $("#mSignOut").onclick = () => { closeModal(); signOutAccount(); };
   if ($("#mAccount")) $("#mAccount").onclick = () => { closeModal(); goPremium(); };
