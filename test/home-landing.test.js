@@ -54,17 +54,17 @@ test("the home sample is the female homicide trio from homicide-women", () => {
   const demo = shared.HOME_DEMO;
   assert.equal(demo.id, "homicide-women");
   assert.equal(demo.title, "Female homicide rate");
-  assert.equal(demo.year, "2022");
+  assert.equal(demo.year, "2023");
   assert.equal(demo.sourceUrl, "https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5");
   assert.equal(JSON.stringify(demo.items.map(it => [it.name, it.value, it.label])), JSON.stringify([
-    ["United States", 2.81, "2.81"],
+    ["United States", 2.55, "2.55"],
     ["India", 2.37, "2.37"],
-    ["South Korea", 0.5, "0.50"],
+    ["South Korea", 0.46, "0.46"],
   ]));
   for (const name of ["United States", "India", "South Korea"]) assert.match(html, new RegExp(name));
-  assert.match(html, /2\.81/);
+  assert.match(html, /2\.55/);
   assert.match(html, /2\.37/);
-  assert.match(html, /0\.50/);
+  assert.match(html, /0\.46/);
   assert.match(html, /Female homicide rate/);
   assert.match(html, /data\.worldbank\.org\/indicator\/VC\.IHR\.PSRC\.FE\.P5/);
 });
@@ -216,7 +216,7 @@ test("the results source card matches the how-to preview and sits above share", 
   assert.match(result, /id="sourceFav"/);
   assert.match(result, /Tap to see the data/);
   assert.match(html, /class="source-card"/);
-  assert.match(html, /Female homicide rate, 2022/);
+  assert.match(html, /Female homicide rate, 2023/);
   assert.match(html, /data\.worldbank\.org/);
   assert.match(css, /\.source-card/);
   assert.match(css, /source-fav-fallback/);

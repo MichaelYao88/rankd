@@ -1310,21 +1310,21 @@ function archiveListHeaderHtml(unlocked, lastDayNumber) {
   return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. ${premiumUpsellHtml()}`;
 }
 // Home-page sample: the same three countries as the first-visit overlay
-// (puzzle homicide-women, UNODC via World Bank 2022, per 100k women).
-// High → low: United States 2.81, India 2.37, South Korea 0.50.
-// The stored South Korea figure is 0.5; the column label is 0.50 so it lines up.
+// (puzzle homicide-women, UNODC via World Bank, per 100k women).
+// High → low: United States 2.55 (2023), India 2.37 (2022), South Korea 0.46 (2023).
+// The column label is 0.46 so it lines up.
 // Germany (0.82) and Jordan (0.7) stay in the full puzzle and are not on this card.
 const HOME_DEMO = Object.freeze({
   id: "homicide-women",
   title: "Female homicide rate",
   unit: "per 100k women",
-  year: "2022",
+  year: "2023",
   sourceName: "UNODC via World Bank",
   sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5",
   items: Object.freeze([
-    Object.freeze({ name: "United States", emoji: "🇺🇸", value: 2.81, label: "2.81" }),
+    Object.freeze({ name: "United States", emoji: "🇺🇸", value: 2.55, label: "2.55" }),
     Object.freeze({ name: "India", emoji: "🇮🇳", value: 2.37, label: "2.37" }),
-    Object.freeze({ name: "South Korea", emoji: "🇰🇷", value: 0.5, label: "0.50" }),
+    Object.freeze({ name: "South Korea", emoji: "🇰🇷", value: 0.46, label: "0.46" }),
   ]),
 });
 // Short names for the home card. A mode rename (for example Top 5 → Top 1) changes this map.
@@ -1608,11 +1608,12 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
-// Daily bonus. One short puzzle after that day's main ranker, chosen from puzzles
-// the app already plays: Top 1, Name it, Tier it, and Match it (the multiple-choice
-// pairing round). Deterministic, not that day's main puzzle, not repeated inside
-// BONUS_GAP days, a different theme when one is free, and never sensitive on or
-// before CONFIG.adsenseSafeThrough. Streaks, stats and the plays table stay on the main ranker.
+// Daily bundle. Part 1 is one short puzzle (Top 1, Name it, Tier it, Match it, or a
+// Part-1-only letter ranker). Part 2 is that day's main ranker. The short puzzle is
+// deterministic, not that day's main puzzle, not repeated inside BONUS_GAP days, a
+// different theme when one is free, and never sensitive on or before
+// CONFIG.adsenseSafeThrough. Streaks, stats and the plays table stay on the main ranker.
+// A day with no Part 1 plays the main puzzle alone.
 const BONUS_TYPES = ["top1", "name", "tier", "match"];
 const BONUS_TYPE_SET = new Set(BONUS_TYPES);
 const BONUS_GAP = 14;
@@ -1640,22 +1641,39 @@ function sameTheme(a, b) {
   for (const t of A) if (B.has(t)) return true;
   return false;
 }
+function part1Extras() {
+  const list = window.RANKD_PART1 || [];
+  return list.filter(p => p && p.part1Only && p.id);
+}
 function bonusResultLine(p, r) {
   if (!p || !r) return "";
-  const kind = PUZZLE_TYPE_LABEL[p.type] || "Bonus";
+  const kind = PUZZLE_TYPE_LABEL[p.type] || "Rank it";
   const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
   const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
-  if (!solved) return `Bonus · ${kind} · X/${CONFIG.rankMaxTries}`;
-  return `Bonus · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
+  if (!solved) return `Part 1 · ${kind} · X/${CONFIG.rankMaxTries}`;
+  return `Part 1 · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
+}
+function part2ResultLine(p, r) {
+  if (!p || !r) return "";
+  const kind = PUZZLE_TYPE_LABEL[p.type] || "Rank it";
+  const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
+  const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
+  if (!solved) return `Part 2 · ${kind} · X/${CONFIG.rankMaxTries}`;
+  return `Part 2 · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
 }
 function bonusPool(dateKey, main, banned) {
   const safe = inAdsenseSafeWindow(dateKey);
   const out = [];
-  for (const p of PUZZLES) {
-    if (!p || !BONUS_TYPE_SET.has(p.type) || !p.id) continue;
+  const seen = new Set();
+  const all = PUZZLES.concat(part1Extras());
+  for (const p of all) {
+    if (!p || !p.id || seen.has(p.id)) continue;
+    const letter = !!(p.part1Only && p.type === "rank");
+    if (!BONUS_TYPE_SET.has(p.type) && !letter) continue;
     if (main && p.id === main.id) continue;
     if (banned && banned.has(p.id)) continue;
     if (safe && p.sensitive) continue;
+    seen.add(p.id);
     out.push(p);
   }
   return out;
@@ -1672,14 +1690,17 @@ function pickBonus(pool, n) {
 let bonusMemo = [];
 let bonusMemoList = null;
 let bonusMemoCut = null;
+let bonusMemoExtras = null;
 function bonusForDayNumber(n) {
   n = Math.round(n);
   if (!Number.isFinite(n) || n < 0 || !PUZZLES.length) return null;
   const cut = CONFIG.adsenseSafeThrough || "";
-  if (bonusMemoList !== PUZZLES || bonusMemoCut !== cut) {
+  const extras = window.RANKD_PART1 || null;
+  if (bonusMemoList !== PUZZLES || bonusMemoCut !== cut || bonusMemoExtras !== extras) {
     bonusMemo = [];
     bonusMemoList = PUZZLES;
     bonusMemoCut = cut;
+    bonusMemoExtras = extras;
   }
   if (n < bonusMemo.length) return bonusMemo[n];
   for (let i = bonusMemo.length; i <= n; i++) {
@@ -1806,6 +1827,11 @@ const puzzleForDay = n => puzzleOnDay(n);
 function dayOffersBonus() {
   return state.mode === "daily" || state.mode === "archive" || state.mode === "preview";
 }
+function bundlePartLabel() {
+  if (!dayOffersBonus()) return "";
+  if (!bonusForDayNumber(dayNumber(state.dateKey))) return "";
+  return state.slot === "bonus" ? "Part 1 of 2" : "Part 2 of 2";
+}
 const resultKey = () => {
   if (state.slot === "bonus" && dayOffersBonus())
     return state.mode === "preview" ? `vb:${state.puzzle.id}:${state.dateKey}` : `b:${state.dateKey}`;
@@ -1880,12 +1906,18 @@ function bonusShareLine() {
 function withBonusLine(text) {
   const extra = bonusShareLine();
   if (!extra) return text || "";
-  if (!text) return extra;
-  if (text.indexOf(extra) !== -1) return text;
-  const lines = String(text).split("\n");
+  let body = text || "";
+  if (body && body.indexOf("Part 2 · ") === -1) {
+    const title = shareTitle();
+    if (body.indexOf(title + " ") === 0) body = title + "\nPart 2 · " + body.slice(title.length).trim();
+    else body = "Part 2 · " + body;
+  }
+  if (!body) return extra;
+  if (body.indexOf(extra) !== -1) return body;
+  const lines = String(body).split("\n");
   const last = lines[lines.length - 1];
   if (/^https?:\/\//.test(last)) { lines.splice(lines.length - 1, 0, extra); return lines.join("\n"); }
-  return text + "\n" + extra;
+  return body + "\n" + extra;
 }
 const isToday = () => state.mode === "daily";
 function puzzleOnlyHash() {
@@ -2024,8 +2056,13 @@ function renderHero() {
   const p = state.puzzle, n = dayNumber(state.dateKey) + 1;
   $("#heroNo").classList.toggle("practice-tag", state.mode === "practice");
   document.querySelector(".hero-top").classList.toggle("practice", state.mode === "practice");
-  $("#heroNo").textContent = state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`;
-  if (state.slot === "bonus") $("#heroNo").textContent = "Bonus · " + $("#heroNo").textContent;
+  const part = bundlePartLabel();
+  $("#heroNo").textContent = part
+    ? (state.mode === "preview" ? `Preview · ${part}` : part)
+    : (state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`);
+  $("#heroNo").classList.toggle("is-part", !!part);
+  const skip = $("#skipPart");
+  if (skip) skip.classList.toggle("hidden", state.slot !== "bonus" || !part);
   $("#heroKind").textContent = p.type === "top1" ? `🥇 Top 1` : p.type === "name" ? `✏️ Name it` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = heroHeadline(p);
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
@@ -3346,6 +3383,7 @@ function showResult(res, opts) {
   renderYouVs(p, null, res);
   renderHeadToHead(res);
   renderCommunity(p, res);
+  const skipPart = $("#skipPart"); if (skipPart) skipPart.classList.add("hidden");
   paintBonus(res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
@@ -4438,8 +4476,8 @@ window.RankdFit = { sync: syncPlaying, layout: fitLayout };
 
 // ================================================================ v12.2 first-visit howto
 const HOWTO_KEY = "rankd.howto.seen.v1";
-// Female homicide rate sample — puzzle homicide-women, UNODC via World Bank 2022,
-// female intentional homicides per 100k women. High → low: United States 2.81, India 2.37, South Korea 0.50.
+// Female homicide rate sample — puzzle homicide-women, UNODC via World Bank,
+// female intentional homicides per 100k women. High → low: United States 2.55 (2023), India 2.37 (2022), South Korea 0.46 (2023).
 const HOWTO_SUCCESS = "All green = perfect! Wrong cards turn red so you can fix them.";
 let howtoRun = 0, howtoTimers = [];
 function howtoSeen() { try { return localStorage.getItem(HOWTO_KEY) === "1"; } catch (e) { return true; } }
@@ -4706,15 +4744,22 @@ function paintBonus(res) {
   const btn = $("#bonusBtn");
   if (!line || !btn) return;
   const bonus = dayOffersBonus() ? bonusForDayNumber(dayNumber(state.dateKey)) : null;
-  if (!bonus) { line.classList.add("hidden"); btn.classList.add("hidden"); return; }
-  const pack = storedBonusDone();
-  const shown = pack ? pack.result : (state.slot === "bonus" && res && isDone(res) ? res : null);
-  if (shown) {
-    line.textContent = bonusResultLine(pack ? pack.puzzle : bonus, shown);
+  if (!bonus) { line.textContent = ""; line.classList.add("hidden"); btn.classList.add("hidden"); return; }
+  if (state.slot === "bonus") {
+    line.textContent = "Next: the daily ranker.";
     line.classList.remove("hidden");
-  } else line.classList.add("hidden");
-  btn.textContent = state.slot === "bonus" ? "Back to daily result" : "Bonus round";
-  btn.classList.remove("hidden");
+    btn.textContent = "Next: Part 2 →";
+    btn.classList.remove("hidden");
+    return;
+  }
+  const pack = storedBonusDone();
+  const main = state.puzzle;
+  const mainRes = res && isDone(res) ? res : storedMainDone(main);
+  const part2 = main && mainRes ? part2ResultLine(main, mainRes) : "";
+  const summary = pack ? bonusResultLine(pack.puzzle, pack.result) + (part2 ? "\n" + part2 : "") : (part2 ? "Part 1 skipped\n" + part2 : "");
+  line.textContent = summary;
+  line.classList.toggle("hidden", !summary);
+  btn.classList.add("hidden");
 }
 function playBonus() {
   if (!dayOffersBonus()) return false;
@@ -4723,23 +4768,35 @@ function playBonus() {
   openPuzzle(p, { bonus: true });
   return true;
 }
-function showMainResult() {
-  const p = puzzleOnDay(dayNumber(state.dateKey));
-  const res = storedMainDone(p);
-  state.slot = "main";
-  if (!p || !res) { if (p) openPuzzle(p); return; }
-  state.puzzle = p;
-  state.liveResult = res;
-  renderHero();
-  hidePlayBoards();
-  showResult(res);
+function playMain() {
+  const view = $("#playView");
+  if (view && state.slot === "bonus") {
+    view.classList.remove("bundle-in");
+    void view.offsetWidth;
+    view.classList.add("bundle-in");
+  }
+  openDay({ main: true });
+  return true;
 }
+function showMainResult() { return playMain(); }
 window.RankdBonus.play = playBonus;
+window.RankdBonus.main = playMain;
 window.RankdBonus.back = showMainResult;
+function openDay(opts) {
+  const main = () => {
+    const p = puzzleForDay(dayNumber(state.dateKey));
+    if (p) openPuzzle(p);
+  };
+  if (opts && opts.main) return main();
+  const part1 = dayOffersBonus() ? bonusForDayNumber(dayNumber(state.dateKey)) : null;
+  if (!part1) return main();
+  try { openPuzzle(part1, { bonus: true }); }
+  catch (e) { main(); }
+}
 function goToday(opts) {
   state.mode = "daily"; state.dateKey = todayKey();
   bindChallenge(opts && opts.challengeToken, { k: "d", id: state.dateKey });
-  openPuzzle(puzzleForDay(dayNumber(state.dateKey)));
+  openDay();
 }
 function goDate(key, opts) {
   const today = todayKey();
@@ -4754,13 +4811,13 @@ function goDate(key, opts) {
   if (archiveFreeUnlocked(key) || viaChallenge) {
     state.mode = "archive"; state.dateKey = key;
     bindChallenge(token, { k: "d", id: key });
-    openPuzzle(puzzleForDay(dayNumber(key)));
+    openDay();
     return;
   }
   // Free: watch a long ad to unlock the next adUnlockDays, then retry. Malformed challenges fall through to here.
   unlockNextArchiveDays(() => {
     goArchive();
-    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; bindChallenge("", { k: "d", id: key }); openPuzzle(puzzleForDay(dayNumber(key))); }
+    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; bindChallenge("", { k: "d", id: key }); openDay(); }
     else toast(archiveUnlockToast());
   });
 }
@@ -4775,7 +4832,7 @@ function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was 
 }
 function goPreview(key) {   // v12 Studio preview of any scheduled day, past or future (sandboxed storage)
   if (!validKey(key) || dayNumber(key) < 0) { toast("That day isn't scheduled"); return goToday(); }
-  state.mode = "preview"; state.dateKey = key; openPuzzle(puzzleForDay(dayNumber(key)));
+  state.mode = "preview"; state.dateKey = key; openDay();
 }
 
 // v12.2 Premium / free archive rolling unlock (UTC day keys). Depth helpers live above the Studio return.
@@ -4862,7 +4919,7 @@ function goArchive() {
     const modeLabel = p.type === "name" ? "Name it" : p.type === "top1" ? "Top 1" : p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it";
     const bonusP = bonusForDayNumber(n);
     const bonusHead = bonusP ? (bonusP.type === "top1" ? heroHeadline(bonusP) : (bonusP.headline || bonusP.question || "")) : "";
-    const bonusBit = bonusHead ? `<span class="abonus">Bonus · ${esc(bonusHead)}</span>` : "";
+    const bonusBit = bonusHead ? `<span class="abonus">Part 1 · ${esc(bonusHead)}</span>` : "";
     rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(head)}</span>${sub ? `<span class="asub">${esc(sub)}</span>` : ""}<small>${modeLabel}</small>${bonusBit}</span>${badge}</button></li>`);
   }
@@ -5115,7 +5172,8 @@ if ($("#suggest")) $("#suggest").addEventListener("mousedown", e => {
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
-if ($("#bonusBtn")) $("#bonusBtn").onclick = () => { if (state.slot === "bonus") showMainResult(); else playBonus(); };
+if ($("#bonusBtn")) $("#bonusBtn").onclick = () => playMain();
+if ($("#skipPart")) $("#skipPart").onclick = () => playMain();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;

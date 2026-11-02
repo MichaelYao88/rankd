@@ -230,6 +230,7 @@ function bootGame() {
     "community-seed.js",
     "puzzle-search.js",
     "name-puzzles.js",
+    "part1-puzzles.js",
     "name-it.js",
     "challenge.js",
     "country-facts.js",
@@ -372,6 +373,7 @@ test("script order loads qrcode and the seed before the game", () => {
 
 test("challenge share, the result qr, and the first play", async () => {
   const { sandbox, api, posts, localStorage, documentQuery } = bootGame();
+  const toMain = () => sandbox.RankdBonus.main();
   const RC = sandbox.RankdChallenge;
   const submits = () => posts.filter(p => p.method === "POST" && p.url.includes("/functions/v1/submit-play"));
   const qrBox = () => documentQuery("#challengeQr");
@@ -381,6 +383,7 @@ test("challenge share, the result qr, and the first play", async () => {
   async function shareFinished(puzzle, mode, dateKey) {
     api.state.mode = mode;
     api.state.dateKey = dateKey;
+    api.state.slot = "main";
     api.state.puzzle = puzzle;
     api.state.liveResult = null;
     api.state.rank = api.state.match = api.state.tier = api.state.guess = null;
@@ -427,6 +430,7 @@ test("challenge share, the result qr, and the first play", async () => {
   assert.ok(preCh.grid[0].includes("G"));
 
   api.goToday();
+  toMain();
   assert.equal(api.state.mode, "daily");
   const dailyPuzzle = api.state.puzzle;
   const dailyDate = api.state.dateKey;
@@ -436,6 +440,7 @@ test("challenge share, the result qr, and the first play", async () => {
 
   const archiveDay = dayBefore(dailyDate);
   api.goDate(archiveDay);
+  toMain();
   assert.equal(api.state.mode, "archive", archiveDay + " from " + dailyDate);
   const archText = await shareFinished(api.state.puzzle, "archive", archiveDay);
   assert.match(archText, new RegExp("#d=" + archiveDay));
@@ -463,6 +468,7 @@ test("challenge share, the result qr, and the first play", async () => {
   localStorage.clear();
   posts.length = 0;
   api.goToday();
+  toMain();
   const first = finishFor(api.state.puzzle, 1);
   const counted = api.commitFinish(first);
   assert.equal(counted, true);
@@ -477,6 +483,7 @@ test("challenge share, the result qr, and the first play", async () => {
   assert.equal(body.day_key, api.state.dateKey);
 
   api.goToday();
+  toMain();
   const board = api.state.puzzle.type === "rank" ? api.state.rank
     : api.state.puzzle.type === "match" ? api.state.match
     : api.state.puzzle.type === "tier" ? api.state.tier
@@ -504,6 +511,7 @@ test("challenge share, the result qr, and the first play", async () => {
   posts.length = 0;
   const playedBeforeArchive = JSON.parse(localStorage.getItem("rankd.stats.v2")).played;
   api.goDate(archiveDay);
+  toMain();
   assert.equal(api.commitFinish(finishFor(api.state.puzzle, 1)), true);
   assert.equal(submits().length, 1);
   assert.equal(JSON.parse(localStorage.getItem("rankd.stats.v2")).played, playedBeforeArchive);
