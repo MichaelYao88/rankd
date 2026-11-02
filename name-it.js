@@ -93,6 +93,14 @@
     if (fmt === "years2") return roundTo(n, 2).toFixed(2) + " years";
     if (fmt === "rate") return roundTo(n, 1).toFixed(1) + " per 100k";
     if (fmt === "percent") return roundTo(n, 1).toFixed(1) + "%";
+    if (fmt === "label") {
+      const labels = (puzzle.statRule && puzzle.statRule.labels) || {};
+      const key = String(n);
+      if (labels[key] != null) return String(labels[key]);
+      const rounded = String(roundTo(n, 0));
+      if (labels[rounded] != null) return String(labels[rounded]);
+      return key;
+    }
     return String(n);
   }
 
@@ -101,6 +109,7 @@
     const shown = formatValue(puzzle, value);
     const tail = pass ? rule.above : rule.below;
     const noun = rule.noun ? rule.noun + " " : "";
+    if (!tail) return `${noun}${shown}`;
     return `${noun}${shown}, ${tail}`;
   }
 

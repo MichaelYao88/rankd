@@ -16,6 +16,7 @@
     ["united states", "united states of america", "usa", "us"],
     ["united kingdom", "uk", "britain", "great britain"],
     ["south korea", "korea", "republic of korea"],
+    ["vatican city", "vatican", "holy see"],
   ];
   const ALIAS_OF = new Map();
   ALIAS_GROUPS.forEach(group => group.forEach(name => ALIAS_OF.set(name, group)));

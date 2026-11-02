@@ -104,6 +104,8 @@ test("stored answers are exactly the countries that pass both rules", () => {
     "name-hdi-between-s": 3,
     "name-age-between-c": 3,
     "name-road-between-u": 2,
+    "name-no-divorce": 2,
+    "name-tree-country": 2,
   };
   for (const puzzle of puzzles) {
     assert.equal(puzzle.type, "name");
@@ -253,8 +255,7 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const scheduled = appBox.window.RankdShared.puzzles;
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
-  const tail = scheduled.slice(-22).map((p, i) => ({ id: p.id, date: dateOf(scheduled.length - 22 + i), order: Math.round(p.order) }));
-  assert.equal(JSON.stringify(tail), JSON.stringify([
+  const kept = [
     { id: "ipsos-gender-identity-b", date: "2027-03-25", order: 171 },
     { id: "top1-potatoes", date: "2027-03-26", order: 172 },
     { id: "top1-tea", date: "2027-03-27", order: 173 },
@@ -276,8 +277,15 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
     { id: "cocaine-destination", date: "2027-04-12", order: 189 },
     { id: "top1-pop-density", date: "2027-04-13", order: 190 },
     { id: "statista-vegetarian-vegan", date: "2027-04-14", order: 191 },
-    { id: "stretched-length", date: "2027-04-15", order: 192 }
-  ]));
+    { id: "stretched-length", date: "2027-04-15", order: 192 },
+  ];
+  for (const row of kept) {
+    const idx = scheduled.findIndex(p => p.id === row.id);
+    assert.ok(idx >= 0, row.id);
+    assert.equal(Math.round(scheduled[idx].order), row.order, row.id);
+    assert.equal(dateOf(idx), row.date, row.id);
+  }
+  assert.ok(Math.round(scheduled[scheduled.length - 1].order) > 192);
   const loss = { type: "name", solved: false, done: true, marks: ["bad", "bad", "bad", "bad", "bad"] };
   assert.equal(appBox.window.RankdShared.rating.ratingShout(loss), "Ignorant!");
   assert.equal(appBox.window.RankdShared.rating.cheerChoice(loss, false), "ignorant");
@@ -290,7 +298,7 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const powder = scheduled.find(p => p.id === "cocaine-use");
   assert.equal(powder.sensitive, true);
   assert.equal(powder.unit, "% of adults (15–64)");
-  tail.slice(0, 4).forEach(row => assert.ok(row.date > "2026-11-03", row.id));
+  kept.slice(0, 4).forEach(row => assert.ok(row.date > "2026-11-03", row.id));
 });
 
 test("about one practice seed in eight deals Name it without touching the other seeds' roll", () => {
