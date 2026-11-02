@@ -1173,7 +1173,11 @@ const AdSense = {
 window.RankdAdSense = AdSense;
 
 // ================================================================ random Practice (v11)
-// Generates a puzzle on the fly from the full ranked lists in practice-data.js (sensitive datasets included, each with its caveat; no rape data).
+// Generates a puzzle on the fly from the ranked lists in practice-data.js.
+// Sensitive datasets stay in the pool (each with its caveat; no rape data) but are
+// left out of the draw on days inside CONFIG.adsenseSafeThrough.
+// A dataset with coverage:"partial" only contains the countries a curated puzzle named.
+// Trends lists are already limited to high internet use (hiNet) and are not widened.
 // Rules: random dataset; 38+ countries -> Top 1 or Rank it at random, else Rank it. Rank it = 5 (sometimes 6) well-spread,
 // countries with >= 1 POPULAR_COUNTRIES entry: no ties, adjacent picks >= PR_MIN_RANK_GAP ranks apart (scaled by list size) and >= 3% of the
 // full value range apart. Top 5 uses the auto hint bank and the shared-#5 tie rule. Deterministic for a given seed (#r=<seed>).
@@ -1188,6 +1192,30 @@ const POPULAR_COUNTRIES = {
   weight: { 1: 8, 2: 4, 0: 1 },
 };
 const mulberry = seed => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+// Evenly spaced sample of a short or partial list. Only rows passed in are eligible.
+function sampleListed(rows, k, R, valueOf) {
+  const sorted = rows.slice().sort((a, b) => valueOf(b) - valueOf(a));
+  const uniq = [], seen = new Set();
+  for (const row of sorted) {
+    const v = valueOf(row);
+    if (seen.has(v)) continue;
+    seen.add(v);
+    uniq.push(row);
+  }
+  const src = uniq.length >= 2 ? uniq : sorted;
+  const n = Math.min(k, src.length);
+  if (n < 2) return null;
+  if (src.length === n) return src.slice();
+  const start = Math.floor(R() * src.length), used = new Set(), picked = [];
+  for (let i = 0; i < n; i++) {
+    let j = Math.floor(start + (i * src.length) / n) % src.length, guard = 0;
+    while (used.has(j) && guard++ < src.length) j = (j + 1) % src.length;
+    used.add(j);
+    picked.push(src[j]);
+  }
+  picked.sort((a, b) => valueOf(b) - valueOf(a));
+  return picked;
+}
 const Practice = {
   ok: () => !!(PR && PR.datasets && PR.datasets.length),
   rules: { minGapShare: 0.03, rankGap: (n, k) => Math.max(2, Math.floor(n / (k * 4))), sixShare: 0.3, minPopM: 1 },
@@ -1198,11 +1226,22 @@ const Practice = {
     }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
     const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
-    const ds = PR.datasets[Math.floor(R() * PR.datasets.length)];
-    if (ds.kind === "groups")   // v12: in-country demographic dataset - its curated groups ARE the puzzle (already spread, no ties, no country rules)
+    const again = () => tries < 30 ? this.generate(seed, tries + 1) : null;
+    // Inside the AdSense window the draw never surfaces a sensitive stat.
+    const pool = PR.datasets.filter(d => !(d.sens && inAdsenseSafeWindow(todayKey())));
+    if (!pool.length) return null;
+    const ds = pool[Math.floor(R() * pool.length)];
+    if (ds.kind === "match") return again();
+    if (ds.kind === "groups") {   // v12: in-country demographic dataset. Partial lists are only the groups the puzzle named.
+      let rows = ds.rows;
+      if (ds.coverage === "partial" && rows.length > 6) {
+        rows = sampleListed(rows, R() < ru.sixShare ? 6 : 5, R, r => r[2]);
+        if (!rows || rows.length < 4) return again();
+      }
       return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
-        source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: ds.support || "", order: null,
-        type: "rank", higherIs: "top", valuesVisible: false, items: ds.rows.map(r => ({ name: r[0], emoji: r[1], value: r[2], year: "", gRank: r[3], gTotal: r[4], gScope: r[5] })) };
+        source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: ds.support || "", order: null,
+        type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false, items: rows.map(r => ({ name: r[0], emoji: r[1], value: r[2], year: "", gRank: r[3], gTotal: r[4], gScope: r[5] })) };
+    }
     if (ds.kind === "tier") {   // v12.2: tied-stat buckets — sample 5–6 countries across distinct values
       const rows = ds.rows.map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], value: r[1] }));
       const byV = {}; rows.forEach(r => (byV[r.value] ||= []).push(r));
@@ -1221,15 +1260,42 @@ const Practice = {
       const tiers = tvals.map(v => ({ label: Number.isInteger(v) ? `${v}%` : `${v}`, value: v }));
       const v2i = Object.fromEntries(tiers.map((t, i) => [t.value, i]));
       return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "",
-        stat: ds.stat, unit: ds.unit, source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "",
+        stat: ds.stat, unit: ds.unit, source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "",
         caveat: ds.caveat || "", sensitive: !!ds.sens, art: "candle", support: "", order: null, type: "tier",
         tiers, items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, iso3: r.iso3, tierIndex: v2i[r.value] })) };
     }
+    const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
+      source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null,
+      ...(ds.valueGloss ? { valueGloss: String(ds.valueGloss) } : {}) };
+    // Partial: never invent a country, and never call a 5-row slice a world ranking unless the puzzle stored that rank.
+    if (ds.coverage === "partial") {
+      if (ds.rows.some(r => !C[r[0]])) return again();
+      const listed = ds.rows.map(r => ({
+        iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], value: r[1],
+        year: r.length > 2 && r[2] != null && r[2] !== "" ? String(r[2]) : "",
+        gRank: r.length > 3 && r[3] ? Number(r[3]) : 0,
+        gTotal: r.length > 4 && r[4] ? Number(r[4]) : 0,
+        gScope: r.length > 5 && r[5] ? String(r[5]) : "",
+      }));
+      let pick = listed;
+      if (listed.length > 6) {
+        pick = sampleListed(listed, R() < ru.sixShare ? 6 : 5, R, r => r.value);
+        if (!pick || pick.length < 4) return again();
+      }
+      pick.forEach(r => {
+        if (!r.gRank) {
+          r.gRank = 1 + listed.filter(x => x.value > r.value).length;
+          r.gTotal = listed.length;
+          r.gScope = "listed countries";
+        }
+      });
+      return { ...base, type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false,
+        items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: r.year, gRank: r.gRank, gTotal: r.gTotal, gScope: r.gScope })) };
+    }
+    // A list with fewer than 5 distinct values cannot deal a no-tie Rank it. Leave it in the pool and draw something else.
+    if (new Set(ds.rows.map(r => r[1])).size < 5) return again();
     const rows = ds.rows.map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], pop: C[r[0]][2], value: r[1], year: r.length > 2 ? String(r[2]) : String(ds.year || "") }));
     rows.forEach(r => { r.rank = 1 + rows.filter(x => x.value > r.value).length; });
-    const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
-      source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null,
-      ...(ds.valueGloss ? { valueGloss: String(ds.valueGloss) } : {}) };
     if (rows.length >= PR.minTop5 && ds.hints && +rows[0].value !== 100 && R() < 0.5) {   // no Top 1 when #1 is 100% (ties at the cap). Same gate Top 5 used.
       const countries = rows.map(r => ({ name: r.name, iso3: r.iso3, emoji: r.emoji, value: r.value, year: r.year, ...(ds.hints && ds.hints[r.iso3] ? { hints: ds.hints[r.iso3] } : {}) }));
       return { ...base, type: "top1", countries };
@@ -1252,7 +1318,7 @@ const Practice = {
         return { ...base, type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false,
           items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: ds.rows[0].length > 2 ? r.year : "", gRank: r.rank, gTotal: N, gScope: "" })) };
     }
-    return tries < 20 ? this.generate(seed, tries + 1) : null;
+    return again();
   },
 };
 window.RankdPractice = { generate: s => Practice.generate(s), rules: Practice.rules, data: PR, ok: Practice.ok, popular: POPULAR_COUNTRIES };
