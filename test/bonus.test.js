@@ -109,24 +109,14 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
   win.RankdShared.CONFIG.adsenseSafeThrough = CUTOFF;
   for (let n = 0; keyFrom(n) <= CUTOFF; n++) assert.equal(!!bonus.forDay(n).sensitive, false, keyFrom(n));
 
-  const letters = ["c-population", "d-population", "e-population", "g-population", "i-population"];
-  const seen = new Set();
+  const removed = ["c-population", "d-population", "e-population", "g-population", "i-population", "k-population"];
   for (let n = 0; n < puzzles.length * 4; n++) {
     const picked = bonus.forDay(n);
-    if (letters.includes(picked.id)) seen.add(picked.id);
-    assert.equal(puzzles.some(p => p.id === picked.id && !p.part1Only) || letters.includes(picked.id), true, picked.id);
+    assert.equal(removed.includes(picked.id), false, picked.id);
+    assert.equal(puzzles.some(p => p.id === picked.id && !p.part1Only), true, picked.id);
   }
-  assert.deepEqual([...seen].sort(), letters.slice().sort());
-  for (const id of letters) assert.equal(puzzles.some(p => p.id === id), false, id + " stays off the daily schedule");
-  const part1 = win.RANKD_PART1;
-  assert.equal(part1.length, 5);
-  for (const p of part1) {
-    assert.equal(p.part1Only, true, p.id);
-    assert.equal(p.type, "rank", p.id);
-    assert.ok(p.items.length >= 5 && p.items.length <= 6, p.id);
-    const vals = p.items.map(it => it.value);
-    for (let i = 1; i < vals.length; i++) assert.ok((vals[i - 1] - vals[i]) / vals[i - 1] >= 0.08, p.id);
-  }
+  for (const id of removed) assert.equal(puzzles.some(p => p.id === id), false, id);
+  assert.equal(win.RANKD_PART1.length, 0);
 });
 
 function classListFor(el) {

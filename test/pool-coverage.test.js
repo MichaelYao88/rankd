@@ -121,7 +121,8 @@ test("every curated puzzle stat key resolves to a pool dataset", () => {
         assert.ok(iso, p.id + " " + it.name);
         const row = ds.rows.find(r => r[0] === iso);
         assert.ok(row, p.id + " " + it.name);
-        assert.equal(closeEnough(it.value, row[1]), true, p.id + " " + it.name + " " + it.value + " vs " + row[1]);
+        const col = ds.kind === "capitals" && p.axis === "lon" ? 2 : 1;
+        assert.equal(closeEnough(it.value, row[col]), true, p.id + " " + it.name + " " + it.value + " vs " + row[col]);
       }
     }
     if (p.unit && ds.unit) {
@@ -168,9 +169,25 @@ test("trends datasets stay high-internet lists", () => {
   const usa = female.rows.find(r => r[0] === "USA");
   assert.equal(usa[1], 2.55);
   assert.equal(String(usa[2]), "2023");
-  for (const id of ["c-population", "d-population", "e-population", "g-population", "i-population"]) {
-    assert.ok(resolve("attr-" + id), id);
+  for (const id of ["c-population", "d-population", "e-population", "g-population", "i-population", "k-population"]) {
+    assert.equal(resolve("attr-" + id), null, id);
   }
+  const caps = datasets.find(d => d.id === "national-capitals");
+  assert.equal(caps.kind, "capitals");
+  assert.equal(caps.coverage, "full");
+  assert.ok(caps.rows.length >= 150);
+  assert.equal(caps.rows[0].length, 4);
+  assert.equal(resolve("southern-capitals").id, "national-capitals");
+  assert.equal(resolve("northern-capitals").id, "national-capitals");
+  const woman = datasets.find(d => d.id === "attr-never-woman-leader");
+  assert.equal(woman.kind, "tier");
+  assert.equal(woman.coverage, "full");
+  assert.equal(woman.labels["1"], "Has had a woman head of state or government");
+  assert.equal(woman.labels["0"], "Never has");
+  assert.equal(woman.rows.find(r => r[0] === "ITA")[1], 1);
+  assert.equal(woman.rows.find(r => r[0] === "USA")[1], 0);
+  assert.equal(woman.rows.find(r => r[0] === "ESP")[1], 1);
+  assert.equal(woman.rows.some(r => r[0] === "CHN"), false);
   const kpop = datasets.find(d => d.id === "top-trends-kpop");
   assert.ok(kpop.rows.some(r => r[0] === "SGP" && r[1] === 95));
   assert.ok(kpop.rows.length > 6, "the full K-pop list stays, with Singapore filled in");
