@@ -132,9 +132,14 @@ test("every curated puzzle stat key resolves to a pool dataset", () => {
     }
   }
   const rice = resolve("rice");
-  assert.equal(rice.coverage, "partial");
+  assert.equal(rice.coverage, "full");
   assert.match(rice.unit, /per capita/);
-  assert.equal(rice.rows.length, 5);
+  assert.ok(rice.rows.length > 100, "rice rows " + rice.rows.length);
+  assert.equal(rice.rows.find(r => r[0] === "BGD")[1], 250.6);
+  const abroad = resolve("india-migrant-stock");
+  assert.equal(abroad.coverage, "full");
+  assert.ok(abroad.rows.length > 100, "migrant rows " + abroad.rows.length);
+  assert.equal(abroad.rows.find(r => r[0] === "ARE")[1], 29.6);
 });
 
 test("a partial dataset lists only countries a curated puzzle already named", () => {
@@ -226,4 +231,17 @@ test("random generation never picks a sensitive dataset inside the AdSense windo
     if (puzzle.sensitive) sawSensitive = true;
   }
   assert.equal(sawSensitive, true);
+});
+
+test("practice draws different country sets from the full rice and Indians-abroad tables", () => {
+  const outside = boot(new Date(2027, 5, 1));
+  const lineups = { rice: new Set(), "india-migrant-stock": new Set() };
+  for (let seed = 1; seed <= 4000; seed++) {
+    const puzzle = outside.window.RankdPractice.generate(seed);
+    if (!puzzle || !lineups[puzzle.dataset] || puzzle.type !== "rank") continue;
+    lineups[puzzle.dataset].add(puzzle.items.map(it => it.name).sort().join("|"));
+    if ([...Object.values(lineups)].every(set => set.size >= 2)) break;
+  }
+  assert.ok(lineups.rice.size >= 2, "rice lineups " + lineups.rice.size);
+  assert.ok(lineups["india-migrant-stock"].size >= 2, "abroad lineups " + lineups["india-migrant-stock"].size);
 });
