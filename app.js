@@ -1931,7 +1931,8 @@ function sourceCardModel(p) {
     if (u.protocol === "http:" || u.protocol === "https:") {
       url = u.href;
       domain = u.hostname.replace(/^www\./i, "");
-      favicon = u.origin + "/favicon.ico";
+      const trends = /(^|\.)trends\.google\./i.test(u.hostname) || /\/trends/i.test(u.pathname);
+      favicon = trends ? "" : u.origin + "/favicon.ico";
     }
   } catch (e) {}
   return {
@@ -1940,6 +1941,7 @@ function sourceCardModel(p) {
     domain,
     favicon,
     url,
+    glyph: favicon ? "" : (domain ? "search" : ""),
     tap: "Tap to see the data",
   };
 }
@@ -2121,6 +2123,7 @@ const ART = {
   puzzle: `<g class="a-bounce"><path d="M14 22h12a6 6 0 1 1 12 0h12v12a6 6 0 1 0 0 12v10H38a6 6 0 1 0-12 0H14V46a6 6 0 1 1 0-12z"/></g>`,
   windmill: `<path d="M32 30l-5 28h10z"/><g class="a-spin"><path d="M32 30L32 8M32 30L51 41M32 30L13 41"/></g><circle cx="32" cy="30" r="2" fill="currentColor"/><path d="M18 58h28"/>`,
   chart: `<path d="M10 54h44"/><rect class="a-grow" style="--d:0s" x="14" y="30" width="8" height="24" rx="2"/><rect class="a-grow" style="--d:.3s" x="28" y="18" width="8" height="36" rx="2"/><rect class="a-grow" style="--d:.6s" x="42" y="36" width="8" height="18" rx="2"/>`,
+  search: `<circle cx="28" cy="28" r="14"/><path class="a-sway" d="M38 38l14 14"/>`,
   clock: `<circle cx="32" cy="34" r="20"/><path d="M26 10h12M32 10v4"/><path class="a-spin-slow" d="M32 34V22"/><path class="a-spin" d="M32 34h9"/><circle cx="32" cy="34" r="1.6" fill="currentColor"/>`,
   car: `<g class="a-bob"><path d="M10 40v-6l6-10h24l8 10h6v6z"/><path d="M20 24l-3 10h28l-7-10"/><circle cx="20" cy="42" r="5"/><circle cx="44" cy="42" r="5"/></g><path class="a-dash" d="M4 54h56" stroke-dasharray="6 6"/>`,
   beer: `<path d="M16 16h26v36a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4z"/><path d="M42 24h6a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-6"/><path d="M14 16c0-6 7-8 10-5 3-4 11-3 12 1 5-1 8 2 6 4"/><circle class="a-rise" style="--d:0s" cx="24" cy="48" r="1.6"/><circle class="a-rise" style="--d:.8s" cx="31" cy="50" r="1.4"/><circle class="a-rise" style="--d:1.6s" cx="36" cy="46" r="1.2"/>`,
@@ -2804,7 +2807,60 @@ function tierChipEl(p, i, ti, mark, pinned) {
   const nm = tierChipName(it.name);
   chip.innerHTML = `<span class="tc-flag">${esc(it.emoji || "•")}</span><span class="tc-name">${esc(nm)}</span>${valShow}`;
   if (!g.done && !pinned) {
-    chip.addEventListener("click", e => { e.stopPropagation(); tierTapChip(i); });
+    chip.addEventListener("pointerdown", e => {
+      if (e.button > 0) return;
+      try { chip.setPointerCapture(e.pointerId); } catch (err) {}
+      const start = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null, ox: 0, oy: 0 };
+      const move = ev => {
+        if (ev.pointerId !== start.id) return;
+        if (!start.moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 8) return;
+        if (!start.moved) {
+          start.moved = true;
+          const r = chip.getBoundingClientRect();
+          const gh = chip.cloneNode(true);
+          gh.classList.add("tier-ghost");
+          gh.style.width = r.width + "px";
+          gh.style.left = r.left + "px";
+          gh.style.top = r.top + "px";
+          document.body.appendChild(gh);
+          start.ghost = gh;
+          start.ox = ev.clientX - r.left;
+          start.oy = ev.clientY - r.top;
+          chip.classList.add("dragging");
+        }
+        ev.preventDefault();
+        start.ghost.style.left = (ev.clientX - start.ox) + "px";
+        start.ghost.style.top = (ev.clientY - start.oy) + "px";
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = under && under.closest ? under.closest(".tier-row") : null;
+        $$(".tier-row").forEach(r => r.classList.toggle("drag-over", r === row));
+      };
+      const up = ev => {
+        if (ev.pointerId !== start.id) return;
+        chip.removeEventListener("pointermove", move);
+        chip.removeEventListener("pointerup", up);
+        chip.removeEventListener("pointercancel", up);
+        $$(".tier-row").forEach(r => r.classList.remove("drag-over"));
+        if (!start.moved) return;
+        ev.preventDefault();
+        if (start.ghost) start.ghost.remove();
+        chip.classList.remove("dragging");
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = under && under.closest ? under.closest(".tier-row") : null;
+        const pool = under && under.closest ? under.closest("#tierPool") : null;
+        chip.dataset.justDragged = "1";
+        if (row) tierAssign(i, +row.dataset.t);
+        else if (pool) tierAssign(i, null);
+      };
+      chip.addEventListener("pointermove", move);
+      chip.addEventListener("pointerup", up);
+      chip.addEventListener("pointercancel", up);
+    });
+    chip.addEventListener("click", e => {
+      if (chip.dataset.justDragged) { delete chip.dataset.justDragged; e.stopPropagation(); return; }
+      e.stopPropagation();
+      tierTapChip(i);
+    });
     chip.addEventListener("dragstart", e => { if (chip.classList.contains("pinned")) { e.preventDefault(); return; } state.tierDrag = i; chip.classList.add("dragging"); e.dataTransfer.setData("text/plain", String(i)); e.dataTransfer.effectAllowed = "move"; });
     chip.addEventListener("dragend", () => { chip.classList.remove("dragging"); state.tierDrag = null; $$(".tier-row").forEach(r => r.classList.remove("drag-over")); });
   }
@@ -2959,11 +3015,14 @@ function top1Paint() {
   const dir = $("#t5Dir");
   if (dir) dir.textContent = g.done ? (g.solved ? "You found #1" : "The real #1") : "Type a country. Closer to #1 is warmer.";
   const ol = $("#top1Guesses");
-  if (ol) ol.innerHTML = g.guesses.map(guess => {
-    const cls = guess.mark === "good" ? "win" : guess.mark === "near" ? "near" : guess.mark === "warm" ? "warm" : "";
-    const tick = guess.mark === "good" ? " ✓" : "";
-    return `<li class="g-row ${cls}"><span class="emoji">${esc(guess.emoji || "🏳️")}</span><span><span class="gn">${esc(guess.name)}${tick}</span><span class="gv">${fmt1(guess.value)}${p.unit ? " " + esc(p.unit) : ""}</span></span><span class="gr">#${guess.rank}<small>of ${guess.total}</small></span></li>`;
-  }).join("");
+  if (ol) {
+    ol.innerHTML = g.guesses.slice().reverse().map(guess => {
+      const cls = guess.mark === "good" ? "win" : guess.mark === "near" ? "near" : guess.mark === "warm" ? "warm" : "";
+      const tick = guess.mark === "good" ? " ✓" : "";
+      return `<li class="g-row ${cls}"><span class="emoji">${esc(guess.emoji || "🏳️")}</span><span><span class="gn">${esc(guess.name)}${tick}</span><span class="gv">${fmt1(guess.value)}${p.unit ? " " + esc(p.unit) : ""}</span></span><span class="gr">#${guess.rank}<small>of ${guess.total}</small></span></li>`;
+    }).join("");
+    ol.scrollTop = 0;
+  }
   renderTop1Hints();
 }
 function renderTop1Hints() {
@@ -3555,6 +3614,13 @@ function paintSourceCard(p) {
   if (!img) return;
   const showIcon = () => { img.hidden = true; if (fb) fb.hidden = false; };
   const showFav = () => { img.hidden = false; if (fb) fb.hidden = true; };
+  if (card.glyph === "search") {
+    img.onload = null;
+    img.onerror = null;
+    img.src = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="%23111" stroke-width="2"/><path d="M14.5 14.5L20 20" stroke="%23111" stroke-width="2" stroke-linecap="round"/></svg>');
+    showFav();
+    return;
+  }
   img.onload = () => { if (img.naturalWidth > 0) showFav(); else showIcon(); };
   img.onerror = showIcon;
   if (img.getAttribute("src") !== card.favicon) {

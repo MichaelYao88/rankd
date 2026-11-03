@@ -22,12 +22,11 @@ const WB = "https://data.worldbank.org/indicator/EN.POP.DNST";
 
 test("new dailies take the next free days after 2027-04-08", () => {
   assert.equal(dateOf(185), "2027-04-08");
-  assert.deepEqual(["wealth-share-top10", "wealth-share-top1", "match-meat-cuts", "cocaine-destination", "top1-pop-density"].map(id => {
+  assert.deepEqual(["wealth-share-top1", "match-meat-cuts", "cocaine-destination", "top1-pop-density"].map(id => {
     const p = byId(id);
     return [p.id, p.order, dateOf(p.order), p.headline];
   }), [
-    ["wealth-share-top10", 186, "2027-04-09", "The Top Tenth"],
-    ["wealth-share-top1", 187, "2027-04-10", "One Percent"],
+    ["wealth-share-top1", 187, "2027-04-10", "The top 1% own everything"],
     ["match-meat-cuts", 188, "2027-04-11", "Butcher Board"],
     ["cocaine-destination", 189, "2027-04-12", "Long Haul"],
     ["top1-pop-density", 190, "2027-04-13", "Packed In"],
@@ -35,33 +34,22 @@ test("new dailies take the next free days after 2027-04-08", () => {
   const orders = puzzles.map(p => p.order);
   assert.equal(new Set(orders).size, orders.length);
   assert.equal(new Set(puzzles.map(p => p.id)).size, puzzles.length);
-  const fresh = ["The Top Tenth", "One Percent", "Butcher Board", "Long Haul", "Packed In"];
+  const fresh = ["The top 1% own everything", "Butcher Board", "Long Haul", "Packed In"];
   for (const headline of fresh) {
     assert.equal(puzzles.filter(p => p.headline === headline).length, 1, headline);
   }
 });
 
-test("richest 10% and richest 1% use WID 2024 shares, not a per-capita unit", () => {
-  const top10 = byId("wealth-share-top10");
+test("the richest 1% board uses WID 2024 shares, not a per-capita unit", () => {
   const top1 = byId("wealth-share-top1");
-  assert.equal(top10.type, "rank");
+  assert.equal(byId("wealth-share-top10"), undefined);
   assert.equal(top1.type, "rank");
-  assert.equal(top10.year, "2024");
   assert.equal(top1.year, "2024");
-  assert.equal(top10.unit, "% of private wealth");
   assert.equal(top1.unit, "% of private wealth");
-  assert.equal(top10.unit.includes("per capita"), false);
-  assert.equal(top10.sourceUrl, OWID_10);
+  assert.equal(top1.unit.includes("per capita"), false);
   assert.equal(top1.sourceUrl, OWID_1);
-  assert.match(top10.source, /World Inequality Database/);
-  assert.deepEqual(top10.items.map(it => [it.name, it.value, it.gRank, it.gTotal, it.year]), [
-    ["South Africa", 85.67, 1, 215, "2024"],
-    ["United States", 69.54, 21, 215, "2024"],
-    ["China", 68.05, 24, 215, "2024"],
-    ["United Arab Emirates", 62.28, 69, 215, "2024"],
-    ["Singapore", 61.46, 109, 215, "2024"],
-    ["Kazakhstan", 59.9, 136, 215, "2024"],
-  ]);
+  assert.match(top1.source, /World Inequality Database/);
+  assert.match(top1.fact, /not a top-1% share/);
   assert.deepEqual(top1.items.map(it => [it.name, it.value, it.gRank, it.gTotal]), [
     ["Russia", 48.99, 2, 215],
     ["India", 40.14, 6, 215],
@@ -70,17 +58,12 @@ test("richest 10% and richest 1% use WID 2024 shares, not a per-capita unit", ()
     ["South Korea", 26.1, 126, 215],
     ["Denmark", 20.76, 210, 215],
   ]);
-  for (const p of [top10, top1]) {
-    assert.equal(p.sensitive, undefined);
-    assert.match(p.fact, /2024/);
-    assert.equal(p.sourceUrl.startsWith("https://"), true);
-    assert.equal(new Set(p.items.map(it => it.value)).size, p.items.length);
-  }
-  assert.match(top10.fact, /South Africa/);
-  assert.match(top10.fact, /United States/);
+  assert.equal(top1.sensitive, undefined);
+  assert.match(top1.fact, /2024/);
+  assert.equal(top1.sourceUrl.startsWith("https://"), true);
+  assert.equal(new Set(top1.items.map(it => it.value)).size, top1.items.length);
   assert.match(top1.fact, /shock-therapy/);
   assert.match(top1.fact, /Denmark/);
-  assert.equal(search.matches(top10, "Kazakhstan"), true);
   assert.equal(search.matches(top1, "richest 1%"), true);
 });
 
@@ -179,7 +162,6 @@ test("population density Top 1 leaves out places under 1 million and keeps Hong 
 test("seeded comparison for the new dailies sits a little under a clear", () => {
   const stats = JSON.parse(fs.readFileSync(path.join(root, "community-stats.json"), "utf8"));
   const expect = {
-    "wealth-share-top10": ["South Africa", "United States", "China", "United Arab Emirates", "Singapore", "Kazakhstan"],
     "wealth-share-top1": ["Russia", "India", "United States", "Germany", "South Korea", "Denmark"],
     "match-meat-cuts": ["Mongolia", "Israel", "Argentina", "Kazakhstan", "Croatia", "Hong Kong"],
     "cocaine-destination": ["Australia", "United States", "United Kingdom", "Brazil", "Mexico", "Colombia"],

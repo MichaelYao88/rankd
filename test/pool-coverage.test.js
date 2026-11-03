@@ -146,6 +146,7 @@ test("a partial dataset lists only countries a curated puzzle already named", ()
     const bag = named.get(ds.id);
     if (ds.kind === "groups") (p.items || []).forEach(it => bag.add(it.name));
     else (p.items || p.countries || []).forEach(it => bag.add(it.iso3 || isoOf(it.name)));
+    if (p.type === "quiz") (p.questions || []).forEach(q => { if (/^[a-z]{3}$/.test(q.id || "")) bag.add(q.id.toUpperCase()); });
   }
   for (const ds of datasets) {
     if (ds.coverage !== "partial") continue;
@@ -160,7 +161,7 @@ test("a partial dataset lists only countries a curated puzzle already named", ()
 
 test("trends datasets stay high-internet lists", () => {
   const trends = datasets.filter(d => /trends|google search interest/i.test(d.id + " " + d.stat));
-  assert.ok(trends.length >= 4);
+  assert.equal(trends.map(d => d.id).join(","), "top-trends-kpop");
   for (const ds of trends) {
     assert.equal(ds.hiNet, 1, ds.id);
     assert.match(ds.stat + " " + (ds.caveat || "") + " " + ds.src, /high internet|Google|Trends/i, ds.id);
@@ -180,7 +181,7 @@ test("trends datasets stay high-internet lists", () => {
   assert.equal(resolve("southern-capitals").id, "national-capitals");
   assert.equal(resolve("northern-capitals").id, "national-capitals");
   const woman = datasets.find(d => d.id === "attr-never-woman-leader");
-  assert.equal(woman.kind, "tier");
+  assert.equal(woman.kind, "quiz");
   assert.equal(woman.coverage, "full");
   assert.equal(woman.labels["1"], "Has had one");
   assert.equal(woman.question, "Has this country ever had a woman as head of state or government?");

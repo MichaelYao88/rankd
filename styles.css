@@ -801,6 +801,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 .tier-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tier-accent,#fff);box-shadow:0 0 0 3px color-mix(in srgb, var(--tier-accent,#fff) 38%, transparent);flex:none}
 .tier-slots{display:flex;flex-wrap:wrap;gap:6px;align-items:center;align-content:center;min-height:52px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.38);background:color-mix(in srgb, var(--tier-accent,#fff) 16%, rgba(255,255,255,.07));border-color:color-mix(in srgb, var(--tier-accent,#fff) 48%, rgba(255,255,255,.4))}
 .tier-row.drag-over .tier-slots{border-style:solid;border-color:#FFD84D;background:rgba(255,216,77,.18)}
+.tier-ghost{position:fixed;z-index:80;margin:0;pointer-events:none;opacity:.92}
 .tier-row.sel .tier-slots{box-shadow:0 0 0 2px rgba(255,216,77,.4)}
 .tier-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);cursor:grab;user-select:none;font-size:13.5px;font-weight:650;line-height:1.2;touch-action:none;flex:0 0 auto;max-width:100%}
 .tier-chip .tc-flag{font-size:16px;line-height:1;flex:none}
