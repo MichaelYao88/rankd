@@ -106,6 +106,7 @@ test("stored answers are exactly the countries that pass both rules", () => {
     "name-road-between-u": 2,
     "name-no-divorce": 2,
     "name-tree-country": 2,
+    "name-named-for-her": 3,
   };
   for (const puzzle of puzzles) {
     assert.equal(puzzle.type, "name");
