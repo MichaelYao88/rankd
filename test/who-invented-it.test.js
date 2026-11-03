@@ -97,8 +97,8 @@ test("each card has one sourced answer and three other countries", () => {
     ["webcam", "GBR", "Which country set up the coffee-pot camera that became the first webcam?"],
     ["usb-flash", "ISR", "Which country filed the first patent for a USB flash disk?"],
     ["gasoline-car", "DEU", "Which country built the first gasoline car, Benz's Patent-Motorwagen of 1886?"],
-    ["shampoo-word", "IND", "Which country gave English the word shampoo?"],
-    ["shampoo-treatment", "IND", "Which country invented the hair treatment later called shampoo?"],
+    ["shampoo", "IND", "Which country gave English the word shampoo?"],
+    ["bluetooth", "SWE", "Ericsson developed the short-range radio that became Bluetooth in which country?"],
     ["ketchup", "CHN", "Ketchup was invented in which country?"],
   ];
   assert.equal(JSON.stringify(quiz.questions.map(q => [q.id, q.answer, q.ask])), JSON.stringify(expect));
@@ -147,6 +147,15 @@ test("each card has one sourced answer and three other countries", () => {
   assert.match(ketchup.fact, /kê-tsiap|Amoy/i);
   assert.match(ketchup.fact, /Tomato ketchup is American/);
   assert.doesNotMatch(ketchup.ask + ketchup.prompt + ketchup.fact, /fish-sauce|fish sauce/i);
+  assert.equal(quiz.questions.filter(q => /shampoo/i.test(q.id)).length, 1);
+  const shampoo = quiz.questions.find(q => q.id === "shampoo");
+  assert.match(shampoo.fact, /chāmpo/);
+  assert.match(shampoo.fact, /Mahomed/);
+  const bluetooth = quiz.questions.find(q => q.id === "bluetooth");
+  assert.equal(bluetooth.answer, "SWE");
+  assert.match(bluetooth.fact, /Denmark/);
+  assert.match(bluetooth.fact, /1994/);
+  assert.match(bluetooth.fact, /Lund/);
   for (const day of [quiz, older, words]) {
     assert.equal(day.questions.length, 9, day.id);
     for (const q of day.questions) {
