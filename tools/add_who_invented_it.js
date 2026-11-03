@@ -1,8 +1,7 @@
 /* Three Who Invented It? dailies, 2027-05-18 through 2027-05-20.
-   Eight questions each. Idempotent: replaces any earlier copy of these ids.
-   Dropped: the dinner fork (Egypt, China, and the Byzantine court in today's
-   Turkey and Greece all have a real claim). Clinical trials are al-Razi in
-   Iran, not Ibn Sina. See the facts for the other rewordings. */
+   Nine questions each, one invention per card. Idempotent.
+   Clinical trials are al-Razi in Iran, not Ibn Sina.
+   The fork card is the earliest bone forks (Qijia), not the Byzantine table fork. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -52,12 +51,16 @@ const day1 = [
     "Karl Benz built the Patent-Motorwagen in Mannheim in 1886, a gasoline tricycle with a patent. Nicolas-Joseph Cugnot's 1769 wagon was French, and it was steam, which is why France looks right.",
     "Encyclopaedia Britannica, Karl Benz",
     "https://www.britannica.com/biography/Karl-Benz"),
-  card("shampoo", "The word shampoo, and the hair treatment that came with it", "Which country gave English the word shampoo, and the hair treatment that came with it?", "IND", ["FRA", "IND", "GBR", "DEU"],
-    "Shampoo is Hindi chāmpo, press or knead. Sake Dean Mahomed, from Patna, opened his Indian vapour baths in Brighton in 1814 and shampooed with Indian oils. Soap you pour on your hair came later in Europe, which is why Germany looks right.",
-    "Etymonline, shampoo; Royal College of Surgeons of England, Sake Dean Mahomed",
+  card("shampoo-word", "The word shampoo", "Which country gave English the word shampoo?", "IND", ["FRA", "IND", "GBR", "DEU"],
+    "Shampoo is Hindi chāmpo, to press or knead. The scalp massage that later used the word is a separate story.",
+    "Etymonline, shampoo",
     "https://www.etymonline.com/word/shampoo"),
-  card("ketchup", "The fermented sauce that became ketchup", "Which country made the fermented sauce that became ketchup?", "CHN", ["USA", "VNM", "CHN", "GBR"],
-    "Tomato ketchup is American, and British mushroom ketchup is a later pickle. The name is Amoy Chinese kê-tsiap, a brine of pickled fish, which Malay borrowed as kecap. Vietnam's fish sauce is a cousin, not where the word started.",
+  card("shampoo-treatment", "The hair treatment later called shampoo", "Which country invented the hair treatment later called shampoo?", "IND", ["FRA", "GBR", "IND", "DEU"],
+    "Sake Dean Mahomed, from Patna, opened Indian vapour baths in Brighton in 1814 and worked oils into the scalp. Poured soap came later in Europe, which is why Germany looks right.",
+    "Wikipedia, Sake Dean Mahomed",
+    "https://en.wikipedia.org/wiki/Sake_Dean_Mahomed"),
+  card("ketchup", "Ketchup", "Ketchup was invented in which country?", "CHN", ["USA", "VNM", "CHN", "GBR"],
+    "Tomato ketchup is American, and British mushroom ketchup is a later pickle. The name is Amoy Chinese kê-tsiap, a pickled brine, which Malay borrowed as kecap. Vietnam's sauce is a cousin, not where the word started.",
     "Collins English Dictionary, ketchup, from Amoy Chinese kōetsiap",
     "https://www.collinsdictionary.com/dictionary/english/ketchup"),
 ];
@@ -71,7 +74,7 @@ const day2 = [
     "Paper playing cards show up in China in the Tang dynasty. European packs, including the Italian ones, are a later import, which is why Italy looks right.",
     "Wikipedia, Playing card",
     "https://en.wikipedia.org/wiki/Playing_card"),
-  card("umbrella", "The collapsible umbrella", "Which country invented the collapsible umbrella, the one with ribs that fold?", "CHN", ["EGY", "GBR", "CHN", "FRA"],
+  card("umbrella", "The collapsible umbrella", "Which country invented the collapsible umbrella?", "CHN", ["EGY", "GBR", "CHN", "FRA"],
     "Fixed sunshades are older in Egypt and Mesopotamia. The folding frame, with ribs that close, is the Chinese umbrella. Britain's steel-rib umbrellas are a later factory version.",
     "Wikipedia, Umbrella",
     "https://en.wikipedia.org/wiki/Umbrella"),
@@ -87,10 +90,14 @@ const day2 = [
     "The Sushruta Samhita, the old Indian surgical text, describes rebuilding a nose from a flap of skin. British surgeons then copied the operation they saw in India: the 1794 report of Cowasjee, and Joseph Carpue's London book in 1816.",
     "Wikipedia, Sushruta Samhita",
     "https://en.wikipedia.org/wiki/Sushruta_Samhita"),
-  card("rope-bridge", "The Inca grass-rope suspension bridges", "Which country built the grass-rope suspension bridges on the Inca roads?", "PER", ["CHN", "PER", "MEX", "ESP"],
-    "The Inca hung grass-rope bridges across Andean gorges, and one is still rebuilt every year in Peru. China had vine bridges, and later iron-chain bridges, many centuries earlier, so this is not the world's first suspension bridge.",
+  card("rope-bridge", "Suspension bridges across the Andes", "Which country built the suspension bridges across the Andes?", "PER", ["CHN", "PER", "MEX", "ESP"],
+    "The Inca hung bridges of twisted grass rope across Andean gorges, and one is still rebuilt every year in Peru. China had vine bridges, and later iron-chain bridges, many centuries earlier. This card is the Andean bridges, not the world's first suspension bridge.",
     "Wikipedia, Inca rope bridge",
     "https://en.wikipedia.org/wiki/Inca_rope_bridge"),
+  card("fork", "The fork", "Which country invented the fork first?", "CHN", ["EGY", "CHN", "GRC", "TUR"],
+    "Bone forks have been found at Qijia sites in northwest China, about 2400–1900 BC, and again in Shang tombs. Egypt's large forks were cooking tools. The personal table fork was in common use in the Byzantine Empire by the 4th century, and a Byzantine princess later brought golden ones to Venice. A bronze fork from a Mycenaean grave is Greek, and later than the Qijia finds.",
+    "Wikipedia, Fork, citing Needham, Science and Civilisation in China",
+    "https://en.wikipedia.org/wiki/Fork"),
   card("windmill", "The vertical-axis windmills at Nashtifan", "Which country built the ancient vertical-axis windmills still standing at Nashtifan?", "IRN", ["NLD", "CHN", "IRN", "ESP"],
     "Nashtifan, in eastern Iran, still grinds grain with vertical-shaft windmills, the early Persian kind. Dutch tower mills are a later design that turns to face the wind, which is why the Netherlands looks right.",
     "Wikipedia, Nashtifan windmills",
@@ -110,6 +117,10 @@ const day3 = [
     "Ragusa, today's Dubrovnik, ordered 30 days outside the city on 27 July 1377. The word quarantine is Italian for 40 days, the stretch Venice used later, and Venice opened a permanent plague island in 1423. That is why Italy looks like the answer.",
     "CDC Emerging Infectious Diseases, The Old Port of Dubrovnik",
     "https://wwwnc.cdc.gov/eid/article/8/1/ac-0801_article"),
+  card("algebra", "Algebra", "Which country invented algebra?", "IRN", ["IRQ", "IRN", "UZB", "GRC"],
+    "Al-Khwarizmi's book, al-jabr, gave algebra its name. Historians call him Persian, so the country is Iran. He was born in Khwarazm, in today's Uzbekistan, and he wrote the book in Baghdad, in today's Iraq. Greece had geometry, which is why it looks right. This is the book that named the subject, not the first time anyone solved for an unknown.",
+    "Encyclopaedia Britannica, al-Khwarizmi",
+    "https://www.britannica.com/biography/al-Khwarizmi"),
   card("algorithm", "The word algorithm", "The word algorithm comes from the name of the Persian mathematician al-Khwarizmi. Which country is that?", "IRN", ["IRN", "GRC", "IND", "EGY"],
     "Latin algorismus is al-Khwarizmi's name, and historians call him Persian. He was born in Khwarazm, in today's Uzbekistan, and he wrote his algebra in Baghdad, in today's Iraq. Greece, India and Egypt have older mathematics, which is why they look right.",
     "Encyclopaedia Britannica, al-Khwarizmi",
@@ -144,7 +155,7 @@ const DAYS = [
   {
     id: "who-invented-older", order: 226, headline: "Older Than It Looks",
     question: "Four countries. One answer.",
-    fact: "China has the bristle toothbrush, paper playing cards and the folding umbrella. The grass-rope bridges still rebuilt in the Andes are Peruvian, and China had vine and iron-chain bridges long before them.",
+    fact: "China has the bristle toothbrush, paper playing cards, the folding umbrella, and the earliest bone forks. The suspension bridges still rebuilt in the Andes are Peruvian. China had iron-chain bridges long before those.",
     lead: "Library of Congress, on the bristle toothbrush; every other card links its own source",
     url: day2[0].sourceUrl,
     questions: day2,
@@ -167,7 +178,7 @@ function puzzleOf(day) {
     if (!q.options.some(o => o.iso3 === q.answer)) throw new Error("answer " + q.id);
     if (!q.fact || !q.sourceUrl.startsWith("https://")) throw new Error("source " + q.id);
   }
-  if (day.questions.length !== 8) throw new Error(day.id + " count");
+  if (day.questions.length !== 9) throw new Error(day.id + " count");
   return {
     type: "quiz", id: day.id, order: day.order, emoji: "💡", headline: day.headline,
     question: day.question, stat: "One shot each, then the fact", unit: "",
