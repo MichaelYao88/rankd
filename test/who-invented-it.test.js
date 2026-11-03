@@ -70,7 +70,7 @@ test("who invented it is the main puzzle on 2027-05-18 and the streak day", () =
   for (const p of [quiz, older, words]) {
     assert.equal(p.type, "quiz");
     assert.equal(p.sensitive, undefined);
-    assert.equal(p.questions.length, 9);
+    assert.equal(p.questions.length, 11);
     assert.equal(p.questions.filter(q => /fish-sauce|grass-rope/i.test(q.prompt + " " + q.ask)).length, 0);
   }
   const win = bootStudio();
@@ -96,10 +96,12 @@ test("each card has one sourced answer and three other countries", () => {
     ["spotify", "SWE", "Which country started Spotify?"],
     ["webcam", "GBR", "Which country set up the coffee-pot camera that became the first webcam?"],
     ["usb-flash", "ISR", "Which country filed the first patent for a USB flash disk?"],
-    ["gasoline-car", "DEU", "Which country built the first gasoline car, Benz's Patent-Motorwagen of 1886?"],
+    ["gasoline-car", "DEU", "Which country built the first gasoline car?"],
     ["shampoo", "IND", "Which country gave English the word shampoo?"],
-    ["bluetooth", "SWE", "Ericsson developed the short-range radio that became Bluetooth in which country?"],
-    ["ketchup", "CHN", "Ketchup was invented in which country?"],
+    ["bluetooth", "SWE", "Which country developed the short-range radio that became Bluetooth?"],
+    ["ketchup", "CHN", "Which country invented the sauce behind the word ketchup?"],
+    ["haagen-dazs", "USA", "Häagen-Dazs was first made in which country?"],
+    ["english-muffins", "USA", "Which country first sold Thomas' English muffins?"],
   ];
   assert.equal(JSON.stringify(quiz.questions.map(q => [q.id, q.answer, q.ask])), JSON.stringify(expect));
   for (const day of puzzles.filter(p => p.type === "quiz")) for (const q of day.questions) {
@@ -113,8 +115,8 @@ test("each card has one sourced answer and three other countries", () => {
   const older = puzzles.find(p => p.id === "who-invented-older");
   const words = puzzles.find(p => p.id === "who-invented-words");
   assert.equal(older.questions.find(q => q.id === "rope-bridge").answer, "PER");
-  assert.match(older.questions.find(q => q.id === "rope-bridge").ask, /suspension bridges across the Andes/);
-  assert.doesNotMatch(older.questions.find(q => q.id === "rope-bridge").ask, /grass-rope/);
+  assert.match(older.questions.find(q => q.id === "rope-bridge").ask, /rope suspension bridge every year/);
+  assert.doesNotMatch(older.questions.find(q => q.id === "rope-bridge").ask, /Andes|grass-rope/);
   assert.match(older.questions.find(q => q.id === "rope-bridge").fact, /China/);
   assert.match(older.questions.find(q => q.id === "rope-bridge").fact, /chain/);
   const fork = older.questions.find(q => q.id === "fork");
@@ -157,11 +159,31 @@ test("each card has one sourced answer and three other countries", () => {
   assert.match(bluetooth.fact, /1994/);
   assert.match(bluetooth.fact, /Lund/);
   for (const day of [quiz, older, words]) {
-    assert.equal(day.questions.length, 9, day.id);
+    assert.equal(day.questions.length, 11, day.id);
     for (const q of day.questions) {
       assert.doesNotMatch(q.ask, / and the /i, q.id);
+      assert.doesNotMatch(q.ask + " " + q.prompt, /Abbasid|Khwarizmi|Nashtifan|Benz|Ericsson|Andes|Patent-Motorwagen/i, q.id);
     }
   }
+  const forkOpts = older.questions.find(q => q.id === "fork").options.map(o => o.iso3);
+  for (const iso of ["EGY", "GRC", "TUR"]) assert.equal(forkOpts.includes(iso), false, iso);
+  const blueOpts = quiz.questions.find(q => q.id === "bluetooth").options.map(o => o.iso3);
+  for (const iso of ["NOR", "DNK", "FIN"]) assert.equal(blueOpts.includes(iso), false, iso);
+  assert.equal(words.questions.find(q => q.id === "russian-roulette").answer, "USA");
+  assert.match(words.questions.find(q => q.id === "russian-roulette").fact, /Collier's/);
+  assert.match(words.questions.find(q => q.id === "russian-roulette").fact, /Switzerland/);
+  assert.equal(words.questions.find(q => q.id === "chicken-tikka").answer, "GBR");
+  assert.match(words.questions.find(q => q.id === "chicken-tikka").fact, /disputed/);
+  for (const iso of ["IND", "PAK", "BGD"]) {
+    assert.equal(words.questions.find(q => q.id === "chicken-tikka").options.some(o => o.iso3 === iso), false, iso);
+  }
+  assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").answer, "CAN");
+  for (const iso of ["USA", "ITA"]) {
+    assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").options.some(o => o.iso3 === iso), false, iso);
+  }
+  assert.equal(older.questions.find(q => q.id === "chinese-checkers").answer, "DEU");
+  assert.equal(quiz.questions.find(q => q.id === "haagen-dazs").answer, "USA");
+  assert.equal(quiz.questions.find(q => q.id === "english-muffins").answer, "USA");
   for (const id of ["who-invented-it", "who-invented-older", "who-invented-words"]) {
     const p = puzzles.find(x => x.id === id);
     const ds = practice.datasets.find(d => d.id === id);
@@ -176,7 +198,7 @@ test("a run scores out of the questions, reveals one fact, and shares one square
   const quiz = puzzles.find(p => p.id === "who-invented-it");
   let g = Quiz.blank(quiz);
   assert.equal(g.phase, "ask");
-  g = Quiz.choose(g, quiz, "USA");
+  g = Quiz.choose(g, quiz, "BRA");
   assert.equal(g.phase, "reveal");
   assert.equal(g.hits, 0);
   assert.equal(g.marks[0], "bad");
@@ -218,6 +240,37 @@ test("practice can deal the same nine questions", () => {
   assert.equal(found.type, "quiz");
   assert.equal(found.practice, true);
   assert.equal(found.sensitive, false);
-  assert.equal(found.questions.length, 9);
+  assert.equal(found.questions.length, 11);
   assert.equal(found.questions[0].answer, "JPN");
+});
+
+test("no wrong option borders the answer", () => {
+  const neighbors = {
+    JPN: [],
+    SWE: ["NOR", "FIN"],
+    GBR: ["IRL"],
+    ISR: ["EGY", "JOR", "LBN", "SYR"],
+    DEU: ["FRA", "POL", "CZE", "AUT", "CHE", "BEL", "NLD", "DNK", "LUX"],
+    IND: ["PAK", "CHN", "NPL", "BTN", "BGD", "MMR"],
+    CHN: ["RUS", "MNG", "PRK", "KOR", "VNM", "LAO", "MMR", "IND", "BTN", "NPL", "KAZ", "KGZ", "TJK", "AFG", "PAK"],
+    USA: ["CAN", "MEX"],
+    CAN: ["USA"],
+    PER: ["ECU", "COL", "BRA", "BOL", "CHL"],
+    IRN: ["TUR", "IRQ", "ARM", "AZE", "TKM", "AFG", "PAK"],
+    KEN: ["TZA", "UGA", "ETH", "SOM", "SSD"],
+    TUR: ["GRC", "BGR", "GEO", "ARM", "IRN", "IRQ", "SYR"],
+    HRV: ["SVN", "HUN", "SRB", "BIH", "MNE"],
+    IRQ: ["IRN", "TUR", "SYR", "JOR", "SAU", "KWT"],
+    MAR: ["DZA", "ESH", "ESP"],
+  };
+  for (const day of puzzles.filter(p => p.type === "quiz")) {
+    for (const q of day.questions) {
+      const border = neighbors[q.answer];
+      assert.ok(border, "no border list for " + q.answer);
+      for (const opt of q.options) {
+        if (opt.iso3 === q.answer) continue;
+        assert.equal(border.includes(opt.iso3), false, q.id + " " + q.answer + " borders " + opt.iso3);
+      }
+    }
+  }
 });

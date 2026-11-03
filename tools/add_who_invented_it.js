@@ -1,4 +1,6 @@
-/* Three Who Invented It? dailies, 2027-05-18 through 2027-05-20.
+/* Historical generator. Card text now lives in tools/fix_quiz_clues.js.
+   Do not re-run this file: its splice drops every daily that follows these quizzes.
+   Three Who Invented It? dailies, 2027-05-18 through 2027-05-20.
    Nine questions each, one invention per card. Idempotent.
    Clinical trials are al-Razi in Iran, not Ibn Sina.
    The fork card is the earliest bone forks (Qijia), not the Byzantine table fork. */
