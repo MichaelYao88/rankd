@@ -342,7 +342,21 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 #heroNo.is-part{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.18);letter-spacing:.01em}
 #playView.bundle-in .hero{animation:bundle-in .35s ease}
 @keyframes bundle-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){#playView.bundle-in .hero{animation:none}}
+.bundle-pile{position:relative;height:14px;margin:0 0 -6px;z-index:0}
+.bundle-card{position:absolute;left:14px;right:14px;top:0;height:22px;border-radius:14px 14px 4px 4px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.08);transform:rotate(var(--rot)) translateY(calc(var(--back) * -6px));transform-origin:center bottom;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.bundle-card.is-top{z-index:1}
+.bundle-pile.is-straight .bundle-card.is-top{transform:rotate(0deg) translateY(0);transition:transform .4s ease}
+.part-strip{margin-top:8px}
+.part-strip-kicker{font-size:12px;letter-spacing:.04em;text-transform:uppercase;opacity:.7;margin:0 0 4px}
+.part-strip-line{font-weight:750;margin:0}
+.part-strip-crowd{margin:2px 0 8px;opacity:.8}
+.part-strip-bars .part-bar.is-you .cn{font-weight:750}
+.day-score{margin-bottom:12px}
+.day-score-top{display:flex;align-items:baseline;gap:8px}
+.day-score-top b{font-size:28px}
+.day-part{border-top:1px solid rgba(0,0,0,.08);padding:6px 0}
+.day-part summary{cursor:pointer}
+@media (prefers-reduced-motion:reduce){#playView.bundle-in .hero{animation:none}.bundle-pile.is-straight .bundle-card.is-top{transition:none}}
 .aq .abonus{display:block;margin-top:3px;font-weight:650;font-size:12.5px;letter-spacing:0;text-transform:none}
 .share-row .pill-btn{width:100%;padding:16px 14px;font-size:12.5px;letter-spacing:.12em;line-height:1.15}
 .share-row .pill-btn.secondary{background:var(--surface2);color:var(--ink)}

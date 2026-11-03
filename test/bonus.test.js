@@ -304,9 +304,12 @@ test("streaks, stats and the plays table ignore the bonus", () => {
   api.state.liveResult = api.getResult();
   const text = api.resultText("https://ranki.gg/#d=" + day);
   const lines = text.split("\n");
-  assert.equal(lines.filter(line => line.startsWith("Part 1 · ")).length, 1);
-  assert.match(lines[lines.length - 2], /^Part 1 · /);
-  assert.equal(lines.filter(line => line.startsWith("Part 2 · ")).length, 1);
+  const parts = bonus.parts(0);
+  const partLines = lines.filter(line => /^Part \d+ · /.test(line));
+  assert.equal(partLines.length, parts.length);
+  assert.ok(partLines.some(line => line.startsWith("Part 1 · ") && !/skipped/.test(line)));
+  assert.ok(partLines.some(line => line.startsWith("Part " + parts.length + " · ")));
+  assert.match(lines[lines.length - 2], /^Part \d+ · /);
   assert.equal(lines[lines.length - 1], "https://ranki.gg/#d=" + day);
 
   localStorage.removeItem("rankd.stats.v2");

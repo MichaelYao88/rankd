@@ -274,6 +274,7 @@
     <!-- Challenge links: name, tries, and accuracy only. Squares stay hidden until the friend finishes. -->
     <div class="challenge-banner hidden" id="challengeBanner" role="status"></div>
     <!-- The whole game lives inside one bold card -->
+    <div class="bundle-pile hidden" id="bundlePile" aria-hidden="true"></div>
     <article class="hero" id="hero">
       <div class="hero-top"><a class="hero-brand" href="#" id="homeLink" aria-label="ranki.gg home">ranki.gg</a><span class="hero-kind" id="heroKind">Rank it</span><span class="hero-right"><span id="heroNo">No. 001</span><button class="hero-new hidden" id="newRandomTop" aria-label="New random puzzle" title="New random puzzle">🎲 New</button></span></div>
       <div class="art" id="art" aria-hidden="true"></div>
@@ -383,8 +384,15 @@
           </div>
         </form>
       </section>
+      <section class="part-strip hidden" id="partStrip" aria-live="polite">
+        <p class="part-strip-kicker">What people thought</p>
+        <p class="part-strip-line" id="partStripLine"></p>
+        <p class="part-strip-crowd" id="partStripCrowd"></p>
+        <div class="part-strip-bars" id="partStripBars"></div>
+        <div class="card-foot actions"><button class="pill-btn primary" id="partNext" type="button">Next</button></div>
+      </section>
     </article>
-    <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button><button class="link-btn hidden" id="skipPart" type="button">Skip to Part 2</button></div>
+    <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button><button class="link-btn hidden" id="skipPart" type="button">Skip this part</button></div>
 
     <section id="guessExtra" class="hidden">
       <div class="hints" id="hints"></div>
@@ -393,6 +401,7 @@
 
     <!-- RESULT (both types) -->
     <section class="result hidden" id="result">
+      <div class="day-score hidden" id="dayScore"></div>
       <div class="score-card">
         <div class="score-big" id="scoreBig"></div>
         <div>
