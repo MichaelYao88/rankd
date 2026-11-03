@@ -144,9 +144,14 @@ test("name puzzles for divorce and tree names take the next free days", () => {
     taken.add(next);
     next += 1;
   }
-  assert.equal(JSON.stringify(assigned.slice(-2)), JSON.stringify([["name-no-divorce", 209], ["name-tree-country", 210]]));
+  assert.equal(JSON.stringify(assigned.slice(-3)), JSON.stringify([
+    ["name-no-divorce", 209],
+    ["name-tree-country", 210],
+    ["name-named-for-her", 213],
+  ]));
   assert.equal(dateOf(209), "2027-05-02");
   assert.equal(dateOf(210), "2027-05-03");
+  assert.equal(dateOf(213), "2027-05-06");
   const divorce = namePuzzles.find(p => p.id === "name-no-divorce");
   const tree = namePuzzles.find(p => p.id === "name-tree-country");
   assert.equal(JSON.stringify(divorce.answers), JSON.stringify(["PHL", "VAT"]));

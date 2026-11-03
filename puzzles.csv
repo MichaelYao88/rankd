@@ -966,3 +966,47 @@ eastern-capitals,,,,,,,,New Zealand,🇳🇿,174.78,Wellington,,,,3,195,sovereig
 eastern-capitals,,,,,,,,Kiribati,🇰🇮,172.97,South Tarawa,,,,4,195,sovereign capitals,,,,,
 eastern-capitals,,,,,,,,Marshall Islands,🇲🇭,171.38,Majuro,,,,5,195,sovereign capitals,,,,,
 eastern-capitals,,,,,,,,Vanuatu,🇻🇺,168.32,Port Vila,,,,6,195,sovereign capitals,,,,,
+billionaire-cities,211,💰,Cities with the most billionaires,Billionaires living in the city,billionaires,top,no,"New York City, United States",🇺🇸,123,2025,"Forbes, The Cities With The Most Billionaires 2025, via Wikipedia",https://en.wikipedia.org/wiki/List_of_cities_by_number_of_billionaires,"New York has 123 billionaires on the Forbes 2025 city list, and Moscow is second with 90, ahead of Hong Kong (72) and London (71). Beijing (68) is one ahead of Mumbai (67). San Francisco and Shanghai tie at 58, just outside this six.",1,10,Forbes 2025 cities,chart,,forbes-billionaire-cities,,Billionaire Cities
+billionaire-cities,,,,,,,,"Moscow, Russia",🇷🇺,90,2025,,,,2,10,Forbes 2025 cities,,,,,
+billionaire-cities,,,,,,,,Hong Kong,🇭🇰,72,2025,,,,3,10,Forbes 2025 cities,,,,,
+billionaire-cities,,,,,,,,"London, United Kingdom",🇬🇧,71,2025,,,,4,10,Forbes 2025 cities,,,,,
+billionaire-cities,,,,,,,,"Beijing, China",🇨🇳,68,2025,,,,5,10,Forbes 2025 cities,,,,,
+billionaire-cities,,,,,,,,"Mumbai, India",🇮🇳,67,2025,,,,6,10,Forbes 2025 cities,,,,,
+gambling-losses,212,🎰,Gambling losses per adult,Annual gambling losses per adult,A$ per capita,top,no,Australia,🇦🇺,1635,2022,"H2 Gambling Capital 2022, Australian dollars per adult. Australia, the United States and New Zealand are printed by the Grattan Institute. Hong Kong is printed by the Australia Institute, citing that report. The ABC's October 2024 piece is the Lancet Public Health Commission story and does not itself print this table.",https://grattan.edu.au/report/a-better-bet-how-australia-should-prevent-gambling-harm/,"Australia's adults lost A$1,635 each in 2022, the figure the Grattan Institute calls the world's highest, from H2 Gambling Capital. Hong Kong is the next number those reports print, at A$1,284, then the United States at A$809 and New Zealand at A$584. This is a per-capita loss, counted per adult. H2's full country chart is not public, so the board stops at the four comparisons those sources print.",1,4,printed comparisons,chart,,h2-gambling-losses-2022,,Bad Bets
+gambling-losses,,,,,,,,Hong Kong,🇭🇰,1284,2022,,,,2,4,printed comparisons,,,,,
+gambling-losses,,,,,,,,United States,🇺🇸,809,2022,,,,3,4,printed comparisons,,,,,
+gambling-losses,,,,,,,,New Zealand,🇳🇿,584,2022,,,,4,4,printed comparisons,,,,,
+pyramids,214,🔺,Countries with the most pyramids,Pyramids in the country,pyramids,top,no,Sudan,🇸🇩,255,2026,"World Population Review, pyramids by country, current compilation",https://worldpopulationreview.com/country-rankings/pyramids-by-country,"Sudan has 255 Nubian pyramids, more than twice Egypt's 118. They are smaller and later, and the cemeteries at Meroë alone are said to hold as many as 147. The United States is third at 35 only because this list counts modern cemetery pyramids, including one built as a future tomb for Nicolas Cage. An ancient-only list would put Peru (26) third.",1,17,listed countries,chart,,wpr-pyramids,,Not Just Giza
+pyramids,,,,,,,,Egypt,🇪🇬,118,2026,,,,2,17,listed countries,,,,,
+pyramids,,,,,,,,United States,🇺🇸,35,2026,,,,3,17,listed countries,,,,,
+pyramids,,,,,,,,Peru,🇵🇪,26,2026,,,,4,17,listed countries,,,,,
+pyramids,,,,,,,,Mexico,🇲🇽,20,2026,,,,5,17,listed countries,,,,,
+pyramids,,,,,,,,Belize,🇧🇿,10,2026,,,,6,17,listed countries,,,,,
+elephants,215,🐘,Countries with the most elephants,African and Asian elephants combined,elephants,top,no,Botswana,🇧🇼,131909,2022,"World Population Review, elephant population by country. African and Asian counts are added.",https://worldpopulationreview.com/country-rankings/elephant-population-by-country,"Botswana has 131,909 elephants. Gabon is second at 95,000, ahead of Kenya (36,280) and South Africa (31,324). India has the most Asian elephants, 27,312 in 2020, and still finishes seventh once the two counts are added. No country in this table is listed with both.",1,50,listed countries,chart,,wpr-elephants,,Heavy Herds
+elephants,,,,,,,,Gabon,🇬🇦,95000,2021,,,,2,50,listed countries,,,,,
+elephants,,,,,,,,Zimbabwe,🇿🇼,65028,2022,,,,3,50,listed countries,,,,,
+elephants,,,,,,,,Tanzania,🇹🇿,60000,2024,,,,4,50,listed countries,,,,,
+elephants,,,,,,,,Kenya,🇰🇪,36280,2021,,,,5,50,listed countries,,,,,
+elephants,,,,,,,,South Africa,🇿🇦,31324,2020,,,,6,50,listed countries,,,,,
+western-capitals,216,🌇,Westernmost capitals of sovereign countries,Longitude of the capital,° longitude,bottom,no,Tonga,🇹🇴,-175.2,Nukuʻalofa,"Wikidata coordinate location (P625), rounded to 0.01 degree. Longitude is degrees east from -180 to 180, with no wrap past the antimeridian. The capital is the one named in country_info.csv.",https://www.wikidata.org/wiki/Property:P625,"Nukuʻalofa is the westernmost capital of a sovereign country on this scale, at -175.2°. Apia is next at -171.83°. Mexico City, at -99.14°, is still west of every other capital in the Americas. Longitude runs from -180 to 180 and does not wrap past the antimeridian, so Tonga and Samoa rank as far west here, not far east. Funafuti, at 179.12°, is the easternmost and is already the Far East daily.",1,195,sovereign capitals,globe,,national-capitals,,Far West
+western-capitals,,,,,,,,Samoa,🇼🇸,-171.83,Apia,,,,2,195,sovereign capitals,,,,,
+western-capitals,,,,,,,,Mexico,🇲🇽,-99.14,Mexico City,,,,3,195,sovereign capitals,,,,,
+western-capitals,,,,,,,,Guatemala,🇬🇹,-90.51,Guatemala City,,,,4,195,sovereign capitals,,,,,
+western-capitals,,,,,,,,El Salvador,🇸🇻,-89.19,San Salvador,,,,5,195,sovereign capitals,,,,,
+western-capitals,,,,,,,,Belize,🇧🇿,-88.77,Belmopan,,,,6,195,sovereign capitals,,,,,
+italian-descent,217,🍝,"Italian descent per capita, outside Italy",People of Italian descent per capita,% per capita,top,no,Argentina,🇦🇷,54.71,2024,"Wikipedia infobox on Italians, ancestry estimates, divided by World Bank population for 2024. Italy, San Marino and Vatican City are excluded. A published range uses its midpoint.",https://en.wikipedia.org/wiki/Italians,"Argentina has about 25 million people of Italian descent, 54.71 per 100 of its 2024 population, ahead of Uruguay at 45.47. Brazil has more Italian descendants in total, about 33 million, and still ranks fourth per capita at 15.57. Paraguay's 2–2.5 million and Brazil's 32–34 million keep this order at either end of the range. The United States, at 16–23 million, does not pass France. These are ancestry estimates, not a census of Italian citizens.",1,11,ancestry rows,chart,,italian-descent-per-capita,,Beyond Rome
+italian-descent,,,,,,,,Uruguay,🇺🇾,45.47,2024,,,,2,11,ancestry rows,,,,,
+italian-descent,,,,,,,,Paraguay,🇵🇾,32.47,2024,,,,3,11,ancestry rows,,,,,
+italian-descent,,,,,,,,Brazil,🇧🇷,15.57,2024,,,,4,11,ancestry rows,,,,,
+italian-descent,,,,,,,,France,🇫🇷,8.02,2024,,,,5,11,ancestry rows,,,,,
+english-speakers,218,🗣️,"English speakers, leaving out the United States",People who speak English,English speakers,top,no,India,🇮🇳,269800000,,"Wikipedia, List of countries by English-speaking population, total English speakers column",https://en.wikipedia.org/wiki/List_of_countries_by_English-speaking_population,"India has 269.8 million English speakers on this list, just behind the United States at 299.3 million, which is left off. Nigeria (125.0 million) has more than Pakistan (108.0 million). Indonesia (86.0 million) has more than the Philippines (70.1 million) and the United Kingdom (63.7 million), so the UK does not make this five. The counts are people who say they speak English, and the census years differ.",2,134,listed countries,chart,,english-speakers,,Not Just the UK
+english-speakers,,,,,,,,Nigeria,🇳🇬,125039688,,,,,3,134,listed countries,,,,,
+english-speakers,,,,,,,,Pakistan,🇵🇰,108044691,,,,,4,134,listed countries,,,,,
+english-speakers,,,,,,,,Indonesia,🇮🇩,85968611,,,,,5,134,listed countries,,,,,
+english-speakers,,,,,,,,Philippines,🇵🇭,70117935,,,,,6,134,listed countries,,,,,
+plastic-surgery,219,💉,Aesthetic procedures per capita,ISAPS aesthetic procedures per capita,"per 1,000 per capita",top,no,Argentina,🇦🇷,26.48,2023,"ISAPS Global Survey, procedures performed in 2023, total surgical and non-surgical procedures, divided by World Bank population for 2024. Countries are only those ISAPS published.",https://www.isaps.org/media/rxnfqibn/isaps-global-survey_2023.pdf,"Argentina has 26.48 aesthetic procedures per 1,000 people: 1,210,216 ISAPS procedures in 2023, divided by its 2024 population. Belgium (18.84) is just ahead of Greece (18.73). South Korea is the usual guess and has no row in the ISAPS 2023 country table, which only publishes places with enough survey responses. A list that puts South Korea at 8.90 per 1,000 is not an ISAPS country figure.",1,23,ISAPS countries,chart,,isaps-procedures-per-capita,,New Faces
+plastic-surgery,,,,,,,,Belgium,🇧🇪,18.84,2023,,,,2,23,ISAPS countries,,,,,
+plastic-surgery,,,,,,,,Greece,🇬🇷,18.73,2023,,,,3,23,ISAPS countries,,,,,
+plastic-surgery,,,,,,,,United States,🇺🇸,18.23,2023,,,,4,23,ISAPS countries,,,,,
+plastic-surgery,,,,,,,,Brazil,🇧🇷,15.95,2023,,,,5,23,ISAPS countries,,,,,
+plastic-surgery,,,,,,,,Germany,🇩🇪,14.9,2023,,,,6,23,ISAPS countries,,,,,
