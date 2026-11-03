@@ -51,16 +51,18 @@ test("past five uses only the one-hand methods the BBC article states", () => {
   assert.equal(p.sourceUrl, BBC);
   assert.equal(p.year, "2021");
   assert.equal(p.unit, "on one hand");
+  assert.equal(p.question, "How many do they count to with one hand?");
   assert.equal(JSON.stringify(p.tiers.map(t => [t.label, t.value])), JSON.stringify([
-    ["Counts past 5 on one hand", 1],
-    ["Counts only to 5 on one hand", 0],
+    ["12+", 12],
+    ["Counts to 10", 10],
+    ["Counts to 5", 5],
   ]));
   const tierOf = iso => p.tiers[p.items.find(it => it.iso3 === iso).tierIndex].label;
-  assert.equal(tierOf("IND"), "Counts past 5 on one hand");
-  assert.equal(tierOf("CHN"), "Counts past 5 on one hand");
-  assert.equal(tierOf("GBR"), "Counts only to 5 on one hand");
-  assert.equal(tierOf("USA"), "Counts only to 5 on one hand");
-  assert.equal(tierOf("IRN"), "Counts only to 5 on one hand");
+  assert.equal(tierOf("IND"), "12+");
+  assert.equal(tierOf("CHN"), "Counts to 10");
+  assert.equal(tierOf("GBR"), "Counts to 5");
+  assert.equal(tierOf("USA"), "Counts to 5");
+  assert.equal(tierOf("IRN"), "Counts to 5");
   assert.equal(JSON.stringify(p.items.map(it => [it.iso3, it.value])), JSON.stringify([
     ["USA", 5], ["IND", 20], ["IRN", 5], ["CHN", 10], ["GBR", 5],
   ]));
@@ -68,9 +70,15 @@ test("past five uses only the one-hand methods the BBC article states", () => {
     assert.equal(p.items.some(it => it.name === name), false, name);
   }
   assert.match(p.fact, /20/);
+  assert.match(p.fact, /finger segments/);
   assert.match(p.fact, /pinky/);
+  assert.match(p.fact, /six through ten/);
   assert.match(p.fact, /does not name Pakistan/);
   const ds = practice.datasets.find(d => d.id === "finger-count-one-hand");
+  assert.equal(ds.question, "How many do they count to with one hand?");
+  assert.equal(ds.labels["20"], "12+");
+  assert.equal(ds.labels["10"], "Counts to 10");
+  assert.equal(ds.labels["5"], "Counts to 5");
   assert.equal(ds.kind, "tier");
   assert.equal(ds.coverage, "partial");
   assert.equal(ds.sens, 0);
@@ -171,4 +179,16 @@ test("many clocks buckets Wikipedia's zone counts and keeps the territory rule",
   assert.equal(ds.rows.some(r => r[1] === 6 || r[1] === 7 || r[1] === 8 || r[1] === 10), false);
   for (const iso of ["XKX", "ASM", "GRL", "PRI", "ATA"]) assert.equal(ds.rows.some(r => r[0] === iso), false, iso);
   for (const iso of ["HKG", "MAC", "TWN"]) assert.equal(zone(iso), 1, iso);
+});
+
+test("tier names stay within about three words", () => {
+  const words = s => String(s).trim().split(/\s+/).filter(Boolean);
+  for (const p of puzzles) {
+    if (p.type !== "tier") continue;
+    for (const tier of p.tiers) assert.ok(words(tier.label).length <= 3, p.id + " " + tier.label);
+  }
+  for (const ds of practice.datasets) {
+    if (ds.kind !== "tier" || !ds.labels) continue;
+    for (const label of Object.values(ds.labels)) assert.ok(words(label).length <= 3, ds.id + " " + label);
+  }
 });

@@ -106,7 +106,8 @@ test("new dailies start the day after Measured Up and do not reuse an order", ()
   assert.equal(east.items[0].name, "Tuvalu");
   assert.ok(east.items.every((it, i, arr) => i === 0 || arr[i - 1].value > it.value));
   const woman = byId("never-woman-leader");
-  assert.equal(woman.tiers[0].label, "Has had a woman head of state or government");
+  assert.equal(woman.tiers[0].label, "Has had one");
+  assert.equal(woman.question, "Has this country ever had a woman as head of state or government?");
   assert.equal(woman.tiers[1].label, "Never has");
   assert.equal(woman.tiers[0].value, 1);
   assert.equal(woman.tiers[1].value, 0);

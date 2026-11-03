@@ -182,7 +182,8 @@ test("trends datasets stay high-internet lists", () => {
   const woman = datasets.find(d => d.id === "attr-never-woman-leader");
   assert.equal(woman.kind, "tier");
   assert.equal(woman.coverage, "full");
-  assert.equal(woman.labels["1"], "Has had a woman head of state or government");
+  assert.equal(woman.labels["1"], "Has had one");
+  assert.equal(woman.question, "Has this country ever had a woman as head of state or government?");
   assert.equal(woman.labels["0"], "Never has");
   assert.equal(woman.rows.find(r => r[0] === "ITA")[1], 1);
   assert.equal(woman.rows.find(r => r[0] === "USA")[1], 0);

@@ -125,17 +125,18 @@ const manyClocks = {
 const fingerFact = "India counts the lines between finger segments, four to a finger, so one hand reaches 20. China counts to five like the United States, then shows six through ten as gestures on that same hand: six is the thumb and the pinky. The United Kingdom runs from thumb to pinky, the United States from index finger to thumb, and Iran starts at the pinky, so each of those stops at five. The article does not name Pakistan, Bangladesh, Vietnam, Turkey, or Egypt.";
 const fingers = {
   type: "tier", id: "finger-count-one-hand", order: 220, emoji: "✋", headline: "Past Five",
-  question: "How far a common finger count goes on one hand",
+  question: "How many do they count to with one hand?",
   stat: "Numbers one hand can show", unit: "on one hand",
   source: "BBC Future, How the way you count reveals more than you think, 3 September 2021. The country methods are the ones that article describes. Andrea Bender is quoted there on how much finger counting varies.",
   sourceUrl: BBC, fact: fingerFact, art: "candle", support: "",
   dataset: "finger-count-one-hand", year: "2021",
   tiers: [
-    { label: "Counts past 5 on one hand", value: 1 },
-    { label: "Counts only to 5 on one hand", value: 0 },
+    { label: "12+", value: 12 },
+    { label: "Counts to 10", value: 10 },
+    { label: "Counts to 5", value: 5 },
   ],
   items: [
-    ["USA", 5, 1], ["IND", 20, 0], ["IRN", 5, 1], ["CHN", 10, 0], ["GBR", 5, 1],
+    ["USA", 5, 2], ["IND", 20, 0], ["IRN", 5, 2], ["CHN", 10, 1], ["GBR", 5, 2],
   ].map(([iso, value, tierIndex]) => ({ name: country(iso), emoji: emoji(iso), value, tierIndex, iso3: iso })),
 };
 
@@ -155,6 +156,7 @@ function dataset(spec) {
   };
   if (spec.kind) ds.kind = spec.kind;
   if (spec.labels) ds.labels = spec.labels;
+  if (spec.question) ds.question = spec.question;
   return ds;
 }
 
@@ -166,7 +168,8 @@ const datasets = [
     id: "finger-count-one-hand", title: "Past Five",
     stat: fingers.stat, unit: fingers.unit, src: fingers.source, url: BBC, year: "2021",
     emoji: "✋", fact: fingerFact, coverage: "partial", kind: "tier",
-    labels: { "20": "20 on one hand", "10": "10 on one hand", "5": "5 on one hand" },
+    question: "How many do they count to with one hand?",
+    labels: { "20": "12+", "10": "Counts to 10", "5": "Counts to 5" },
     caveat: "Only methods the BBC article states for a country. India is the lines between finger segments (20 on one hand). China shows 6 through 10 as gestures on one hand. The United Kingdom, the United States, and Iran are the five-finger orders the article describes. Pakistan, Bangladesh, Vietnam, Turkey, and Egypt are not named.",
     rows: [["IND", 20], ["CHN", 10], ["GBR", 5], ["USA", 5], ["IRN", 5]],
   }),

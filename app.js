@@ -1288,7 +1288,7 @@ const Practice = {
       const labelFor = v => (ds.labels && ds.labels[String(v)] != null) ? ds.labels[String(v)] : (Number.isInteger(v) ? `${v}%` : `${v}`);
       const tiers = tvals.map(v => ({ label: labelFor(v), value: v }));
       const v2i = Object.fromEntries(tiers.map((t, i) => [t.value, i]));
-      return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "",
+      return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: ds.question || "",
         stat: ds.stat, unit: ds.unit, source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "",
         caveat: ds.caveat || "", sensitive: !!ds.sens, art: "candle", support: "", order: null, type: "tier",
         tiers, items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, iso3: r.iso3, tierIndex: v2i[r.value] })) };
@@ -2666,6 +2666,7 @@ function paintTier(marks) {
   const rows = $("#tierRows"); rows.innerHTML = "";
   p.tiers.forEach((t, ti) => {
     const row = document.createElement("div"); row.className = "tier-row"; row.dataset.t = ti;
+    row.setAttribute("role", "group"); row.setAttribute("aria-label", t.label);
     row.innerHTML = `<div class="tier-label">${esc(t.label)}</div><div class="tier-slots" data-t="${ti}"></div>`;
     const slots = row.querySelector(".tier-slots");
     p.items.forEach((it, i) => {
@@ -4556,8 +4557,7 @@ function fitLayout() {
     const top = hero.getBoundingClientRect().top + scrollY - (vv ? vv.offsetTop : 0), avail = Math.max(260, Math.floor(h - top - 8 - abH));
     // natural height first (rows at their max size); only if that doesn't fit, pin the card to the available height so rows shrink
     hero.style.height = ""; hero.style.maxHeight = "none"; hero.classList.remove("q-drop");
-    // Tier it on phone: always hide subtitle + stat (4 rows + chip pool need the room). Match-7: only if still tight.
-    if (hero.classList.contains("is-tier")) hero.classList.add("q-drop");
+    // Tier names are short, so the question stays on screen and explains them. Match-7 drops its subtitle only if still tight.
     let natural = hero.scrollHeight;
     if (natural > avail && (hero.classList.contains("is-match7") || hero.classList.contains("is-top5"))) { hero.classList.add("q-drop"); natural = hero.scrollHeight; }
     hero.style.maxHeight = avail + "px"; hero.style.height = natural > avail ? avail + "px" : "";

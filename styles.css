@@ -785,16 +785,23 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 }
 
 /* ---------- v12.2 Tier it ---------- */
+/* The name sits outside the drop area. Rows share one grid so the names line up
+   and every drop zone is the same width. display:contents keeps drag/tap on .tier-row. */
 #tierGame{margin-top:22px;clear:both}
-.tier-board{display:flex;flex-direction:column;gap:10px;min-height:0}
-.tier-pool{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;padding:8px;border-radius:12px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
+.tier-board{display:flex;flex-direction:column;gap:12px;min-height:0}
+.tier-pool{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;padding:8px;border-radius:16px;border:1.5px dashed rgba(255,255,255,.28);background:rgba(0,0,0,.12)}
 .tier-pool:empty{display:none}
-.tier-rows{display:flex;flex-direction:column;gap:8px}
-.tier-row{display:grid;grid-template-columns:56px 1fr;gap:10px;align-items:center;min-height:48px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.18)}
-.tier-row.drag-over{border-color:#FFD84D;background:rgba(255,216,77,.15)}
-.tier-row.sel{border-color:#FFD84D;box-shadow:0 0 0 2px rgba(255,216,77,.35)}
-.tier-label{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;letter-spacing:-.02em;border-radius:9px;background:rgba(0,0,0,.22);min-height:36px;padding:4px 2px}
-.tier-slots{display:flex;flex-wrap:wrap;gap:6px;align-items:center;align-content:center;min-height:34px}
+.tier-rows{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:10px 14px;align-items:center}
+.tier-row{display:contents}
+.tier-row:nth-child(4n+1){--tier-accent:#FFE48A}
+.tier-row:nth-child(4n+2){--tier-accent:#9EE7C5}
+.tier-row:nth-child(4n+3){--tier-accent:#FFC4D6}
+.tier-row:nth-child(4n+4){--tier-accent:#D5E0FF}
+.tier-label{display:inline-flex;align-items:center;gap:8px;margin:0;padding:0;min-height:0;background:none;border:0;border-radius:0;box-shadow:none;font-family:inherit;font-weight:700;font-size:15.5px;letter-spacing:-.02em;line-height:1.15;color:#fff;white-space:nowrap;text-align:left}
+.tier-label::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tier-accent,#fff);box-shadow:0 0 0 3px color-mix(in srgb, var(--tier-accent,#fff) 38%, transparent);flex:none}
+.tier-slots{display:flex;flex-wrap:wrap;gap:6px;align-items:center;align-content:center;min-height:52px;padding:8px 10px;border-radius:16px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.38);background:color-mix(in srgb, var(--tier-accent,#fff) 16%, rgba(255,255,255,.07));border-color:color-mix(in srgb, var(--tier-accent,#fff) 48%, rgba(255,255,255,.4))}
+.tier-row.drag-over .tier-slots{border-style:solid;border-color:#FFD84D;background:rgba(255,216,77,.18)}
+.tier-row.sel .tier-slots{box-shadow:0 0 0 2px rgba(255,216,77,.4)}
 .tier-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.14);border:1.5px solid rgba(255,255,255,.28);cursor:grab;user-select:none;font-size:13.5px;font-weight:650;line-height:1.2;touch-action:none;flex:0 0 auto;max-width:100%}
 .tier-chip .tc-flag{font-size:16px;line-height:1;flex:none}
 .tier-chip .tc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -815,21 +822,17 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   body.fit #tierGame.hidden{display:none!important}
   body.fit .hero.is-tier{padding:10px 12px 10px}
   body.fit .hero.is-tier h1{margin:6px 0 2px;font-size:clamp(18px,5.5vw,22px)}
-  body.fit .hero.is-tier #question{font-size:12px;line-height:1.2;margin:0 0 2px}
+  body.fit .hero.is-tier #question{display:block;font-size:13px;line-height:1.3;margin:0 0 4px}
   body.fit .hero.is-tier #statLabel{font-size:11px;line-height:1.25;-webkit-line-clamp:1}
-  body.fit .hero.is-tier.q-drop #question,
-  body.fit .hero.is-tier.q-drop #statLabel{display:none!important}
   body.fit .hero.is-tier .game-bar{margin:0 0 6px}
   body.fit .hero.is-tier .card-foot{margin-top:8px;flex:none}
   body.fit .tier-board{flex:1 1 auto;min-height:0;gap:8px;overflow:hidden;display:flex;flex-direction:column}
   /* Pool: 2 columns of compact chips above the tiers */
   body.fit .tier-pool{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;min-height:0;flex:0 0 auto;max-height:28%;overflow:auto}
   body.fit .tier-pool:empty{display:none}
-  body.fit .tier-rows{flex:1 1 auto;min-height:0;gap:8px;display:flex;flex-direction:column;justify-content:space-evenly;overflow:hidden}
-  /* Rows grow with their chips (3-up wrap) but share leftover space — never clip chips */
-  body.fit .tier-row{grid-template-columns:46px 1fr;gap:7px;min-height:46px;flex:1 1 auto;padding:7px 8px;border-radius:11px;overflow:visible;align-items:center}
-  body.fit .tier-label{font-size:14px;min-height:30px;border-radius:8px}
-  body.fit .tier-slots{gap:5px;min-height:0;overflow:visible}
+  body.fit .tier-rows{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 10px;align-items:center;align-content:start;overflow:hidden}
+  body.fit .tier-label{font-size:14px;font-weight:700;min-height:0;padding:0;background:none;border-radius:0}
+  body.fit .tier-slots{gap:5px;min-height:44px;padding:6px 8px;overflow:visible}
   body.fit .tier-chip{padding:4px 7px;font-size:11.5px;gap:4px;max-width:100%}
   body.fit .tier-chip .tc-flag{font-size:13px}
   body.fit .tier-chip .tc-val{font-size:10px}
@@ -1060,7 +1063,6 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 }
 /* v12.1: the subtitle of a 7-pair match is dropped only when it really doesn't fit (fitLayout adds .q-drop) */
 body.fit .hero.is-match7.q-drop #question{display:none}
-body.fit .hero.is-tier.q-drop #question{display:none}
 @media (max-width:420px){
   body.fit .m-target .tn{display:none}
   body.fit .m-target{font-size:16px;max-width:none}
