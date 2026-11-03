@@ -1304,6 +1304,36 @@ a.mini-source:focus-visible{outline:2px solid var(--brand);outline-offset:3px;bo
 .name-chip .name-val,.name-chip .name-pct{font-weight:650;color:var(--muted)}
 .name-chip .name-rare{font-size:11px;font-weight:800;letter-spacing:.02em;color:var(--brand)}
 .name-rarity{margin:8px 0 0;font-size:12px;color:var(--muted)}
+#quizGame{margin-top:8px}
+.quiz-ask{margin:2px 0 10px;font-size:20px;font-weight:750;line-height:1.25;text-wrap:balance}
+.quiz-options{display:flex;flex-direction:column;gap:8px}
+.quiz-opt{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:12px 14px;border-radius:14px;border:1.5px solid rgba(255,255,255,.4);background:rgba(255,255,255,.12);color:inherit;font:inherit;font-size:17px;font-weight:750;text-align:left;cursor:pointer}
+.quiz-opt .qo-flag{font-size:26px;line-height:1;flex:none}
+.quiz-opt .qo-name{min-width:0}
+.quiz-opt.good{background:var(--good);border-color:transparent;color:#fff}
+.quiz-opt.bad{background:var(--bad);border-color:transparent;color:#fff}
+.quiz-opt:disabled{cursor:default}
+.quiz-reveal{margin-top:10px}
+.quiz-verdict{margin:0 0 6px;font-weight:800;font-size:16px}
+.quiz-fact{margin:0 0 8px;font-size:14.5px;line-height:1.4}
+.quiz-source{display:inline-block;margin:0 0 10px;color:inherit;font-size:13px;font-weight:700;text-decoration:underline;overflow-wrap:anywhere}
+.quiz-source.hidden{display:none}
+.quiz-recap{margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--surface2);color:var(--ink)}
+.quiz-recap.good{box-shadow:inset 3px 0 0 var(--good)}
+.quiz-recap.bad{box-shadow:inset 3px 0 0 var(--bad)}
+.quiz-recap b,.quiz-recap span{display:block}
+.quiz-recap span{font-weight:700;margin-top:2px}
+.quiz-recap p{margin:6px 0;font-size:14px;line-height:1.4;font-weight:500}
+.quiz-recap a{font-size:13px;font-weight:700}
+@media (max-width:560px){
+  body.fit #quizGame{margin-top:6px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow:auto}
+  body.fit #quizGame.hidden{display:none!important}
+  body.fit .hero.is-quiz #question,body.fit .hero.is-quiz #statLabel{display:none!important}
+  body.fit .quiz-ask{font-size:16px;margin:0 0 8px}
+  body.fit .quiz-opt{min-height:48px;padding:10px 12px;font-size:16px}
+  body.fit .quiz-fact{font-size:13.5px}
+  body.fit #quizGame .card-foot{margin-top:4px}
+}
 @media (max-width:560px){
   body.fit #nameGame{margin-top:8px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
   body.fit #nameGame.hidden{display:none!important}

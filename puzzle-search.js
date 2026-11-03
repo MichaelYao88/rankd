@@ -61,12 +61,18 @@
     for (const it of (p && p.items) || []) add(it && it.name);
     for (const c of (p && p.countries) || []) add(c && (c.name || c.country || (typeof c === "string" ? c : "")));
     for (const person of (p && p.people) || []) { add(person && person.country); add(person && person.name); }
+    for (const q of (p && p.questions) || []) {
+      add(q && q.prompt);
+      add(q && q.ask);
+      for (const o of (q && q.options) || []) add(o && o.name);
+    }
     return names;
   }
 
   function categoryText(p) {
     if (!p) return "";
     if (p.type === "name") return "Name it";
+    if (p.type === "quiz") return "Quiz Who Invented It";
     if (p.type === "top5") return "Top 5 Guess the top 5";
     if (p.type === "top1") return "Top 1 Which country is number 1";
     if (p.type === "match") return "Match it";

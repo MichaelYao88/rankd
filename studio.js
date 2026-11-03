@@ -12,7 +12,7 @@ const fmtDate = k => new Date(k + "T12:00:00Z").toLocaleDateString("en-US", { we
 const num = v => typeof v === "number" ? v.toLocaleString("en-US", { maximumFractionDigits: 2 }) : esc(v);
 const P = S.puzzles, today = S.todayKey(), tn = S.dayNumber(today);
 
-const modeOf = p => p.type === "name" ? ["Name it", `${(p.answers || []).length} answers`] : p.type === "match" ? ["Match it", `${p.people.length} pairs`] : p.type === "top1" ? ["Top 1", `${(p.countries || []).length} countries`] : p.type === "top5" ? ["Top 5", "6 countries"]
+const modeOf = p => p.type === "name" ? ["Name it", `${(p.answers || []).length} answers`] : p.type === "quiz" ? ["Quiz", `${(p.questions || []).length} questions`] : p.type === "match" ? ["Match it", `${p.people.length} pairs`] : p.type === "top1" ? ["Top 1", `${(p.countries || []).length} countries`] : p.type === "top5" ? ["Top 5", "6 countries"]
   : p.type === "tier" ? ["Tier it", `${p.tiers.length} tiers · ${p.items.length} items`]
   : ["Rank it", `${p.items.length} ${p.items.every(x => /^(\p{RI}\p{RI}|\u{1F3F4}[\u{E0020}-\u{E007F}]+)$/u.test(x.emoji || "")) ? "countries" : "groups"}`];
 const days = P.map((p, n) => ({ p, n, key: S.keyFromDay(n) }));
@@ -55,9 +55,18 @@ $("#dsNote").textContent = `${D.length} datasets (the full lists behind random P
 $("#sets").innerHTML = D.map((d, i) => `<li class="set" data-id="${esc(d.id)}"><button aria-expanded="false" data-i="${i}">
     <span class="s-emoji">${esc(d.emoji || "📊")}</span>
     <span class="s-main"><b>${esc(d.title)}</b><small>${esc(d.src)}</small></span>
-    <span class="s-nums"><b>${d.rows.length}</b> ${d.kind === "groups" ? "groups" : "countries"}<br>${esc(d.year || "")} · used <b class="used">${used(d.id)}</b>×</span>
+    <span class="s-nums"><b>${d.kind === "quiz" ? (d.questions || d.rows).length : d.rows.length}</b> ${d.kind === "quiz" ? "questions" : d.kind === "groups" ? "groups" : "countries"}<br>${esc(d.year || "")} · used <b class="used">${used(d.id)}</b>×</span>
   </button></li>`).join("");
 const table = d => {
+  if (d.kind === "quiz") {
+    const qs = d.questions || [];
+    return `<p>${esc(d.stat)}</p><p>${esc(d.caveat || "")}</p>
+      <table><thead><tr><th class="n">#</th><th>Question</th><th>Answer</th></tr></thead><tbody>
+      ${qs.map((q, i) => {
+        const right = (q.options || []).find(o => o.iso3 === q.answer);
+        return `<tr><td class="n">${i + 1}</td><td>${esc(q.ask || q.prompt)}</td><td>${esc(right ? right.emoji + " " + right.name : q.answer)}</td></tr>`;
+      }).join("")}</tbody></table>`;
+  }
   const rows = d.kind === "groups" ? d.rows.map(r => [r[1] + " " + r[0], r[2], ""]) : d.rows.map(r => [(C[r[0]] ? C[r[0]][1] + " " + C[r[0]][0] : r[0]), r[1], r.length > 2 ? r[2] : ""]);
   const sorted = rows.slice().sort((a, b) => d.hi === "bottom" ? a[1] - b[1] : b[1] - a[1]), yr = sorted.some(r => r[2] !== "");
   return `<p>${esc(d.stat)}${d.unit ? ` (${esc(d.unit)})` : ""}</p><p><a href="${esc(d.url)}" target="_blank" rel="noopener">${esc(d.url)}</a></p>
