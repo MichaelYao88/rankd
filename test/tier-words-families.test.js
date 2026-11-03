@@ -26,7 +26,7 @@ function words(label) {
 test("slang, period, and language-family tiers take the days after 2027-05-22", () => {
   assert.equal(dateOf(229), "2027-05-22");
   const expect = [
-    ["pepper-or-bird", 230, "2027-05-23", "Pepper or Bird", true],
+    ["pepper-or-bird", 230, "2027-05-23", "Slang Pictures", true],
     ["period-euphemism", 231, "2027-05-24", "Aunt or Not", true],
     ["language-family", 232, "2027-05-25", "Language Families", false],
   ];
@@ -41,7 +41,7 @@ test("slang, period, and language-family tiers take the days after 2027-05-22", 
     assert.equal(!!p.sensitive, sensitive, id);
     assert.ok(dateOf(p.order) > "2026-11-03", id);
     assert.ok(p.fact && p.sourceUrl.startsWith("https://"), id);
-    assert.ok(p.items.length >= 6 && p.items.length <= 8, id);
+    assert.ok(p.items.length >= 6 && p.items.length <= 9, id);
     for (const tier of p.tiers) assert.ok(words(tier.label).length <= 3, tier.label);
     assert.equal(search.matches(p, p.items[0].name), true, id);
     const ds = practice.datasets.find(d => d.id === id);
@@ -56,12 +56,17 @@ test("slang, period, and language-family tiers take the days after 2027-05-22", 
 
 test("penis slang splits chili peppers from birds, with the word in the fact", () => {
   const p = byId("pepper-or-bird");
-  assert.equal(p.question, "Is their slang a chili pepper or a bird?");
-  assert.equal(JSON.stringify(p.tiers.map(t => t.label)), JSON.stringify(["Chili pepper", "Bird"]));
+  assert.equal(p.question, "What else does their slang mean?");
+  assert.equal(JSON.stringify(p.tiers.map(t => t.label)), JSON.stringify(["Chili pepper", "Bird", "Little brother", "Banana"]));
   const placed = Object.fromEntries(p.items.map(it => [it.iso3, p.tiers[it.tierIndex].label]));
   assert.equal(placed.MEX, "Chili pepper");
   assert.equal(placed.KOR, "Chili pepper");
+  assert.equal(placed.CHN, "Little brother");
   for (const iso of ["ESP", "GBR", "ITA", "BRA", "VNM", "IDN"]) assert.equal(placed[iso], "Bird", iso);
+  const banana = p.tiers.findIndex(t => t.label === "Banana");
+  assert.equal(p.items.filter(it => it.tierIndex === banana).length, 0);
+  assert.match(p.fact, /小弟弟/);
+  assert.match(p.fact, /banana/i);
   for (const iso of ["THA", "FRA", "ISR", "USA"]) assert.equal(p.items.some(it => it.iso3 === iso), false, iso);
   assert.match(p.fact, /chile/);
   assert.match(p.fact, /고추/);
@@ -73,7 +78,20 @@ test("penis slang splits chili peppers from birds, with the word in the fact", (
   assert.match(p.fact, /burung/);
   assert.match(p.source, /phrik/);
   const counts = p.tiers.map((_, i) => p.items.filter(it => it.tierIndex === i).length);
-  assert.ok(counts.every(n => n >= 2));
+  assert.ok(counts[0] >= 2 && counts[1] >= 2);
+  assert.equal(counts[2], 1);
+  assert.equal(counts[3], 0);
+  const src = fs.readFileSync(path.join(root, "app.js"), "utf8");
+  assert.match(src, /return assign\.map\(\(t, i\) => \(t != null && t === right\[i\]\) \? "good" : "bad"\)/);
+  function scoreTier(assign) {
+    const right = p.items.map(it => it.tierIndex);
+    return assign.map((t, i) => (t != null && t === right[i]) ? "good" : "bad");
+  }
+  assert.equal(scoreTier(p.items.map(it => it.tierIndex)).every(m => m === "good"), true);
+  const intoBanana = p.items.map(it => it.tierIndex);
+  intoBanana[0] = banana;
+  assert.equal(scoreTier(intoBanana)[0], "bad");
+  assert.equal(scoreTier(intoBanana).every(m => m === "good"), false);
 });
 
 test("period euphemisms split an aunt's visit from other pictures", () => {

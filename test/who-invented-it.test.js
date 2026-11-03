@@ -198,7 +198,8 @@ test("a run scores out of the questions, reveals one fact, and shares one square
   const quiz = puzzles.find(p => p.id === "who-invented-it");
   let g = Quiz.blank(quiz);
   assert.equal(g.phase, "ask");
-  g = Quiz.choose(g, quiz, "BRA");
+  const wrong = quiz.questions[0].options.find(o => o.iso3 !== quiz.questions[0].answer).iso3;
+  g = Quiz.choose(g, quiz, wrong);
   assert.equal(g.phase, "reveal");
   assert.equal(g.hits, 0);
   assert.equal(g.marks[0], "bad");
@@ -242,6 +243,19 @@ test("practice can deal the same nine questions", () => {
   assert.equal(found.sensitive, false);
   assert.equal(found.questions.length, 11);
   assert.equal(found.questions[0].answer, "JPN");
+});
+
+test("a distractor is used at most three times in one day", () => {
+  for (const day of puzzles.filter(p => p.type === "quiz")) {
+    const counts = {};
+    for (const q of day.questions) for (const o of q.options) {
+      if (o.iso3 === q.answer) continue;
+      counts[o.iso3] = (counts[o.iso3] || 0) + 1;
+    }
+    for (const [iso, n] of Object.entries(counts)) assert.ok(n <= 3, day.id + " " + iso + "=" + n);
+  }
+  const cards = puzzles.find(p => p.id === "who-invented-older").questions.find(q => q.id === "playing-cards");
+  assert.equal(cards.options.some(o => o.iso3 === "EGY"), false);
 });
 
 test("no wrong option borders the answer", () => {
