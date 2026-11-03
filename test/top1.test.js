@@ -16,7 +16,7 @@ const CONVERTED = [
   "ipsos-gender-identity",
 ];
 const TOP1 = [
-  "top1-potatoes", "top1-tea", "top1-co2",
+  "top1-potatoes", "top1-tea",
   "top1-pop-2100", "top1-median-age", "top1-road-deaths",
 ];
 
@@ -41,7 +41,9 @@ test("every former Top 5 daily is a Rank it with 5 or 6 distinct values", () => 
 
 test("Top 1 dailies keep their queue slots with a real #1", () => {
   const orders = TOP1.map(id => puzzles.find(p => p.id === id).order);
-  assert.deepEqual(orders, [172, 173, 174, 175, 176, 177]);
+  assert.deepEqual(orders, [172, 173, 175, 176, 177]);
+  assert.equal(puzzles.find(p => p.id === "top1-co2"), undefined);
+  assert.equal(puzzles.find(p => p.id === "top1-pop-density"), undefined);
   const between = puzzles.filter(p => !TOP1.includes(p.id) && p.order >= 172 && p.order <= 177);
   assert.deepEqual(between.map(p => p.id), []);
   for (const id of TOP1) {
@@ -158,7 +160,6 @@ function bootShared() {
 const FRAMED = {
   "top1-potatoes": "Top 1 Potato-Eating Country",
   "top1-tea": "Top 1 Tea-Drinking Country",
-  "top1-co2": "Top 1 Carbon-Footprint Country",
   "top1-pop-2100": "Top 1 Most-Populous Country",
   "top1-median-age": "Top 1 Oldest Country",
   "top1-road-deaths": "Top 1 Deadliest-Roads Country",

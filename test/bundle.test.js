@@ -98,5 +98,5 @@ test("the part strip, the pile, and reduced motion are on the page", () => {
   assert.match(css, /\.bundle-pile\.is-straight/);
   assert.match(app, /motionReduce\(\)/);
   assert.match(app, /BUNDLE_TARGET = 12/);
-  assert.match(read("sw.js"), /ranki-shell-v30/);
+  assert.match(read("sw.js"), /ranki-shell-v31/);
 });

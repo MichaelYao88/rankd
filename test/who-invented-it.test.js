@@ -55,7 +55,7 @@ function bootStudio() {
   return box.window;
 }
 
-test("who invented it keeps order 225 and plays on 2027-05-10 after the packed calendar shift", () => {
+test("who invented it keeps order 225 and plays on 2027-05-08 after the packed calendar shift", () => {
   const quiz = puzzles.find(p => p.id === "who-invented-it");
   const older = puzzles.find(p => p.id === "who-invented-older");
   const words = puzzles.find(p => p.id === "who-invented-words");
@@ -76,7 +76,7 @@ test("who invented it keeps order 225 and plays on 2027-05-10 after the packed c
   const win = bootStudio();
   const scheduled = win.RankdShared.puzzles;
   const n = scheduled.findIndex(p => p.id === "who-invented-it");
-  assert.equal(win.RankdShared.keyFromDay(n), "2027-05-10");
+  assert.equal(win.RankdShared.keyFromDay(n), "2027-05-08");
   assert.equal(win.RankdBonus.types.includes("quiz"), false);
   const part1 = win.RankdBonus.forDay(n);
   assert.notEqual(part1.id, "who-invented-it");

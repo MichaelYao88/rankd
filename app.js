@@ -1404,7 +1404,12 @@ const Practice = {
         return { ...base, type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false,
           items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: ds.rows[0].length > 2 ? r.year : "", gRank: r.rank, gTotal: N, gScope: "" })) };
     }
-    return again();
+    // A full table can be too bunched for the rank-gap rule (India-born shares cluster near zero).
+    // Still deal a spread of countries so practice does not skip the dataset.
+    const spread = sampleListed(rows, k, R, r => r.value);
+    if (!spread || spread.length < 4) return again();
+    return { ...base, type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false,
+      items: spread.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: ds.rows[0].length > 2 ? r.year : "", gRank: r.rank, gTotal: N, gScope: "" })) };
   },
 };
 window.RankdPractice = { generate: s => Practice.generate(s), rules: Practice.rules, data: PR, ok: Practice.ok, popular: POPULAR_COUNTRIES };
@@ -1520,7 +1525,7 @@ function textSpoils(p, title) {
 // Display titles only. Stored headlines ("Spud Crown") stay in the data so search and old shares keep them.
 const TOP1_PHRASE = {
   "top1-potatoes": "Potato-Eating", "top1-tea": "Tea-Drinking",
-  "top1-co2": "Carbon-Footprint", "top1-pop-2100": "Most-Populous",
+  "top1-pop-2100": "Most-Populous",
   "top1-median-age": "Oldest", "top1-road-deaths": "Deadliest-Roads",
   "wb-forest": "Forest Cover", "top-potatoes": "Potato-Eating",
   "wb-fertility": "Fertility", "top-tea": "Tea-Drinking",

@@ -18,23 +18,23 @@ const OWID_1 = "https://ourworldindata.org/grapher/wealth-share-richest?quantile
 const OWID_MEAT = "https://ourworldindata.org/grapher/per-capita-meat-type";
 const FAO_SUA = "https://data.apps.fao.org/catalog/dataset/e463c4cc-0ed1-4ef8-80c5-2add3a0b75ca";
 const UNODC = "https://www.unodc.org/unodc/en/data-and-analysis/world-drug-report-2026-annex.html";
-const WB = "https://data.worldbank.org/indicator/EN.POP.DNST";
 
 test("new dailies take the next free days after 2027-04-08", () => {
   assert.equal(dateOf(185), "2027-04-08");
-  assert.deepEqual(["wealth-share-top1", "match-meat-cuts", "cocaine-destination", "top1-pop-density"].map(id => {
+  assert.equal(byId("top1-pop-density"), undefined);
+  assert.equal(byId("top1-co2"), undefined);
+  assert.deepEqual(["wealth-share-top1", "match-meat-cuts", "cocaine-destination"].map(id => {
     const p = byId(id);
     return [p.id, p.order, dateOf(p.order), p.headline];
   }), [
     ["wealth-share-top1", 187, "2027-04-10", "The top 1% own everything"],
     ["match-meat-cuts", 188, "2027-04-11", "Butcher Board"],
     ["cocaine-destination", 189, "2027-04-12", "Long Haul"],
-    ["top1-pop-density", 190, "2027-04-13", "Packed In"],
   ]);
   const orders = puzzles.map(p => p.order);
   assert.equal(new Set(orders).size, orders.length);
   assert.equal(new Set(puzzles.map(p => p.id)).size, puzzles.length);
-  const fresh = ["The top 1% own everything", "Butcher Board", "Long Haul", "Packed In"];
+  const fresh = ["The top 1% own everything", "Butcher Board", "Long Haul"];
   for (const headline of fresh) {
     assert.equal(puzzles.filter(p => p.headline === headline).length, 1, headline);
   }
@@ -112,8 +112,10 @@ test("long haul is a sensitive cocaine ranker after the AdSense window, distinct
   assert.equal(haul.sourceUrl, UNODC);
   assert.equal(haul.source, powder.source);
   assert.ok(dateOf(haul.order) > "2026-11-03");
-  const prev = puzzles.find(p => p.order === haul.order - 1);
-  const next = puzzles.find(p => p.order === haul.order + 1);
+  const ordered = puzzles.slice().sort((a, b) => a.order - b.order);
+  const at = ordered.findIndex(p => p.id === haul.id);
+  const prev = ordered[at - 1];
+  const next = ordered[at + 1];
   assert.equal(prev.sensitive, undefined);
   assert.equal(next.sensitive, undefined);
   assert.deepEqual(haul.items.map(it => [it.name, it.value, it.year, it.gRank, it.gScope]), [
@@ -131,41 +133,12 @@ test("long haul is a sensitive cocaine ranker after the AdSense window, distinct
   assert.equal(search.matches(haul, "Brazil"), true);
 });
 
-test("population density Top 1 leaves out places under 1 million and keeps Hong Kong", () => {
-  const density = byId("top1-pop-density");
-  assert.equal(density.type, "top1");
-  assert.equal(density.unit, "people/km²");
-  assert.equal(density.year, "2024");
-  assert.equal(density.sourceUrl, WB);
-  assert.match(density.question, /1 million/);
-  assert.equal(density.countries.length, 159);
-  assert.deepEqual(density.countries.slice(0, 3).map(c => [c.name, c.value, c.iso3]), [
-    ["Singapore", 8329, "SGP"],
-    ["Hong Kong", 7165.8, "HKG"],
-    ["Bahrain", 1985.8, "BHR"],
-  ]);
-  const names = new Set(density.countries.map(c => c.name));
-  const isos = new Set(density.countries.map(c => c.iso3));
-  assert.equal(names.has("Hong Kong"), true);
-  assert.equal(names.has("Macao"), false);
-  assert.equal(names.has("Monaco"), false);
-  assert.equal(isos.has("TWN"), false);
-  assert.equal(isos.has("XKX"), false);
-  assert.match(density.fact, /Macao/);
-  assert.match(density.fact, /Hong Kong/);
-  assert.equal(density.countries.filter(c => c.value === density.countries[0].value).length, 1);
-  const nicaragua = density.countries.find(c => c.name === "Nicaragua");
-  assert.equal(nicaragua.year, "2023");
-  assert.equal(search.matches(density, "Singapore"), true);
-});
-
 test("seeded comparison for the new dailies sits a little under a clear", () => {
   const stats = JSON.parse(fs.readFileSync(path.join(root, "community-stats.json"), "utf8"));
   const expect = {
     "wealth-share-top1": ["Russia", "India", "United States", "Germany", "South Korea", "Denmark"],
     "match-meat-cuts": ["Mongolia", "Israel", "Argentina", "Kazakhstan", "Croatia", "Hong Kong"],
     "cocaine-destination": ["Australia", "United States", "United Kingdom", "Brazil", "Mexico", "Colombia"],
-    "top1-pop-density": ["Singapore"],
   };
   for (const [id, names] of Object.entries(expect)) {
     const row = stats.puzzles[id];
