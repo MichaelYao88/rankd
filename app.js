@@ -861,16 +861,44 @@ const Snd = {
     if (!this.ctx) return;
     this.env(720, this.ctx.currentTime, 0.05, "sine", 0.03, 380);
   },
+  burst(t, dur, center, q, peak) {
+    if (!this.ready || !this.on() || !this.ctx) return;
+    const ctx = this.ctx;
+    const n = Math.max(1, Math.floor(ctx.sampleRate * dur));
+    const buf = ctx.createBuffer(1, n, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) data[i] = Math.random() * 2 - 1;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(center, t);
+    bp.Q.setValueAtTime(q, t);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + Math.min(0.01, dur * 0.3));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination);
+    src.start(t); src.stop(t + dur + 0.02);
+  },
+  // Two metallic clicks: a filtered noise slide plus a short transient. Under 350ms.
   lock() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.env(620, t, 0.06, "triangle", 0.04);
-    this.env(930, t + 0.05, 0.08, "sine", 0.028);
+    this.burst(t, 0.07, 1300, 3.4, 0.07);
+    this.env(1720, t, 0.045, "square", 0.016, 780);
+    this.burst(t + 0.095, 0.05, 2200, 6, 0.06);
+    this.env(2480, t + 0.095, 0.035, "triangle", 0.018, 1400);
   },
-  success() {
+  // Bright two-note major third. Only after a solved puzzle.
+  success(res) {
     if (!this.ctx) return;
+    if (!res || !(res.solved || res.won)) return;
     const t = this.ctx.currentTime;
-    [523.25, 659.25, 783.99].forEach((f, i) => this.env(f, t + i * 0.07, 0.14, "sine", 0.03));
+    this.env(523.25, t, 0.16, "triangle", 0.04);
+    this.env(1046.5, t, 0.12, "sine", 0.012);
+    this.env(659.25, t + 0.12, 0.24, "triangle", 0.046);
+    this.env(1318.5, t + 0.12, 0.18, "sine", 0.013);
   },
 };
 const soundLabel = () => settings.sound === "off" ? "🔕 Sound off<small>Tap to turn sounds on</small>" : "🔔 Sound on<small>Tap to mute</small>";
@@ -1243,7 +1271,7 @@ const Practice = {
         type: "rank", higherIs: ds.hi === "bottom" ? "bottom" : "top", valuesVisible: false, items: rows.map(r => ({ name: r[0], emoji: r[1], value: r[2], year: "", gRank: r[3], gTotal: r[4], gScope: r[5] })) };
     }
     if (ds.kind === "tier") {   // v12.2: tied-stat buckets — sample 5–6 countries across distinct values
-      const rows = ds.rows.map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], value: r[1] }));
+      const rows = ds.rows.filter(r => C[r[0]]).map(r => ({ iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], value: r[1] }));
       const byV = {}; rows.forEach(r => (byV[r.value] ||= []).push(r));
       const vals = Object.keys(byV).map(Number).sort((a, b) => b - a);
       if (vals.length < 2) return tries < 20 ? this.generate(seed, tries + 1) : null;
@@ -1257,12 +1285,34 @@ const Practice = {
       }
       if (pick.length < 4) return tries < 20 ? this.generate(seed, tries + 1) : null;
       const tvals = [...new Set(pick.map(r => r.value))].sort((a, b) => b - a);
-      const tiers = tvals.map(v => ({ label: Number.isInteger(v) ? `${v}%` : `${v}`, value: v }));
+      const labelFor = v => (ds.labels && ds.labels[String(v)] != null) ? ds.labels[String(v)] : (Number.isInteger(v) ? `${v}%` : `${v}`);
+      const tiers = tvals.map(v => ({ label: labelFor(v), value: v }));
       const v2i = Object.fromEntries(tiers.map((t, i) => [t.value, i]));
       return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "",
         stat: ds.stat, unit: ds.unit, source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "",
         caveat: ds.caveat || "", sensitive: !!ds.sens, art: "candle", support: "", order: null, type: "tier",
         tiers, items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, iso3: r.iso3, tierIndex: v2i[r.value] })) };
+    }
+    if (ds.kind === "capitals") {   // one lat/lon table: north, south, east, or west. Longitude does not wrap.
+      const axis = R() < 0.5 ? 1 : 2;
+      const higherIs = R() < 0.5 ? "bottom" : "top";
+      const east = axis === 2;
+      const listed = ds.rows.filter(r => C[r[0]]).map(r => ({
+        iso3: r[0], name: C[r[0]][0], emoji: C[r[0]][1], value: r[axis], year: String(r[3] || ""),
+      }));
+      const pick = sampleListed(listed, R() < ru.sixShare ? 6 : 5, R, r => r.value);
+      if (!pick || pick.length < 4) return again();
+      const low = higherIs === "bottom";
+      const title = !east ? (low ? "Southern Capitals" : "Northern Capitals") : (low ? "Western Capitals" : "Eastern Capitals");
+      const ranked = listed.slice().sort((a, b) => b.value - a.value);
+      return { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🗺️", headline: title, question: "",
+        stat: east ? "Longitude of the capital" : "Latitude of the capital",
+        unit: east ? "° longitude" : "° latitude",
+        source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "",
+        caveat: east ? "Longitude runs from -180 to 180 and does not wrap past the date line, so Tonga and Samoa rank as far west." : (ds.caveat || ""),
+        sensitive: !!ds.sens, art: "globe", support: "", order: null, type: "rank", higherIs, valuesVisible: false,
+        items: pick.map(r => ({ name: r.name, emoji: r.emoji, value: r.value, year: r.year,
+          gRank: 1 + ranked.filter(x => x.value > r.value).length, gTotal: ranked.length, gScope: "sovereign capitals" })) };
     }
     const base = { id: `rp-${seed}`, seed, practice: true, dataset: ds.id, emoji: ds.emoji || "🎲", headline: ds.title, question: "", stat: ds.stat, unit: ds.unit,
       source: ds.src, sourceUrl: ds.url, year: String(ds.year || ""), fact: ds.fact || "", caveat: ds.caveat || "", sensitive: !!ds.sens, art: "chart", support: "", order: null,
@@ -1674,8 +1724,8 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
-// Daily bundle. Part 1 is one short puzzle (Top 1, Name it, Tier it, Match it, or a
-// Part-1-only letter ranker). Part 2 is that day's main ranker. The short puzzle is
+// Daily bundle. Part 1 is one short puzzle (Top 1, Name it, Tier it, or Match it).
+// Part 2 is that day's main ranker. The short puzzle is
 // deterministic, not that day's main puzzle, not repeated inside BONUS_GAP days, a
 // different theme when one is free, and never sensitive on or before
 // CONFIG.adsenseSafeThrough. Streaks, stats and the plays table stay on the main ranker.
@@ -3396,7 +3446,7 @@ function paintSourceCard(p) {
   else showIcon();
 }
 function showResult(res, opts) {
-  if (opts && opts.sound) Snd.success();
+  if (opts && opts.sound) Snd.success(res);
   const p = state.puzzle;
   if (res) state.liveResult = res;
   pendingResultScroll = !!(opts && opts.scroll);

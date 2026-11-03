@@ -45,12 +45,17 @@ test("the attribute helper builds the four requested boards", () => {
   ];
   for (const [id, args] of expect) {
     const board = helper([...args, "--json"]);
+    if (id === "never-woman-leader") {
+      assert.deepEqual(board.map(r => r.country), ["United States", "Nigeria", "Russia", "Egypt", "Iran", "Kenya"]);
+      continue;
+    }
     const puzzle = byId(id);
     assert.equal(JSON.stringify(board.map(r => r.country)), JSON.stringify(puzzle.items.map(it => it.name)), id);
     assert.equal(JSON.stringify(board.map(r => r.value)), JSON.stringify(puzzle.items.map(it => it.value)), id);
   }
   const k = helper(["--name-starts", "K", "--sort", "population", "--limit", "6", "--json"]);
-  assert.equal(JSON.stringify(k.map(r => r.country)), JSON.stringify(byId("k-population").items.map(it => it.name)));
+  assert.equal(k[0].country, "Kenya");
+  assert.equal(byId("k-population"), undefined);
   const asia = helper(["--where", "continent=Asia", "--sort", "population", "--asc", "--limit", "6", "--json"]);
   assert.equal(JSON.stringify(asia.map(r => r.country)), JSON.stringify(byId("smallest-asia").items.map(it => it.name)));
 });
@@ -65,7 +70,7 @@ test("new dailies start the day after Measured Up and do not reuse an order", ()
     ["mediterranean-land", 196, "2027-04-19", "Inland Sea"],
     ["land-area", 197, "2027-04-20", "Lakes Don't Count"],
     ["africa-population", 198, "2027-04-21", "Africa by Headcount"],
-    ["k-population", 199, "2027-04-22", "The K Club"],
+    ["eastern-capitals", 199, "2027-04-22", "Far East"],
     ["newest-countries", 200, "2027-04-23", "Just Independent"],
     ["smallest-asia", 201, "2027-04-24", "Smallest Crowd"],
     ["northernmost-africa", 202, "2027-04-25", "Top of Africa"],
@@ -80,18 +85,43 @@ test("new dailies start the day after Measured Up and do not reuse an order", ()
   assert.equal(new Set(orders).size, orders.length);
   for (const [id, order, date, headline] of fresh) {
     const p = byId(id);
-    assert.equal(p.type, "rank", id);
+    assert.equal(p.type, id === "never-woman-leader" ? "tier" : "rank", id);
     assert.equal(Math.round(p.order), order, id);
     assert.equal(dateOf(p.order), date, id);
     assert.equal(p.headline, headline, id);
     assert.equal(p.sensitive, undefined, id);
     assert.ok(p.fact && p.sourceUrl.startsWith("https://"), id);
-    assert.equal(new Set(p.items.map(it => it.value)).size, p.items.length, id);
+    if (p.type !== "tier") assert.equal(new Set(p.items.map(it => it.value)).size, p.items.length, id);
     assert.equal(/per capita/i.test(p.unit), false, id);
     assert.equal(search.matches(p, p.items[0].name), true, id);
   }
   assert.equal(byId("smallest-asia").higherIs, "bottom");
   assert.equal(byId("southern-capitals").higherIs, "bottom");
+  assert.equal(byId("southern-capitals").dataset, "national-capitals");
+  assert.equal(byId("northern-capitals").dataset, "national-capitals");
+  const east = byId("eastern-capitals");
+  assert.equal(east.dataset, "national-capitals");
+  assert.equal(east.axis, "lon");
+  assert.equal(east.higherIs, "top");
+  assert.equal(east.items[0].name, "Tuvalu");
+  assert.ok(east.items.every((it, i, arr) => i === 0 || arr[i - 1].value > it.value));
+  const woman = byId("never-woman-leader");
+  assert.equal(woman.tiers[0].label, "Has had a woman head of state or government");
+  assert.equal(woman.tiers[1].label, "Never has");
+  assert.equal(woman.tiers[0].value, 1);
+  assert.equal(woman.tiers[1].value, 0);
+  const womanTier = iso => woman.tiers[woman.items.find(it => it.iso3 === iso).tierIndex].value;
+  assert.equal(womanTier("PAK"), 1);
+  assert.equal(womanTier("IND"), 1);
+  assert.equal(womanTier("IDN"), 1);
+  assert.equal(womanTier("TUR"), 1);
+  assert.equal(womanTier("ITA"), 1);
+  assert.equal(womanTier("ESP"), 1);
+  assert.equal(womanTier("USA"), 0);
+  assert.equal(womanTier("CZE"), 0);
+  assert.match(woman.fact, /Meloni/);
+  assert.match(woman.fact, /Isabella II/);
+  assert.match(woman.fact, /acting/);
   assert.equal(byId("land-area").items[1].name, "China");
   assert.equal(byId("land-area").items[3].name, "Canada");
   assert.match(byId("land-area").fact, /inland water/);

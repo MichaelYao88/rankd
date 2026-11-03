@@ -15,6 +15,8 @@ test("ui sounds are synthesized, quiet until a gesture, and remembered in the me
   assert.match(app, /id="mSound"/);
   assert.match(app, /Snd\.tick\(\)/);
   assert.match(app, /Snd\.lock\(\)/);
-  assert.match(app, /opts\.sound\) Snd\.success\(\)/);
+  assert.match(app, /opts\.sound\) Snd\.success\(/);
+  assert.match(app, /res\.solved \|\| res\.won/);
+  assert.match(app, /bandpass/);
   assert.match(app, /rankd\.settings\.v1/);
 });

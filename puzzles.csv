@@ -883,12 +883,6 @@ no-mcdonalds,,,,,,,,Russia,🇷🇺,143669648,2024,,,,3,104,countries with no Mc
 no-mcdonalds,,,,,,,,Ethiopia,🇪🇹,132059767,2024,,,,4,104,countries with no McDonald's,,,,,
 no-mcdonalds,,,,,,,,Democratic Republic of Congo,🇨🇩,109276265,2024,,,,5,104,countries with no McDonald's,,,,,
 no-mcdonalds,,,,,,,,Iran,🇮🇷,91567738,2024,,,,6,104,countries with no McDonald's,,,,,
-never-woman-leader,194,👩,Most populous countries that have never had a woman as head of state or government,Population of countries with no woman head of state or government,people,top,no,United States,🇺🇸,340003797,2024,"World Bank population, 2024; Wikipedia list of female heads of state and government",https://en.wikipedia.org/wiki/List_of_elected_and_appointed_female_heads_of_state_and_government,"The United States (340,003,797) has never had a woman president. An 85-minute acting spell on 19 November 2021 is not counted. China is more populous than every country here and is left off: Soong Ching-ling was acting co-chair of the state from 1968 to 1972, so China is partial, not a clean no. Nigeria, Russia, Egypt, Iran and Kenya have no woman in either office. Japan, Mexico and the DR Congo do.",1,82,countries with no woman leader,globe,,attr-never-woman-leader,,Never Her Turn
-never-woman-leader,,,,,,,,Nigeria,🇳🇬,232679478,2024,,,,2,82,countries with no woman leader,,,,,
-never-woman-leader,,,,,,,,Russia,🇷🇺,143669648,2024,,,,3,82,countries with no woman leader,,,,,
-never-woman-leader,,,,,,,,Egypt,🇪🇬,116538258,2024,,,,4,82,countries with no woman leader,,,,,
-never-woman-leader,,,,,,,,Iran,🇮🇷,91567738,2024,,,,5,82,countries with no woman leader,,,,,
-never-woman-leader,,,,,,,,Kenya,🇰🇪,56432944,2024,,,,6,82,countries with no woman leader,,,,,
 monarchy-population,195,👑,Most populous countries that are still monarchies,Population of current monarchies,people,top,no,Japan,🇯🇵,123975371,2024,"World Bank population, 2024; current monarchies as of 2026",https://data.worldbank.org/indicator/SP.POP.TOTL,"Japan (123,975,371) is the most populous monarchy. Thailand (71,668,011) has more people than the United Kingdom (69,281,000). Canada is fifth because King Charles III is its head of state, ahead of Morocco. Saudi Arabia is eighth and does not make this six.",1,41,current monarchies,globe,,attr-monarchy-population,,Still Crowned
 monarchy-population,,,,,,,,Thailand,🇹🇭,71668011,2024,,,,2,41,current monarchies,,,,,
 monarchy-population,,,,,,,,United Kingdom,🇬🇧,69281000,2024,,,,3,41,current monarchies,,,,,
@@ -913,12 +907,6 @@ africa-population,,,,,,,,Egypt,🇪🇬,116538258,2024,,,,3,54,African countries
 africa-population,,,,,,,,Democratic Republic of Congo,🇨🇩,109276265,2024,,,,4,54,African countries in this table,,,,,
 africa-population,,,,,,,,Tanzania,🇹🇿,68560157,2024,,,,5,54,African countries in this table,,,,,
 africa-population,,,,,,,,South Africa,🇿🇦,64007187,2024,,,,6,54,African countries in this table,,,,,
-k-population,199,🔤,"Countries whose usual English name starts with K, by population",Population,people,top,no,Kenya,🇰🇪,56432944,2024,"World Bank SP.POP.TOTL, 2024. Names are the usual English names on ranki.gg.",https://data.worldbank.org/indicator/SP.POP.TOTL,"Kenya (56,432,944) has more people than Kazakhstan (20,592,571). South Korea and North Korea are not here: their usual English names start with S and N. Kosovo is included; its usual English name starts with K.",1,6,countries whose usual English name starts with K,globe,,attr-k-population,,The K Club
-k-population,,,,,,,,Kazakhstan,🇰🇿,20592571,2024,,,,2,6,countries whose usual English name starts with K,,,,,
-k-population,,,,,,,,Kyrgyzstan,🇰🇬,7221868,2024,,,,3,6,countries whose usual English name starts with K,,,,,
-k-population,,,,,,,,Kuwait,🇰🇼,4897263,2024,,,,4,6,countries whose usual English name starts with K,,,,,
-k-population,,,,,,,,Kosovo,🇽🇰,1594353,2024,,,,5,6,countries whose usual English name starts with K,,,,,
-k-population,,,,,,,,Kiribati,🇰🇮,134518,2024,,,,6,6,countries whose usual English name starts with K,,,,,
 newest-countries,200,🆕,"Newest UN member states, by year of independence",Year the current state became independent,year,top,no,South Sudan,🇸🇸,2011,9 Jul 2011,"United Nations membership growth, matched to each independence date",https://www.un.org/en/about-us/growth-in-un-membership,"South Sudan became independent on 9 July 2011 and joined the UN on 14 July 2011. It is the newest UN member state. Kosovo declared independence in 2008 and is left out because it is not a UN member. Czechia and Slovakia both date to 1 January 1993, the same year as Eritrea (24 May 1993), so Namibia (1990) is the sixth card instead of a tie.",1,6,UN member states in this six,globe,,newest-un-members,,Just Independent
 newest-countries,,,,,,,,Montenegro,🇲🇪,2006,3 Jun 2006,,,,2,6,UN member states in this six,,,,,
 newest-countries,,,,,,,,East Timor,🇹🇱,2002,20 May 2002,,,,3,6,UN member states in this six,,,,,
@@ -972,3 +960,9 @@ northern-capitals,,,,,,,,Norway,🇳🇴,59.91,Oslo,,,,,,,,,,,
 northern-capitals,,,,,,,,Estonia,🇪🇪,59.44,Tallinn,,,,,,,,,,,
 northern-capitals,,,,,,,,Sweden,🇸🇪,59.33,Stockholm,,,,,,,,,,,
 northern-capitals,,,,,,,,Latvia,🇱🇻,56.95,Riga,,,,,,,,,,,
+eastern-capitals,199,🌅,Easternmost capitals of sovereign countries,Longitude of the capital,° longitude,top,no,Tuvalu,🇹🇻,179.12,Funafuti,"Wikidata coordinate location (P625), rounded to 0.01 degree. Longitude is degrees east from -180 to 180, with no wrap past the antimeridian. The capital is the one named in country_info.csv.",https://www.wikidata.org/wiki/Property:P625,"Funafuti is the easternmost capital of a sovereign country on this scale. Suva is next, 0.69 degrees west of it. Wellington is east of Tarawa. Nuku'alofa in Tonga is at -175.2 degrees, across the date line, so it ranks as far west here, not far east. Nuuk is not in the table.",1,195,sovereign capitals,globe,,national-capitals,,Far East
+eastern-capitals,,,,,,,,Fiji,🇫🇯,178.43,Suva,,,,2,195,sovereign capitals,,,,,
+eastern-capitals,,,,,,,,New Zealand,🇳🇿,174.78,Wellington,,,,3,195,sovereign capitals,,,,,
+eastern-capitals,,,,,,,,Kiribati,🇰🇮,172.97,South Tarawa,,,,4,195,sovereign capitals,,,,,
+eastern-capitals,,,,,,,,Marshall Islands,🇲🇭,171.38,Majuro,,,,5,195,sovereign capitals,,,,,
+eastern-capitals,,,,,,,,Vanuatu,🇻🇺,168.32,Port Vila,,,,6,195,sovereign capitals,,,,,

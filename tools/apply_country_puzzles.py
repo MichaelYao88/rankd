@@ -121,15 +121,13 @@ def build_ranks() -> list[dict]:
     data = rows()
     by = {r["iso3"]: r for r in data}
     mcd, mcd_n = ranked(["has_mcdonalds=no"], "population", 6)
-    woman, woman_n = ranked(["ever_female_leader=no"], "population", 6)
     mon, mon_n = ranked(["is_monarchy=yes"], "population", 6)
     med, med_n = ranked(["mediterranean_coast=yes"], "land_area_km2", 6)
     land = [r for r in data if r["land_area_km2"]]
     land.sort(key=lambda r: -float(r["land_area_km2"]))
     land6, land_n = land[:6], len(land)
     africa, africa_n = ranked(["continent=Africa"], "population", 6)
-    ks = [r for r in data if r["country"].startswith("K") and r["population"]]
-    ks.sort(key=lambda r: -float(r["population"]))
+    # The K Club (letter + population) was removed. 2027-04-22 is Far East.
     asia = [r for r in data if r["continent"] == "Asia" and r["population"]]
     asia.sort(key=lambda r: float(r["population"]))
     asia6 = asia[:6]
@@ -152,20 +150,7 @@ def build_ranks() -> list[dict]:
         pack(mcd, mcd_n, "population", "population_year", "countries with no McDonald's"),
         "2024", dataset="attr-no-mcdonalds",
     ))
-    wpop = P(woman)
-    puzzles.append(rank_puzzle(
-        "never-woman-leader", 194, "👩", "Never Her Turn",
-        "Most populous countries that have never had a woman as head of state or government",
-        "Population of countries with no woman head of state or government",
-        "people",
-        "World Bank population, 2024; Wikipedia list of female heads of state and government",
-        FEMALE_URL,
-        f"The United States ({wpop[0]}) has never had a woman president. An 85-minute acting spell on 19 November 2021 is not counted. "
-        f"China is more populous than every country here and is left off: Soong Ching-ling was acting co-chair of the state from 1968 to 1972, so China is partial, not a clean no. "
-        f"Nigeria, Russia, Egypt, Iran and Kenya have no woman in either office. Japan, Mexico and the DR Congo do.",
-        pack(woman, woman_n, "population", "population_year", "countries with no woman leader"),
-        "2024", dataset="attr-never-woman-leader",
-    ))
+    # Never Her Turn is a two-tier categorizer in puzzles-data.js, not a population rank.
     mpop = P(mon)
     puzzles.append(rank_puzzle(
         "monarchy-population", 195, "👑", "Still Crowned",
@@ -217,19 +202,6 @@ def build_ranks() -> list[dict]:
         f"The Democratic Republic of Congo ({ap[3]}) is fourth, ahead of Tanzania and South Africa.",
         pack(africa, africa_n, "population", "population_year", "African countries in this table"),
         "2024", dataset="attr-africa-population",
-    ))
-    puzzles.append(rank_puzzle(
-        "k-population", 199, "🔤", "The K Club",
-        "Countries whose usual English name starts with K, by population",
-        "Population",
-        "people",
-        "World Bank SP.POP.TOTL, 2024. Names are the usual English names on ranki.gg.",
-        WB_POP,
-        "Kenya (56,432,944) has more people than Kazakhstan (20,592,571). "
-        "South Korea and North Korea are not here: their usual English names start with S and N. "
-        "Kosovo is included; its usual English name starts with K.",
-        pack(ks, len(ks), "population", "population_year", "countries whose usual English name starts with K"),
-        "2024", dataset="attr-k-population",
     ))
     puzzles.append(rank_puzzle(
         "newest-countries", 200, "🆕", "Just Independent",

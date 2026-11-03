@@ -86,13 +86,14 @@ MCDONALDS_PARTIAL = {"CUB"}
 # The United States' 85-minute acting presidency in 2021 is not counted, so
 # the US stays no. Switzerland is yes because women have presided over the
 # Federal Council. Vatican City is yes: Raffaella Petrini became president
-# of the Governorate on 1 March 2025.
+# of the Governorate on 1 March 2025. Luxembourg is yes: Grand Duchess
+# Charlotte (1919-1964) and Marie-Adélaïde (1912-1919) reigned in their own right.
 FEMALE_YES = {
     "ARG", "AUS", "AUT", "BDI", "BEL", "BGD", "BGR", "BIH", "BOL", "BRA",
     "BRB", "CAF", "CAN", "CHE", "CHL", "COD", "CRI", "DEU", "DMA", "DNK",
     "ECU", "ESP", "EST", "ETH", "FIN", "FRA", "GAB", "GBR", "GEO", "GRC",
     "GUY", "HND", "HRV", "HTI", "HUN", "IDN", "IND", "IRL", "ISL", "ISR",
-    "ITA", "JAM", "JPN", "KGZ", "KOR", "LBR", "LIE", "LKA", "LTU", "LVA",
+    "ITA", "JAM", "JPN", "KGZ", "KOR", "LBR", "LIE", "LKA", "LTU", "LUX", "LVA",
     "MAR", "MDA", "MEX", "MHL", "MKD", "MLI", "MLT", "MUS", "MWI", "NAM",
     "NIC", "NLD", "NOR", "NPL", "NZL", "PAK", "PAN", "PER", "PHL", "POL",
     "PRT", "ROU", "RWA", "SEN", "SGP", "SMR", "SRB", "STP", "SUR", "SVK",
@@ -180,6 +181,8 @@ def build_rows() -> list[dict]:
         female = tri(iso, FEMALE_YES, FEMALE_PARTIAL)
         if iso == "USA":
             note_bits.append("US: an 85-minute acting presidency on 19 Nov 2021 is not counted.")
+        if iso == "LUX":
+            note_bits.append("Luxembourg: Grand Duchess Charlotte (1919-1964) and Marie-Adelaide (1912-1919) were heads of state in their own right.")
         if iso == "CHN":
             note_bits.append("China: Soong Ching-ling was acting co-chair of the state (1968-1972) and honorary president for 12 days, so partial.")
         if iso == "PHL":
