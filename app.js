@@ -1761,16 +1761,30 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
-// Daily bundle. Part 1 is one short puzzle (Top 1, Name it, Tier it, or Match it).
-// Part 2 is that day's main puzzle. The short puzzle is
-// deterministic, not that day's main puzzle, not repeated inside BONUS_GAP days, a
-// different theme when one is free, and never sensitive on or before
-// CONFIG.adsenseSafeThrough. Streaks, stats and the plays table stay on the main puzzle.
-// A day with no Part 1 plays the main puzzle alone. A quiz is a main puzzle, not a
-// Part 1 type, so the day it is scheduled the streak counts the quiz.
+// Daily bundle. The scheduled puzzle is always the last part and the only one that
+// moves the streak. Earlier parts are other scheduled puzzles, chosen so the day's
+// point budget lands near BUNDLE_TARGET:
+//   quiz  = 1 per question
+//   tier  = one per tier
+//   match = one per pair
+//   name  = 1
+//   rank, Top 1, Top 5 = 5
+// Part 1 is the existing short puzzle (Top 1, Name it, Tier it, Match it, or a
+// part-1 ranker): deterministic, not that day's main, not repeated inside
+// BONUS_GAP days, a different theme when one is free, and never sensitive on or
+// before CONFIG.adsenseSafeThrough. Further parts use the same pool. They are added
+// only while the running total stays at or under BUNDLE_CEILING and the day is still
+// under the target, and there are at most BUNDLE_MAX_PARTS parts. The short list is
+// only about 30 puzzles, so a 14-day gap cannot also fill every day to 12 points.
+// When a fresh puzzle is not available, the one that has been quiet the longest is
+// used again. A part that would push a non-empty day over the ceiling is left for
+// another day. The first finish of each part is the one that counts.
 const BONUS_TYPES = ["top1", "name", "tier", "match"];
 const BONUS_TYPE_SET = new Set(BONUS_TYPES);
 const BONUS_GAP = 14;
+const BUNDLE_TARGET = 12;
+const BUNDLE_CEILING = 14;
+const BUNDLE_MAX_PARTS = 4;
 const THEME_KEEP = new Set(["hdi", "co2", "tea", "gdp"]);
 const THEME_STOP = new Set("the and for with from that this rate rates per top name match daily item items world share index most year data group groups country countries people adult adults between above under higher lower rank tier".split(" "));
 function puzzleOnDay(n) {
@@ -1856,6 +1870,7 @@ function bonusForDayNumber(n) {
   const extras = window.RANKD_PART1 || null;
   if (bonusMemoList !== PUZZLES || bonusMemoCut !== cut || bonusMemoExtras !== extras) {
     bonusMemo = [];
+    partsMemo = [];
     bonusMemoList = PUZZLES;
     bonusMemoCut = cut;
     bonusMemoExtras = extras;
@@ -1865,17 +1880,115 @@ function bonusForDayNumber(n) {
     const dateKey = keyFromDay(i);
     const main = puzzleOnDay(i);
     const banned = new Set();
-    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) if (bonusMemo[i - k]) banned.add(bonusMemo[i - k].id);
+    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) {
+      if (bonusMemo[i - k]) banned.add(bonusMemo[i - k].id);
+      for (const prev of (partsMemo[i - k] || [])) if (prev && prev.id) banned.add(prev.id);
+    }
     const open = ban => bonusPool(dateKey, main, ban);
     let pool = open(banned).filter(p => !sameTheme(p, main));
     if (!pool.length) pool = open(banned);
     if (!pool.length) pool = open(new Set()).filter(p => !sameTheme(p, main));
     if (!pool.length) pool = open(new Set());
+    const fresh = pool.filter(p => !banned.has(p.id));
+    if (fresh.length) pool = fresh;
+    else if (pool.length) {
+      const lastUsed = id => {
+        for (let k = 1; k <= i; k++) {
+          const day = i - k;
+          if (bonusMemo[day] && bonusMemo[day].id === id) return day;
+          if ((partsMemo[day] || []).some(p => p && p.id === id)) return day;
+        }
+        return -1;
+      };
+      pool = pool.slice().sort((a, b) => lastUsed(a.id) - lastUsed(b.id) || (a.id < b.id ? -1 : 1)).slice(0, 1);
+    }
     bonusMemo[i] = pickBonus(pool, i);
   }
   return bonusMemo[n];
 }
-window.RankdBonus = { forDay: bonusForDayNumber, gap: BONUS_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine };
+let partsMemo = [];
+function bundlePoints(p) {
+  if (!p) return 0;
+  if (p.type === "quiz") return (p.questions || []).length;
+  if (p.type === "tier") return (p.tiers || []).length;
+  if (p.type === "match") return (p.people || []).length;
+  if (p.type === "name") return 1;
+  return 5;
+}
+function partScore(p, res) {
+  const max = bundlePoints(p);
+  if (!p || !res || !res.done) return { score: 0, max };
+  if (p.type === "quiz") {
+    const hits = Number(res.hits) || ((res.marks || []).filter(m => m === "good").length);
+    return { score: Math.min(max, hits), max };
+  }
+  if (p.type === "name") return { score: res.solved ? 1 : 0, max };
+  if (p.type === "match" || p.type === "tier" || p.type === "rank" || (p.type === "top5" && res.attempts)) {
+    const marks = (res.attempts && res.attempts.length) ? res.attempts[res.attempts.length - 1].marks : (res.marks || []);
+    if (p.type !== "tier" && (res.solved || res.won) && (p.type === "rank" || p.type === "top5")) return { score: max, max };
+    if (!marks.length) return { score: (res.solved || res.won) ? max : 0, max };
+    const good = marks.filter(m => m === "good").length;
+    return { score: Math.max(0, Math.min(max, Math.round(max * good / marks.length))), max };
+  }
+  if (p.type === "top1") return { score: res.solved ? max : 0, max };
+  return { score: (res.solved || res.won) ? max : 0, max };
+}
+function dayFillers(n) {
+  n = Math.round(n);
+  if (!Number.isFinite(n) || n < 0) return [];
+  if (n < partsMemo.length && partsMemo[n]) return partsMemo[n];
+  for (let i = 0; i <= n; i++) {
+    if (partsMemo[i]) continue;
+    const main = puzzleOnDay(i);
+    const first = bonusForDayNumber(i);
+    const fillers = [];
+    if (first) fillers.push(first);
+    let sum = bundlePoints(main) + bundlePoints(first);
+    const banned = new Set();
+    if (main) banned.add(main.id);
+    for (const p of fillers) banned.add(p.id);
+    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) {
+      for (const p of (partsMemo[i - k] || [])) if (p && p.id) banned.add(p.id);
+    }
+    const dateKey = keyFromDay(i);
+    while (fillers.length < BUNDLE_MAX_PARTS - 1 && sum < BUNDLE_TARGET) {
+      const room = p => sum + bundlePoints(p) <= BUNDLE_CEILING;
+      let pool = bonusPool(dateKey, main, banned).filter(p => room(p) && !sameTheme(p, main));
+      if (!pool.length) pool = bonusPool(dateKey, main, banned).filter(room);
+      if (!pool.length) {
+        const held = new Set([main && main.id]);
+        for (const p of fillers) held.add(p.id);
+        const open = bonusPool(dateKey, main, held).filter(room);
+        const lastUsed = id => {
+          for (let k = 1; k <= i; k++) {
+            const day = i - k;
+            if ((partsMemo[day] || []).some(p => p && p.id === id)) return day;
+          }
+          return -1;
+        };
+        open.sort((a, b) => lastUsed(a.id) - lastUsed(b.id) || bundlePoints(b) - bundlePoints(a) || (a.id < b.id ? -1 : 1));
+        pool = open.length ? [open[0]] : [];
+      }
+      if (!pool.length) break;
+      pool.sort((a, b) => bundlePoints(b) - bundlePoints(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      const pick = pool[0];
+      fillers.push(pick);
+      banned.add(pick.id);
+      sum += bundlePoints(pick);
+    }
+    partsMemo[i] = fillers;
+  }
+  return partsMemo[n] || [];
+}
+function dayParts(n) {
+  const fillers = dayFillers(n);
+  const main = puzzleOnDay(n);
+  return main ? fillers.concat([main]) : fillers.slice();
+}
+window.RankdBonus = {
+  forDay: bonusForDayNumber, gap: BONUS_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
+  parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
+};
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
   googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
@@ -1931,7 +2044,8 @@ function sourceCardModel(p) {
     if (u.protocol === "http:" || u.protocol === "https:") {
       url = u.href;
       domain = u.hostname.replace(/^www\./i, "");
-      favicon = u.origin + "/favicon.ico";
+      const trends = /(^|\.)trends\.google\./i.test(u.hostname) || /\/trends/i.test(u.pathname);
+      favicon = trends ? "" : u.origin + "/favicon.ico";
     }
   } catch (e) {}
   return {
@@ -1940,6 +2054,7 @@ function sourceCardModel(p) {
     domain,
     favicon,
     url,
+    glyph: favicon ? "" : (domain ? "search" : ""),
     tap: "Tap to see the data",
   };
 }
@@ -1980,19 +2095,42 @@ function goPractice(seed, opts) {
 
 // ================================================================ state
 const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null,
-  challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null, slot: "main" };
+  challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null, slot: "main", partIndex: 0, bundleParts: null };
 const puzzleForDay = n => puzzleOnDay(n);
 function dayOffersBonus() {
   return state.mode === "daily" || state.mode === "archive" || state.mode === "preview";
 }
+function currentParts() {
+  if (!dayOffersBonus()) return [];
+  if (state.bundleParts && state.bundleParts.length) return state.bundleParts;
+  return dayParts(dayNumber(state.dateKey));
+}
 function bundlePartLabel() {
-  if (!dayOffersBonus()) return "";
-  if (!bonusForDayNumber(dayNumber(state.dateKey))) return "";
-  return state.slot === "bonus" ? "Part 1 of 2" : "Part 2 of 2";
+  const parts = currentParts();
+  if (parts.length < 2) return "";
+  const i = Math.min(parts.length - 1, Math.max(0, state.partIndex || 0));
+  return `Part ${i + 1} of ${parts.length}`;
+}
+function motionReduce() {
+  try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
+}
+function partStorageKey(i) {
+  const parts = currentParts();
+  const last = Math.max(0, parts.length - 1);
+  const puzzle = parts[i];
+  if (i >= last) {
+    const id = (puzzle && puzzle.id) || (state.puzzle && state.puzzle.id) || "";
+    return state.mode === "preview" ? `v:${id}:${state.dateKey}` : `d:${state.dateKey}`;
+  }
+  if (state.mode === "preview") return `vb:${(puzzle && puzzle.id) || ""}:${state.dateKey}`;
+  return i === 0 ? `b:${state.dateKey}` : `b:${state.dateKey}:${i}`;
 }
 const resultKey = () => {
-  if (state.slot === "bonus" && dayOffersBonus())
-    return state.mode === "preview" ? `vb:${state.puzzle.id}:${state.dateKey}` : `b:${state.dateKey}`;
+  if (state.slot === "bonus" && dayOffersBonus()) {
+    const i = state.partIndex || 0;
+    if (state.mode === "preview") return `vb:${state.puzzle.id}:${state.dateKey}`;
+    return i > 0 ? `b:${state.dateKey}:${i}` : `b:${state.dateKey}`;
+  }
   return state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 };
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
@@ -2062,17 +2200,34 @@ function bonusShareLine() {
   const pack = storedBonusDone();
   return pack ? bonusResultLine(pack.puzzle, pack.result) : "";
 }
+function partResultLine(index, p, r) {
+  const label = `Part ${index + 1}`;
+  if (!p || !r || !isDone(r)) return `${label} · skipped`;
+  const kind = PUZZLE_TYPE_LABEL[p.type] || "Rank it";
+  if (p.type === "quiz" && window.RankdQuiz) return `${label} · Quiz · ${RankdQuiz.shareBits(p, r).line}`;
+  const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
+  const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
+  if (!solved) return `${label} · ${kind} · X/${CONFIG.rankMaxTries}`;
+  return `${label} · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
+}
 function withBonusLine(text) {
-  const extra = bonusShareLine();
-  if (!extra) return text || "";
-  let body = text || "";
-  if (body && body.indexOf("Part 2 · ") === -1) {
-    const title = shareTitle();
-    if (body.indexOf(title + " ") === 0) body = title + "\nPart 2 · " + body.slice(title.length).trim();
-    else body = "Part 2 · " + body;
+  const parts = dayOffersBonus() ? currentParts() : [];
+  if (parts.length < 2) return text || "";
+  const fillerLines = [];
+  for (let i = 0; i < parts.length - 1; i++) {
+    const row = storedRow(partStorageKey(i), parts[i].id);
+    fillerLines.push(partResultLine(i, parts[i], row));
   }
+  const mainLabel = `Part ${parts.length} · `;
+  let body = text || "";
+  if (body && body.indexOf(mainLabel) === -1) {
+    const title = shareTitle();
+    if (body.indexOf(title + " ") === 0) body = title + "\n" + mainLabel + body.slice(title.length).trim();
+    else body = mainLabel + body;
+  }
+  const extra = fillerLines.join("\n");
   if (!body) return extra;
-  if (body.indexOf(extra) !== -1) return body;
+  if (!extra || body.indexOf(extra) !== -1) return body;
   const lines = String(body).split("\n");
   const last = lines[lines.length - 1];
   if (/^https?:\/\//.test(last)) { lines.splice(lines.length - 1, 0, extra); return lines.join("\n"); }
@@ -2121,6 +2276,7 @@ const ART = {
   puzzle: `<g class="a-bounce"><path d="M14 22h12a6 6 0 1 1 12 0h12v12a6 6 0 1 0 0 12v10H38a6 6 0 1 0-12 0H14V46a6 6 0 1 1 0-12z"/></g>`,
   windmill: `<path d="M32 30l-5 28h10z"/><g class="a-spin"><path d="M32 30L32 8M32 30L51 41M32 30L13 41"/></g><circle cx="32" cy="30" r="2" fill="currentColor"/><path d="M18 58h28"/>`,
   chart: `<path d="M10 54h44"/><rect class="a-grow" style="--d:0s" x="14" y="30" width="8" height="24" rx="2"/><rect class="a-grow" style="--d:.3s" x="28" y="18" width="8" height="36" rx="2"/><rect class="a-grow" style="--d:.6s" x="42" y="36" width="8" height="18" rx="2"/>`,
+  search: `<circle cx="28" cy="28" r="14"/><path class="a-sway" d="M38 38l14 14"/>`,
   clock: `<circle cx="32" cy="34" r="20"/><path d="M26 10h12M32 10v4"/><path class="a-spin-slow" d="M32 34V22"/><path class="a-spin" d="M32 34h9"/><circle cx="32" cy="34" r="1.6" fill="currentColor"/>`,
   car: `<g class="a-bob"><path d="M10 40v-6l6-10h24l8 10h6v6z"/><path d="M20 24l-3 10h28l-7-10"/><circle cx="20" cy="42" r="5"/><circle cx="44" cy="42" r="5"/></g><path class="a-dash" d="M4 54h56" stroke-dasharray="6 6"/>`,
   beer: `<path d="M16 16h26v36a4 4 0 0 1-4 4H20a4 4 0 0 1-4-4z"/><path d="M42 24h6a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4h-6"/><path d="M14 16c0-6 7-8 10-5 3-4 11-3 12 1 5-1 8 2 6 4"/><circle class="a-rise" style="--d:0s" cx="24" cy="48" r="1.6"/><circle class="a-rise" style="--d:.8s" cx="31" cy="50" r="1.4"/><circle class="a-rise" style="--d:1.6s" cx="36" cy="46" r="1.2"/>`,
@@ -2221,7 +2377,12 @@ function renderHero() {
     : (state.mode === "preview" ? `Preview · No. ${pad3(n)}` : state.mode === "all" ? `All puzzles ${state.practiceIdx + 1}/${PUZZLES.length}` : state.mode === "practice" ? "Practice" : `No. ${pad3(n)}`);
   $("#heroNo").classList.toggle("is-part", !!part);
   const skip = $("#skipPart");
-  if (skip) skip.classList.toggle("hidden", state.slot !== "bonus" || !part);
+  if (skip) {
+    const parts = currentParts();
+    const mid = !!part && (state.partIndex || 0) < parts.length - 1;
+    skip.classList.toggle("hidden", !mid);
+    if (mid) skip.textContent = "Skip this part";
+  }
   $("#heroKind").textContent = p.type === "top1" ? `🥇 Top 1` : p.type === "name" ? `✏️ Name it` : p.type === "quiz" ? `💡 Quiz` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = heroHeadline(p);
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
@@ -2292,6 +2453,7 @@ function openPuzzle(p, opts) {
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
+  const strip = $("#partStrip"); if (strip) strip.classList.add("hidden");
   const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
   const g = p.type === "top1"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#nameGame").classList.toggle("hidden", p.type !== "name"); $("#quizGame").classList.toggle("hidden", p.type !== "quiz"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top1", p.type === "top1"); $("#hero").classList.toggle("is-top5", false); $("#hero").classList.toggle("is-name", p.type === "name"); $("#hero").classList.toggle("is-quiz", p.type === "quiz"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", true);
   const t5board = $("#t5board"); if (t5board) t5board.classList.add("hidden");
@@ -2804,7 +2966,60 @@ function tierChipEl(p, i, ti, mark, pinned) {
   const nm = tierChipName(it.name);
   chip.innerHTML = `<span class="tc-flag">${esc(it.emoji || "•")}</span><span class="tc-name">${esc(nm)}</span>${valShow}`;
   if (!g.done && !pinned) {
-    chip.addEventListener("click", e => { e.stopPropagation(); tierTapChip(i); });
+    chip.addEventListener("pointerdown", e => {
+      if (e.button > 0) return;
+      try { chip.setPointerCapture(e.pointerId); } catch (err) {}
+      const start = { x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null, ox: 0, oy: 0 };
+      const move = ev => {
+        if (ev.pointerId !== start.id) return;
+        if (!start.moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) < 8) return;
+        if (!start.moved) {
+          start.moved = true;
+          const r = chip.getBoundingClientRect();
+          const gh = chip.cloneNode(true);
+          gh.classList.add("tier-ghost");
+          gh.style.width = r.width + "px";
+          gh.style.left = r.left + "px";
+          gh.style.top = r.top + "px";
+          document.body.appendChild(gh);
+          start.ghost = gh;
+          start.ox = ev.clientX - r.left;
+          start.oy = ev.clientY - r.top;
+          chip.classList.add("dragging");
+        }
+        ev.preventDefault();
+        start.ghost.style.left = (ev.clientX - start.ox) + "px";
+        start.ghost.style.top = (ev.clientY - start.oy) + "px";
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = under && under.closest ? under.closest(".tier-row") : null;
+        $$(".tier-row").forEach(r => r.classList.toggle("drag-over", r === row));
+      };
+      const up = ev => {
+        if (ev.pointerId !== start.id) return;
+        chip.removeEventListener("pointermove", move);
+        chip.removeEventListener("pointerup", up);
+        chip.removeEventListener("pointercancel", up);
+        $$(".tier-row").forEach(r => r.classList.remove("drag-over"));
+        if (!start.moved) return;
+        ev.preventDefault();
+        if (start.ghost) start.ghost.remove();
+        chip.classList.remove("dragging");
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const row = under && under.closest ? under.closest(".tier-row") : null;
+        const pool = under && under.closest ? under.closest("#tierPool") : null;
+        chip.dataset.justDragged = "1";
+        if (row) tierAssign(i, +row.dataset.t);
+        else if (pool) tierAssign(i, null);
+      };
+      chip.addEventListener("pointermove", move);
+      chip.addEventListener("pointerup", up);
+      chip.addEventListener("pointercancel", up);
+    });
+    chip.addEventListener("click", e => {
+      if (chip.dataset.justDragged) { delete chip.dataset.justDragged; e.stopPropagation(); return; }
+      e.stopPropagation();
+      tierTapChip(i);
+    });
     chip.addEventListener("dragstart", e => { if (chip.classList.contains("pinned")) { e.preventDefault(); return; } state.tierDrag = i; chip.classList.add("dragging"); e.dataTransfer.setData("text/plain", String(i)); e.dataTransfer.effectAllowed = "move"; });
     chip.addEventListener("dragend", () => { chip.classList.remove("dragging"); state.tierDrag = null; $$(".tier-row").forEach(r => r.classList.remove("drag-over")); });
   }
@@ -2959,11 +3174,14 @@ function top1Paint() {
   const dir = $("#t5Dir");
   if (dir) dir.textContent = g.done ? (g.solved ? "You found #1" : "The real #1") : "Type a country. Closer to #1 is warmer.";
   const ol = $("#top1Guesses");
-  if (ol) ol.innerHTML = g.guesses.map(guess => {
-    const cls = guess.mark === "good" ? "win" : guess.mark === "near" ? "near" : guess.mark === "warm" ? "warm" : "";
-    const tick = guess.mark === "good" ? " ✓" : "";
-    return `<li class="g-row ${cls}"><span class="emoji">${esc(guess.emoji || "🏳️")}</span><span><span class="gn">${esc(guess.name)}${tick}</span><span class="gv">${fmt1(guess.value)}${p.unit ? " " + esc(p.unit) : ""}</span></span><span class="gr">#${guess.rank}<small>of ${guess.total}</small></span></li>`;
-  }).join("");
+  if (ol) {
+    ol.innerHTML = g.guesses.slice().reverse().map(guess => {
+      const cls = guess.mark === "good" ? "win" : guess.mark === "near" ? "near" : guess.mark === "warm" ? "warm" : "";
+      const tick = guess.mark === "good" ? " ✓" : "";
+      return `<li class="g-row ${cls}"><span class="emoji">${esc(guess.emoji || "🏳️")}</span><span><span class="gn">${esc(guess.name)}${tick}</span><span class="gv">${fmt1(guess.value)}${p.unit ? " " + esc(p.unit) : ""}</span></span><span class="gr">#${guess.rank}<small>of ${guess.total}</small></span></li>`;
+    }).join("");
+    ol.scrollTop = 0;
+  }
   renderTop1Hints();
 }
 function renderTop1Hints() {
@@ -3555,6 +3773,13 @@ function paintSourceCard(p) {
   if (!img) return;
   const showIcon = () => { img.hidden = true; if (fb) fb.hidden = false; };
   const showFav = () => { img.hidden = false; if (fb) fb.hidden = true; };
+  if (card.glyph === "search") {
+    img.onload = null;
+    img.onerror = null;
+    img.src = "data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6" fill="none" stroke="%23111" stroke-width="2"/><path d="M14.5 14.5L20 20" stroke="%23111" stroke-width="2" stroke-linecap="round"/></svg>');
+    showFav();
+    return;
+  }
   img.onload = () => { if (img.naturalWidth > 0) showFav(); else showIcon(); };
   img.onerror = showIcon;
   if (img.getAttribute("src") !== card.favicon) {
@@ -3563,7 +3788,154 @@ function paintSourceCard(p) {
   } else if (img.complete && img.naturalWidth > 0) showFav();
   else showIcon();
 }
+function morePartsRemain() {
+  if (state.slot !== "bonus") return false;
+  if (state.mode !== "daily" && state.mode !== "archive" && state.mode !== "preview") return false;
+  const parts = state.bundleParts || [];
+  return parts.length > 1 && (state.partIndex || 0) < parts.length - 1;
+}
+function crowdPoints(p, data) {
+  const max = bundlePoints(p);
+  const acc = data && data.standing && Number(data.standing.avgAccuracy);
+  if (!Number.isFinite(acc)) return null;
+  return Math.max(0, Math.min(max, Math.round(max * acc / 100)));
+}
+function yourAnswerNames(p, res) {
+  if (!p || !res) return [];
+  if (p.type === "quiz") return (res.picks || []).map(pick => pick && (pick.name || pick.iso3)).filter(Boolean);
+  if (p.type === "top1" || p.type === "name") return (res.guesses || []).map(g => (g && (g.name || g.pick)) || (typeof g === "string" ? g : "")).filter(Boolean);
+  if (p.type === "rank" || p.type === "tier" || p.type === "match") {
+    const attempt = res.attempts && res.attempts.length ? res.attempts[res.attempts.length - 1] : null;
+    if (p.type === "rank") {
+      const order = (attempt && attempt.order) || res.order || [];
+      return order.map(i => p.items && p.items[i] && p.items[i].name).filter(Boolean);
+    }
+    if (p.type === "tier") return (p.items || []).map(it => it.name);
+    return (p.people || []).map(person => person.name);
+  }
+  return [];
+}
+function paintBundlePile() {
+  const pile = $("#bundlePile");
+  if (!pile) return;
+  const parts = currentParts();
+  const show = parts.length > 1 && (state.mode === "daily" || state.mode === "archive" || state.mode === "preview");
+  pile.classList.toggle("hidden", !show);
+  pile.classList.toggle("is-reduce", motionReduce());
+  if (!show) { pile.innerHTML = ""; return; }
+  const here = state.partIndex || 0;
+  pile.innerHTML = parts.map((p, k) => {
+    if (k < here) return "";
+    const back = k - here;
+    const rot = (back - 1) * 2.4;
+    return `<span class="bundle-card${k === here ? " is-top" : ""}" style="--rot:${rot}deg;--back:${back}" title="${esc(p.headline || p.question || "")}"></span>`;
+  }).join("");
+}
+function showPartStrip(res) {
+  const p = state.puzzle;
+  hidePlayBoards();
+  const quiz = $("#quizGame"); if (quiz) quiz.classList.add("hidden");
+  $("#result").classList.add("hidden");
+  const strip = $("#partStrip");
+  if (!strip) return;
+  const mine = partScore(p, res);
+  const line = $("#partStripLine");
+  if (line) line.textContent = `You ${mine.score}/${mine.max}`;
+  const crowd = $("#partStripCrowd");
+  if (crowd) crowd.textContent = "Crowd…";
+  const bars = $("#partStripBars");
+  if (bars) bars.innerHTML = "";
+  const next = $("#partNext");
+  if (next) next.textContent = "Next";
+  strip.classList.remove("hidden");
+  const pile = $("#bundlePile");
+  if (pile && !motionReduce()) pile.classList.add("is-straight");
+  showFab(false);
+  syncPlaying();
+  CommunityStats.fetch(p && p.id, state.dateKey).then(data => {
+    if (!data || state.puzzle !== p) return;
+    fillCommunitySeed(data, p);
+    const theirs = crowdPoints(p, data);
+    if (crowd) {
+      const seeded = data.seeded !== false;
+      crowd.textContent = theirs == null ? "Crowd still filling in" : `Crowd ${theirs}/${mine.max}${seeded ? "" : ""}`;
+    }
+    const world = communityBars(data.firstGuessWorld || data.firstGuess);
+    const yours = new Set(yourAnswerNames(p, res));
+    if (bars) bars.innerHTML = world.slice(0, 4).map(bar => {
+      const name = bar.name || bar.label || "";
+      const hit = yours.has(name) ? " is-you" : "";
+      return `<div class="part-bar${hit}">${communityCrow(name, bar.pct, bar.emoji || communityEmojiOf(p, name))}</div>`;
+    }).join("");
+  }).catch(() => { if (crowd && state.puzzle === p) crowd.textContent = "Crowd still filling in"; });
+}
+function paintDayTotal(res) {
+  const box = $("#dayScore");
+  if (!box) return;
+  const parts = (state.bundleParts && state.bundleParts.length > 1) ? state.bundleParts : [];
+  if (!parts.length || (state.mode !== "daily" && state.mode !== "archive" && state.mode !== "preview")) {
+    box.classList.add("hidden");
+    box.innerHTML = "";
+    return;
+  }
+  const rows = parts.map((p, i) => {
+    const stored = storedRow(partStorageKey(i), p.id);
+    const mine = (i === (state.partIndex || 0) ? (res || state.liveResult || stored) : stored);
+    return { p, i, s: partScore(p, mine) };
+  });
+  const score = rows.reduce((n, row) => n + row.s.score, 0);
+  const max = rows.reduce((n, row) => n + row.s.max, 0);
+  box.classList.remove("hidden");
+  box.innerHTML = `<div class="day-score-top"><b>${score}/${max}</b><span>Today's score</span></div><div class="day-podium" id="dayPodium"></div><div class="day-parts">${rows.map(row => `<details class="day-part"><summary>Part ${row.i + 1} · ${esc(row.p.headline || row.p.question || "Puzzle")} · ${row.s.score}/${row.s.max}</summary><div class="day-part-body" data-part="${row.i}"></div></details>`).join("")}</div>`;
+  box.querySelectorAll("details.day-part").forEach(el => {
+    el.addEventListener("toggle", () => {
+      if (!el.open) return;
+      const body = el.querySelector(".day-part-body");
+      const i = Number(body && body.dataset.part);
+      const p = parts[i];
+      if (!body || !p || body.dataset.filled) return;
+      body.dataset.filled = "1";
+      body.innerHTML = `<p class="community-empty">Loading…</p>`;
+      CommunityStats.fetch(p.id, state.dateKey).then(data => {
+        if (!data) { body.innerHTML = `<p class="community-empty">No community snapshot for this part yet.</p>`; return; }
+        fillCommunitySeed(data, p);
+        const world = communityBars(data.firstGuessWorld || data.firstGuess);
+        const standing = data.standing;
+        const avg = standing && standing.avgAccuracy != null ? `Crowd accuracy ${Math.round(Number(standing.avgAccuracy))}%` : "";
+        body.innerHTML = (avg ? `<p class="community-note">${esc(avg)}${data.seeded === false ? "" : " · early data"}</p>` : "") + (world.length ? communityOrderList(world, p) : `<p class="community-empty">No first guesses for this part yet.</p>`);
+      }).catch(() => { body.innerHTML = `<p class="community-empty">No community snapshot for this part yet.</p>`; });
+    });
+  });
+  const seed = window.RankdSeed;
+  const podium = $("#dayPodium");
+  if (!podium || !seed || typeof renderPlatforms !== "function") return;
+  Promise.all(parts.map(p => CommunityStats.fetch(p.id, state.dateKey).catch(() => null))).then(list => {
+    let crowd = 0, known = 0;
+    list.forEach((data, i) => {
+      if (data) fillCommunitySeed(data, parts[i]);
+      const pts = crowdPoints(parts[i], data);
+      if (pts == null) return;
+      crowd += pts;
+      known++;
+    });
+    if (!known || !max) return;
+    const playerPct = Math.round(100 * score / max);
+    const crowdPct = Math.round(100 * crowd / max);
+    const better = Math.max(1, Math.min(99, Math.round(50 + (playerPct - crowdPct))));
+    podium.innerHTML = "";
+    const platforms = renderPlatforms(better, parts.map(p => p.id).join("|") + "|" + score);
+    if (platforms) podium.appendChild(platforms);
+    const note = document.createElement("p");
+    note.className = "platforms-caption";
+    note.textContent = `You ${score}/${max} · crowd about ${crowd}/${max}`;
+    podium.appendChild(note);
+  }).catch(() => {});
+}
 function showResult(res, opts) {
+  if (morePartsRemain()) {
+    showPartStrip(res);
+    return;
+  }
   if (opts && opts.sound) Snd.success(res);
   const p = state.puzzle;
   if (res) state.liveResult = res;
@@ -3631,6 +4003,7 @@ function showResult(res, opts) {
   renderCommunity(p, res);
   const skipPart = $("#skipPart"); if (skipPart) skipPart.classList.add("hidden");
   paintBonus(res);
+  paintDayTotal(res);
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn", "#quizNext"].forEach(id => { const b = $(id); if (b && b.parentElement) b.parentElement.classList.add("hidden"); });
@@ -4997,39 +5370,61 @@ function paintBonus(res) {
   const line = $("#bonusLine");
   const btn = $("#bonusBtn");
   if (!line || !btn) return;
-  const bonus = dayOffersBonus() ? bonusForDayNumber(dayNumber(state.dateKey)) : null;
-  if (!bonus) { line.textContent = ""; line.classList.add("hidden"); btn.classList.add("hidden"); return; }
-  if (state.slot === "bonus") {
-    line.textContent = "Next: the daily ranker.";
-    line.classList.remove("hidden");
-    btn.textContent = "Next: Part 2 →";
-    btn.classList.remove("hidden");
+  const parts = dayOffersBonus() ? currentParts() : [];
+  if (parts.length < 2) { line.textContent = ""; line.classList.add("hidden"); btn.classList.add("hidden"); return; }
+  if (morePartsRemain()) {
+    line.textContent = "";
+    line.classList.add("hidden");
+    btn.classList.add("hidden");
     return;
   }
-  const pack = storedBonusDone();
-  const main = state.puzzle;
-  const mainRes = res && isDone(res) ? res : storedMainDone(main);
-  const part2 = main && mainRes ? part2ResultLine(main, mainRes) : "";
-  const summary = pack ? bonusResultLine(pack.puzzle, pack.result) + (part2 ? "\n" + part2 : "") : (part2 ? "Part 1 skipped\n" + part2 : "");
-  line.textContent = summary;
-  line.classList.toggle("hidden", !summary);
+  const bits = [];
+  for (let i = 0; i < parts.length; i++) {
+    const row = i === (state.partIndex || 0) && res && isDone(res) ? res : storedRow(partStorageKey(i), parts[i].id);
+    bits.push(partResultLine(i, parts[i], row));
+  }
+  line.textContent = bits.join("\n");
+  line.classList.remove("hidden");
   btn.classList.add("hidden");
 }
-function playBonus() {
-  if (!dayOffersBonus()) return false;
-  const p = bonusForDayNumber(dayNumber(state.dateKey));
+function openPart(index, opts) {
+  const parts = state.bundleParts || [];
+  const p = parts[index];
   if (!p) return false;
-  openPuzzle(p, { bonus: true });
-  return true;
-}
-function playMain() {
+  state.partIndex = index;
   const view = $("#playView");
-  if (view && state.slot === "bonus") {
+  if (view && opts && opts.animate) {
     view.classList.remove("bundle-in");
     void view.offsetWidth;
     view.classList.add("bundle-in");
   }
-  openDay({ main: true });
+  openPuzzle(p, { bonus: index < parts.length - 1 });
+  paintBundlePile();
+  return true;
+}
+function playBonus() {
+  if (!dayOffersBonus()) return false;
+  const parts = dayParts(dayNumber(state.dateKey));
+  state.bundleParts = parts;
+  if (parts.length < 2) return false;
+  return openPart(0);
+}
+function playMain() {
+  const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : dayParts(dayNumber(state.dateKey));
+  state.bundleParts = parts;
+  return openPart(Math.max(0, parts.length - 1), { animate: true });
+}
+function advancePart() {
+  const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : currentParts();
+  state.bundleParts = parts;
+  const next = (state.partIndex || 0) + 1;
+  if (next >= parts.length) return false;
+  const pile = $("#bundlePile");
+  const go = () => openPart(next, { animate: true });
+  if (pile && !motionReduce()) {
+    pile.classList.add("is-straight");
+    setTimeout(go, 380);
+  } else go();
   return true;
 }
 function showMainResult() { return playMain(); }
@@ -5037,15 +5432,14 @@ window.RankdBonus.play = playBonus;
 window.RankdBonus.main = playMain;
 window.RankdBonus.back = showMainResult;
 function openDay(opts) {
-  const main = () => {
-    const p = puzzleForDay(dayNumber(state.dateKey));
-    if (p) openPuzzle(p);
-  };
-  if (opts && opts.main) return main();
-  const part1 = dayOffersBonus() ? bonusForDayNumber(dayNumber(state.dateKey)) : null;
-  if (!part1) return main();
-  try { openPuzzle(part1, { bonus: true }); }
-  catch (e) { main(); }
+  const n = dayNumber(state.dateKey);
+  const parts = dayOffersBonus() ? dayParts(n) : [puzzleForDay(n)].filter(Boolean);
+  state.bundleParts = parts;
+  if (!parts.length) return;
+  if (opts && opts.main) return openPart(parts.length - 1, { animate: true });
+  if (opts && Number.isFinite(opts.part)) return openPart(opts.part, { animate: true });
+  try { openPart(0); }
+  catch (e) { openPart(parts.length - 1); }
 }
 function goToday(opts) {
   state.mode = "daily"; state.dateKey = todayKey();
@@ -5172,9 +5566,8 @@ function goArchive() {
     const head = p.type === "top1" ? heroHeadline(p) : (p.headline || p.question);
     const sub = p.type === "top1" ? (p.question && p.question !== head ? p.question : "") : (p.headline && p.headline !== p.question ? p.question : "");
     const modeLabel = p.type === "name" ? "Name it" : p.type === "quiz" ? "Quiz" : p.type === "top1" ? "Top 1" : p.type === "top5" ? "Top 5" : p.type === "match" ? "Match it" : p.type === "tier" ? "Tier it" : "Rank it";
-    const bonusP = bonusForDayNumber(n);
-    const bonusHead = bonusP ? (bonusP.type === "top1" ? heroHeadline(bonusP) : (bonusP.headline || bonusP.question || "")) : "";
-    const bonusBit = bonusHead ? `<span class="abonus">Part 1 · ${esc(bonusHead)}</span>` : "";
+    const partsN = dayParts(n);
+    const bonusBit = partsN.length > 1 ? `<span class="abonus">${partsN.length} parts</span>` : "";
     rows.push(`<li data-day="${n}"><button class="arch ${n === last ? "today" : ""}${locked ? " locked" : ""}" data-key="${key}" data-locked="${locked ? "1" : "0"}"><span class="an">#${pad3(n + 1)}<small>${n === last ? "Today" : prettyDate(key).replace(/, \d{4}$/, "")}</small></span>
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(head)}</span>${sub ? `<span class="asub">${esc(sub)}</span>` : ""}<small>${modeLabel}</small>${bonusBit}</span>${badge}</button></li>`);
   }
@@ -5428,7 +5821,8 @@ if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#bonusBtn")) $("#bonusBtn").onclick = () => playMain();
-if ($("#skipPart")) $("#skipPart").onclick = () => playMain();
+if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
+if ($("#partNext")) $("#partNext").onclick = () => advancePart();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;

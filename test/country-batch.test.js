@@ -85,15 +85,16 @@ test("new dailies start the day after Measured Up and do not reuse an order", ()
   assert.equal(new Set(orders).size, orders.length);
   for (const [id, order, date, headline] of fresh) {
     const p = byId(id);
-    assert.equal(p.type, id === "never-woman-leader" ? "tier" : "rank", id);
+    assert.equal(p.type, id === "never-woman-leader" ? "quiz" : "rank", id);
     assert.equal(Math.round(p.order), order, id);
     assert.equal(dateOf(p.order), date, id);
     assert.equal(p.headline, headline, id);
     assert.equal(p.sensitive, undefined, id);
     assert.ok(p.fact && p.sourceUrl.startsWith("https://"), id);
-    if (p.type !== "tier") assert.equal(new Set(p.items.map(it => it.value)).size, p.items.length, id);
+    if (p.type === "rank") assert.equal(new Set(p.items.map(it => it.value)).size, p.items.length, id);
     assert.equal(/per capita/i.test(p.unit), false, id);
-    assert.equal(search.matches(p, p.items[0].name), true, id);
+    const needle = p.type === "quiz" ? p.questions[0].prompt : p.items[0].name;
+    assert.equal(search.matches(p, needle), true, id);
   }
   assert.equal(byId("smallest-asia").higherIs, "bottom");
   assert.equal(byId("southern-capitals").higherIs, "bottom");
@@ -106,12 +107,10 @@ test("new dailies start the day after Measured Up and do not reuse an order", ()
   assert.equal(east.items[0].name, "Tuvalu");
   assert.ok(east.items.every((it, i, arr) => i === 0 || arr[i - 1].value > it.value));
   const woman = byId("never-woman-leader");
-  assert.equal(woman.tiers[0].label, "Has had one");
+  assert.equal(woman.questions[0].options[0].name, "Has had one");
   assert.equal(woman.question, "Has this country ever had a woman as head of state or government?");
-  assert.equal(woman.tiers[1].label, "Never has");
-  assert.equal(woman.tiers[0].value, 1);
-  assert.equal(woman.tiers[1].value, 0);
-  const womanTier = iso => woman.tiers[woman.items.find(it => it.iso3 === iso).tierIndex].value;
+  assert.equal(woman.questions[0].options[1].name, "Never has");
+  const womanTier = iso => woman.questions.find(q => q.id === iso.toLowerCase()).answer === "T0" ? 1 : 0;
   assert.equal(womanTier("PAK"), 1);
   assert.equal(womanTier("IND"), 1);
   assert.equal(womanTier("IDN"), 1);
@@ -146,13 +145,13 @@ test("name puzzles for divorce and tree names take the next free days", () => {
     next += 1;
   }
   assert.equal(JSON.stringify(assigned.slice(-3)), JSON.stringify([
-    ["name-no-divorce", 209],
-    ["name-tree-country", 210],
-    ["name-named-for-her", 213],
+    ["name-no-divorce", 164],
+    ["name-tree-country", 165],
+    ["name-named-for-her", 166],
   ]));
-  assert.equal(dateOf(209), "2027-05-02");
-  assert.equal(dateOf(210), "2027-05-03");
-  assert.equal(dateOf(213), "2027-05-06");
+  assert.equal(dateOf(164), "2027-03-18");
+  assert.equal(dateOf(165), "2027-03-19");
+  assert.equal(dateOf(166), "2027-03-20");
   const divorce = namePuzzles.find(p => p.id === "name-no-divorce");
   const tree = namePuzzles.find(p => p.id === "name-tree-country");
   assert.equal(JSON.stringify(divorce.answers), JSON.stringify(["PHL", "VAT"]));
