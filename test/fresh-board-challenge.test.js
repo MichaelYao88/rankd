@@ -232,6 +232,7 @@ function bootGame() {
     "name-puzzles.js",
     "part1-puzzles.js",
     "name-it.js",
+    "invent-quiz.js",
     "challenge.js",
     "country-facts.js",
   ];
@@ -305,6 +306,15 @@ function finishFor(p, tries) {
         { name: "Japan", emoji: "🇯🇵", rank: 1, mark: "good", value: 2 },
       ];
     return { type: "top1", done: true, solved: true, tries: guesses.length, won: true, guesses };
+  }
+  if (p.type === "quiz") {
+    const n = (p.questions || []).length;
+    const marks = goodMarks(n);
+    const picks = (p.questions || []).map(q => {
+      const right = (q.options || []).find(o => o.iso3 === q.answer) || { name: q.answer, emoji: "" };
+      return { iso3: q.answer, name: right.name, emoji: right.emoji, mark: "good", id: q.id };
+    });
+    return { type: "quiz", done: true, solved: true, tries: 1, hits: n, total: n, marks, picks, guesses: picks };
   }
   if (p.type === "name") {
     const marks = nTry <= 1 ? ["good"] : ["bad", "good"];
@@ -402,7 +412,7 @@ test("challenge share, the result qr, and the first play", async () => {
 
   const byType = {};
   for (const p of api.PUZZLES) if (!byType[p.type]) byType[p.type] = p;
-  for (const type of ["rank", "tier", "match", "top1", "name"]) {
+  for (const type of ["rank", "tier", "match", "top1", "name", "quiz"]) {
     assert.ok(byType[type], "catalog has " + type);
     const text = await shareFinished(byType[type], "all", "2026-10-27");
     const token = tokenOf(text);

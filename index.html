@@ -347,6 +347,24 @@
         </form>
       </section>
 
+      <!-- QUIZ: one shot, four countries, then the fact. -->
+      <section id="quizGame" class="hidden">
+        <div class="game-bar">
+          <span class="direction" id="quizDir">Question 1 of 10</span>
+          <span class="direction" id="quizScore">0 correct</span>
+        </div>
+        <p class="quiz-ask" id="quizAsk"></p>
+        <div class="quiz-options" id="quizOptions" role="group" aria-label="Countries"></div>
+        <div class="quiz-reveal hidden" id="quizReveal">
+          <p class="quiz-verdict" id="quizVerdict"></p>
+          <p class="quiz-fact" id="quizFact"></p>
+          <a class="quiz-source" id="quizSource" target="_blank" rel="noopener"></a>
+          <div class="card-foot actions">
+            <button class="pill-btn outline" id="quizNext" type="button">Next</button>
+          </div>
+        </div>
+      </section>
+
       <!-- TOP 1: type a country. Each guess shows that country's real rank. -->
       <section id="guessGame" class="hidden">
         <div class="game-bar">
@@ -550,6 +568,7 @@
 <script src="name-puzzles.js"></script>
 <script src="part1-puzzles.js"></script>
 <script src="name-it.js"></script>
+<script src="invent-quiz.js"></script>
 <script src="challenge.js"></script>
 <script src="country-facts.js"></script>
 <script src="pwa.js"></script>
