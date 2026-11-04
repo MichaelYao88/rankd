@@ -56,7 +56,7 @@ const practice = (() => {
   return box.window.RANKD_PRACTICE;
 })();
 
-test("guess the number scores by the error ratio and stays out of 2", () => {
+test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
   const NumberGuess = (() => {
     const box = { window: {} };
     vm.runInNewContext(read("number-puzzles.js"), box);
@@ -64,17 +64,16 @@ test("guess the number scores by the error ratio and stays out of 2", () => {
     return box.window.RankdNumber;
   })();
   const truth = 2.55;
-  assert.equal(NumberGuess.score(truth, truth).points, 2);
-  assert.equal(NumberGuess.score(truth * 1.25, truth).points, 2);
-  assert.equal(NumberGuess.score(truth * 1.26, truth).points, 1.5);
-  assert.equal(NumberGuess.score(truth * 1.5, truth).points, 1.5);
-  assert.equal(NumberGuess.score(truth * 1.51, truth).points, 1);
-  assert.equal(NumberGuess.score(truth / 2, truth).points, 1);
-  assert.equal(NumberGuess.score(truth * 2.01, truth).points, 0.5);
-  assert.equal(NumberGuess.score(truth * 3, truth).points, 0.5);
-  assert.equal(NumberGuess.score(truth * 3.01, truth).points, 0);
-  assert.equal(NumberGuess.score(0, truth).points, 0);
-  assert.equal(NumberGuess.score("", truth).points, 0);
+  const acc = ratio => Math.max(0, Math.min(100, Math.round(100 * (1 - Math.log(ratio) / Math.log(3)))));
+  assert.equal(NumberGuess.score(truth, truth).accuracy, 100);
+  assert.equal(NumberGuess.score(truth * 1.25, truth).accuracy, acc(1.25));
+  assert.equal(NumberGuess.score(truth * 1.5, truth).accuracy, acc(1.5));
+  assert.equal(NumberGuess.score(truth / 2, truth).accuracy, acc(2));
+  assert.equal(NumberGuess.score(truth * 3, truth).accuracy, 0);
+  assert.equal(NumberGuess.score(truth * 3.01, truth).accuracy, 0);
+  assert.equal(NumberGuess.score(0, truth).accuracy, 0);
+  assert.equal(NumberGuess.score("", truth).accuracy, 0);
+  assert.ok(NumberGuess.score(truth * 1.25, truth).accuracy > NumberGuess.score(truth * 2, truth).accuracy);
   const sets = NumberGuess.sets();
   const stats = (() => {
     const box = { window: {} };
@@ -113,7 +112,7 @@ test("guess the number scores by the error ratio and stays out of 2", () => {
   }
 });
 
-test("number cards fill the bundle after the AdSense window and score halves", () => {
+test("number cards fill the bundle after the AdSense window and score accuracy", () => {
   const win = boot();
   const bonus = win.RankdBonus;
   const cards = win.RankdNumber.allCards();
@@ -127,14 +126,14 @@ test("number cards fill the bundle after the AdSense window and score halves", (
   assert.ok(later.some(p => p.type === "number" && p.sensitive), "female homicide stays available after the window");
   assert.ok(later.some(p => p.type === "number" && !p.sensitive));
   const puzzle = cards.find(c => c.ask.iso3 === "USA" && c.known.iso3 === "IND");
-  const close = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 2.4);
+  const close = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 2.55);
   assert.equal(close.done, true);
-  assert.equal(close.points, 2);
-  assert.equal(bonus.score(puzzle, close).score, 2);
-  assert.equal(bonus.score(puzzle, close).max, 2);
-  const off = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 1.2);
-  assert.equal(off.points, 0.5);
-  assert.equal(bonus.score(puzzle, off).score, 0.5);
+  assert.equal(close.accuracy, 100);
+  assert.equal(bonus.score(puzzle, close).score, 100);
+  assert.equal(bonus.score(puzzle, close).weight, 2);
+  const off = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 2.55 * 3);
+  assert.equal(off.accuracy, 0);
+  assert.equal(bonus.score(puzzle, off).score, 0);
 
   win.RankdShared.CONFIG.adsenseSafeThrough = "";
   let sawSensitive = false, sawOpen = false;
@@ -165,7 +164,8 @@ test("number cards fill the bundle after the AdSense window and score halves", (
     const date = keyFrom(n);
     const total = parts.reduce((sum, p) => sum + bonus.points(p), 0);
     const floor = parts.reduce((sum, p) => sum + bonus.points(p), 0);
-    assert.ok(total <= bonus.ceiling || total === bonus.points(parts[parts.length - 1]) + bonus.points(parts[0]), date + " " + total);
+    const titleWeight = parts.filter(p => p.role === "title").reduce((sum, p) => sum + bonus.points(p), 0);
+    assert.ok(total <= bonus.ceiling || total === titleWeight, date + " " + total);
     assert.ok(floor >= 1, date);
     const numbers = parts.filter(p => p.type === "number");
     assert.equal(new Set(numbers.map(p => p.parentId)).size, numbers.length, date);
@@ -230,6 +230,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v36/);
+  assert.match(read("sw.js"), /ranki-shell-v37/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

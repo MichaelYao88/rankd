@@ -1769,21 +1769,24 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
-// Daily bundle. The scheduled puzzle is always the last part and the only one that
-// moves the streak. Earlier parts are fillers chosen so the day lands near
-// BUNDLE_TARGET:
+// Daily bundle. The scheduled puzzle is first. A multiple-choice day is one part
+// per question, each with its own card. Fillers sit in the middle. The day ends
+// on a different Rank it when one still fits: it must not repeat a puzzle inside
+// FILLER_GAP, and the day's weight must stay within BUNDLE_CEILING. If no such
+// ranker exists, the closer is left off and the middle fills toward the target.
+// Weights, not scores:
 //   one quiz question = 1
+//   Guess the number = 2
 //   tier = one per tier
 //   match = one per pair
 //   name = 1
 //   rank, Top 1, Top 5 = 5
-// Fillers are single questions from the quiz days, plus Top 1s and other puzzles
-// whose own play date is on or after FILLER_LATE_FROM (February 2027). That is
-// what backfills October–December 2026. A filler is deterministic for the date.
-// The same puzzle id is not used again inside FILLER_GAP days, and it is not used
-// within that many days of the day it is the main puzzle. A sensitive filler is
-// never placed on or before CONFIG.adsenseSafeThrough. At most BUNDLE_MAX_PARTS
-// parts, and a part is not added when it would push the day over BUNDLE_CEILING.
+// Each part scores accuracy out of 100. The package score is the weighted
+// average of those accuracies, also out of 100. Guess the number accuracy uses
+// ratio = bigger/smaller and round(100 * max(0, 1 - ln(ratio) / ln(3))): 100
+// when the guess matches, 0 once it is 3× off. There is no half-point score.
+// The scheduled puzzle is the one that moves the streak. On a quiz day that is
+// the last question of that quiz. Fillers and the closer never move it.
 // The first finish of each part is the one that counts.
 const BONUS_TYPES = ["top1", "name", "tier", "match"];
 const BONUS_TYPE_SET = new Set(BONUS_TYPES);
@@ -1792,7 +1795,8 @@ const FILLER_GAP = 30;
 const FILLER_LATE_FROM = "2027-02-01";
 const BUNDLE_TARGET = 12;
 const BUNDLE_CEILING = 14;
-const BUNDLE_MAX_PARTS = 4;
+const BUNDLE_MAX_PARTS = 16;
+const CLOSER_WEIGHT = 5;
 const THEME_KEEP = new Set(["hdi", "co2", "tea", "gdp"]);
 const THEME_STOP = new Set("the and for with from that this rate rates per top name match daily item items world share index most year data group groups country countries people adult adults between above under higher lower rank tier".split(" "));
 function puzzleOnDay(n) {
@@ -1945,8 +1949,8 @@ let partsMemo = [];
 let partsMemoList = null;
 let partsMemoCut = null;
 function bonusForDayNumber(n) {
-  const fillers = dayFillers(n);
-  return fillers.length ? fillers[0] : null;
+  const parts = dayParts(n);
+  return parts.find(p => p.role === "filler") || parts.find(p => p.role === "closer") || null;
 }
 function fmtPoints(n) {
   const x = Math.round(Number(n) * 10) / 10;
@@ -1962,29 +1966,107 @@ function bundlePoints(p) {
   if (p.type === "name") return 1;
   return 5;
 }
-function partScore(p, res) {
-  const max = bundlePoints(p);
-  if (!p || !res || !res.done) return { score: 0, max };
-  if (p.type === "number") {
-    const pts = Number(res.points);
-    return { score: Number.isFinite(pts) ? Math.max(0, Math.min(max, pts)) : 0, max };
-  }
-  if (p.type === "quiz") {
-    const hits = Number(res.hits) || ((res.marks || []).filter(m => m === "good").length);
-    return { score: Math.min(max, hits), max };
-  }
-  if (p.type === "name") return { score: res.solved ? 1 : 0, max };
-  if (p.type === "match" || p.type === "tier" || p.type === "rank" || (p.type === "top5" && res.attempts)) {
-    const marks = (res.attempts && res.attempts.length) ? res.attempts[res.attempts.length - 1].marks : (res.marks || []);
-    if (p.type !== "tier" && (res.solved || res.won) && (p.type === "rank" || p.type === "top5")) return { score: max, max };
-    if (!marks.length) return { score: (res.solved || res.won) ? max : 0, max };
-    const good = marks.filter(m => m === "good").length;
-    return { score: Math.max(0, Math.min(max, Math.round(max * good / marks.length))), max };
-  }
-  if (p.type === "top1") return { score: res.solved ? max : 0, max };
-  return { score: (res.solved || res.won) ? max : 0, max };
+function numberAccuracyFromRatio(ratio) {
+  const r = Number(ratio);
+  if (!Number.isFinite(r) || r < 1) return 0;
+  const drop = Math.log(r) / Math.log(3);
+  return Math.max(0, Math.min(100, Math.round(100 * (1 - drop))));
 }
-function dayFillers(n) {
+function partAccuracy(p, res) {
+  if (!p || !res || !res.done) return 0;
+  if (p.type === "number") {
+    if (Number.isFinite(Number(res.accuracy))) return Math.max(0, Math.min(100, Math.round(Number(res.accuracy))));
+    return numberAccuracyFromRatio(res.ratio);
+  }
+  const card = resultCard(p, res);
+  if (card && Number.isFinite(card.accuracy)) return card.accuracy;
+  if (p.type === "quiz") {
+    const marks = res.marks || [];
+    const hits = Number(res.hits) || marks.filter(m => m === "good").length;
+    const n = marks.length || (p.questions || []).length || 1;
+    return n ? Math.round(100 * Math.min(n, hits) / n) : 0;
+  }
+  if (res.solved || res.won) return Number(res.tries) === 1 ? 100 : 80;
+  return 0;
+}
+function partScore(p, res) {
+  const weight = bundlePoints(p);
+  const accuracy = partAccuracy(p, res);
+  return { score: accuracy, accuracy: accuracy, weight: weight, max: 100 };
+}
+function scheduledPieces(main) {
+  if (!main) return [];
+  if (main.type === "quiz" && Array.isArray(main.questions) && main.questions.length > 1) {
+    return main.questions.map(q => Object.assign(quizCard(main, q), { scheduled: true, scheduleId: main.id, role: "title" }));
+  }
+  return [Object.assign({}, main, { scheduled: true, scheduleId: main.id, role: "title" })];
+}
+function fillerFits(i, p, used, sum, cap) {
+  if (!p || used.ids.has(p.id)) return false;
+  if (p.type === "number" && used.numberParents.has(p.parentId)) return false;
+  if (p.parentId && used.parents.has(p.parentId)) return false;
+  const main = puzzleOnDay(i);
+  if (main && (p.id === main.id || p.parentId === main.id)) return false;
+  if (fillerBlocked(i, p)) return false;
+  return sum + bundlePoints(p) <= cap;
+}
+function rememberUsed(used, p) {
+  used.ids.add(p.id);
+  if (p.parentId) used.parents.add(p.parentId);
+  if (p.scheduleId) used.parents.add(p.scheduleId);
+  if (p.type === "number" && p.parentId) used.numberParents.add(p.parentId);
+}
+function freshUsed(list) {
+  const used = { ids: new Set(), parents: new Set(), numberParents: new Set() };
+  for (const p of list) rememberUsed(used, p);
+  return used;
+}
+function fillerSort(i) {
+  return (a, b) => (a.type === "quiz" ? 1 : 0) - (b.type === "quiz" ? 1 : 0)
+    || bundlePoints(b) - bundlePoints(a)
+    || fillerHash(i, a.id) - fillerHash(i, b.id)
+    || (a.id < b.id ? -1 : 1);
+}
+function takeFillers(i, dateKey, head, sum, cap, goal, allowRank) {
+  const fillers = [];
+  const used = freshUsed(head);
+  while (head.length + fillers.length < BUNDLE_MAX_PARTS && sum < goal) {
+    const pool = fillerPool(dateKey).filter(p => (allowRank || p.type !== "rank") && fillerFits(i, p, used, sum, cap));
+    if (!pool.length) break;
+    pool.sort(fillerSort(i));
+    const pick = Object.assign({}, pool[0], { role: "filler" });
+    fillers.push(pick);
+    rememberUsed(used, pick);
+    sum += bundlePoints(pick);
+  }
+  return { fillers, sum };
+}
+function takeCloser(i, dateKey, head, fillers, sum) {
+  if (sum + CLOSER_WEIGHT > BUNDLE_CEILING) return null;
+  if (head.length + fillers.length + 1 > BUNDLE_MAX_PARTS) return null;
+  const used = freshUsed(head.concat(fillers));
+  const pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  if (!pool.length) return null;
+  pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
+  return Object.assign({}, pool[0], { role: "closer" });
+}
+function buildDayParts(i) {
+  const main = puzzleOnDay(i);
+  const dateKey = keyFromDay(i);
+  const head = scheduledPieces(main);
+  const headSum = head.reduce((sum, p) => sum + bundlePoints(p), 0);
+  const reserve = headSum + CLOSER_WEIGHT <= BUNDLE_CEILING ? CLOSER_WEIGHT : 0;
+  const cap = BUNDLE_CEILING - reserve;
+  const goal = Math.min(cap, reserve ? BUNDLE_TARGET - reserve : BUNDLE_TARGET);
+  let packed = takeFillers(i, dateKey, head, headSum, cap, Math.max(goal, headSum), false);
+  let closer = reserve ? takeCloser(i, dateKey, head, packed.fillers, packed.sum) : null;
+  if (!closer) {
+    const more = takeFillers(i, dateKey, head.concat(packed.fillers), packed.sum, BUNDLE_CEILING, BUNDLE_TARGET, true);
+    packed = { fillers: packed.fillers.concat(more.fillers), sum: more.sum };
+  }
+  return head.concat(packed.fillers, closer ? [closer] : []);
+}
+function dayParts(n) {
   n = Math.round(n);
   if (!Number.isFinite(n) || n < 0) return [];
   const cut = CONFIG.adsenseSafeThrough || "";
@@ -1994,33 +2076,8 @@ function dayFillers(n) {
     partsMemoCut = cut;
   }
   if (n < partsMemo.length && partsMemo[n]) return partsMemo[n];
-  for (let i = partsMemo.length; i <= n; i++) {
-    const main = puzzleOnDay(i);
-    const dateKey = keyFromDay(i);
-    const fillers = [];
-    let sum = bundlePoints(main);
-    while (fillers.length < BUNDLE_MAX_PARTS - 1 && sum < BUNDLE_TARGET) {
-      const pool = fillerPool(dateKey).filter(p => {
-        if (main && (p.id === main.id || p.parentId === main.id)) return false;
-        if (fillers.some(f => f.id === p.id)) return false;
-        if (p.type === "number" && fillers.some(f => f.type === "number" && f.parentId === p.parentId)) return false;
-        if (fillerBlocked(i, p)) return false;
-        return sum + bundlePoints(p) <= BUNDLE_CEILING;
-      });
-      if (!pool.length) break;
-      pool.sort((a, b) => bundlePoints(b) - bundlePoints(a) || fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
-      const pick = pool[0];
-      fillers.push(pick);
-      sum += bundlePoints(pick);
-    }
-    partsMemo[i] = fillers;
-  }
+  for (let i = partsMemo.length; i <= n; i++) partsMemo[i] = buildDayParts(i);
   return partsMemo[n] || [];
-}
-function dayParts(n) {
-  const fillers = dayFillers(n);
-  const main = puzzleOnDay(n);
-  return main ? fillers.concat([main]) : fillers.slice();
 }
 function pileBehind(partCount, index) {
   const n = Math.max(0, partCount || 0);
@@ -2157,16 +2214,20 @@ function bundlePartLabel() {
 function motionReduce() {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
 }
+function streakIndexOf(parts) {
+  let found = -1;
+  for (let k = 0; k < (parts || []).length; k++) if (parts[k] && parts[k].scheduled) found = k;
+  return found < 0 ? Math.max(0, (parts || []).length - 1) : found;
+}
 function partStorageKey(i) {
   const parts = currentParts();
-  const last = Math.max(0, parts.length - 1);
   const puzzle = parts[i];
-  if (i >= last) {
-    const id = (puzzle && puzzle.id) || (state.puzzle && state.puzzle.id) || "";
+  if (i === streakIndexOf(parts)) {
+    const id = (puzzle && (puzzle.scheduleId || puzzle.id)) || (state.puzzle && state.puzzle.id) || "";
     return state.mode === "preview" ? `v:${id}:${state.dateKey}` : `d:${state.dateKey}`;
   }
   if (state.mode === "preview") return `vb:${(puzzle && puzzle.id) || ""}:${state.dateKey}`;
-  return i === 0 ? `b:${state.dateKey}` : `b:${state.dateKey}:${i}`;
+  return `b:${state.dateKey}:${i}`;
 }
 const resultKey = () => {
   if (state.slot === "bonus" && dayOffersBonus()) {
@@ -2177,7 +2238,7 @@ const resultKey = () => {
   return state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 };
 const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
-const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, at: Date.now() };
+const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, scheduleId: (state.puzzle && (state.puzzle.scheduleId || state.puzzle.id)) || "", at: Date.now() };
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
 function activePlay() {
@@ -2222,20 +2283,25 @@ function storedRow(key, id) {
   if (!row || row.id !== id) return null;
   return row;
 }
+function rowMatchesPuzzle(row, p) {
+  if (!row || !p) return false;
+  return row.id === p.id || row.scheduleId === p.id;
+}
 function storedMainDone(p) {
   if (!p) return null;
   const key = state.mode === "preview" ? `v:${p.id}:${state.dateKey}` : `d:${state.dateKey}`;
-  const row = storedRow(key, p.id);
-  if (!row) return null;
+  const row = load(LS.results, {})[key];
+  if (!rowMatchesPuzzle(row, p)) return null;
   const y = p.type === "rank" ? (normRank(row) || row) : row;
   return y && isDone(y) ? y : null;
 }
 function storedBonusDone() {
   if (!dayOffersBonus()) return null;
-  const p = bonusForDayNumber(dayNumber(state.dateKey));
-  if (!p) return null;
-  const key = state.mode === "preview" ? `vb:${p.id}:${state.dateKey}` : `b:${state.dateKey}`;
-  const row = storedRow(key, p.id);
+  const parts = dayParts(dayNumber(state.dateKey));
+  const i = parts.findIndex(p => p.role === "filler");
+  if (i < 0) return null;
+  const p = parts[i];
+  const row = storedRow(partStorageKey(i), p.id);
   if (!row || !isDone(row)) return null;
   return { puzzle: p, result: row };
 }
@@ -2247,35 +2313,26 @@ function partResultLine(index, p, r) {
   const label = `Part ${index + 1}`;
   if (!p || !r || !isDone(r)) return `${label} · skipped`;
   const kind = PUZZLE_TYPE_LABEL[p.type] || "Rank it";
-  if (p.type === "quiz" && window.RankdQuiz) return `${label} · Quiz · ${RankdQuiz.shareBits(p, r).line}`;
-  if (p.type === "number") return `${label} · Guess the number · ${fmtPoints(r.points)}/${bundlePoints(p)}`;
-  const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
-  const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
-  if (!solved) return `${label} · ${kind} · X/${CONFIG.rankMaxTries}`;
-  return `${label} · ${kind} · ${tries} ${tries === 1 ? "try" : "tries"}`;
+  const accuracy = partAccuracy(p, r);
+  if (p.type === "quiz") return `${label} · Multiple choice · ${accuracy}%`;
+  if (p.type === "number") return `${label} · Guess the number · ${accuracy}%`;
+  return `${label} · ${kind} · ${accuracy}%`;
 }
 function withBonusLine(text) {
   const parts = dayOffersBonus() ? currentParts() : [];
   if (parts.length < 2) return text || "";
-  const fillerLines = [];
-  for (let i = 0; i < parts.length - 1; i++) {
-    const row = storedRow(partStorageKey(i), parts[i].id);
-    fillerLines.push(partResultLine(i, parts[i], row));
+  const lines = [];
+  for (let i = 0; i < parts.length; i++) {
+    const row = i === (state.partIndex || 0) && state.liveResult && isDone(state.liveResult) ? state.liveResult : storedRow(partStorageKey(i), parts[i].id);
+    lines.push(partResultLine(i, parts[i], row));
   }
-  const mainLabel = `Part ${parts.length} · `;
-  let body = text || "";
-  if (body && body.indexOf(mainLabel) === -1) {
-    const title = shareTitle();
-    if (body.indexOf(title + " ") === 0) body = title + "\n" + mainLabel + body.slice(title.length).trim();
-    else body = mainLabel + body;
-  }
-  const extra = fillerLines.join("\n");
-  if (!body) return extra;
-  if (!extra || body.indexOf(extra) !== -1) return body;
-  const lines = String(body).split("\n");
-  const last = lines[lines.length - 1];
-  if (/^https?:\/\//.test(last)) { lines.splice(lines.length - 1, 0, extra); return lines.join("\n"); }
-  return body + "\n" + extra;
+  const extra = lines.join("\n");
+  if (!text) return extra;
+  if (text.indexOf("Part 1 ·") !== -1) return text;
+  const bits = String(text).split("\n");
+  const last = bits[bits.length - 1];
+  if (/^https?:\/\//.test(last)) { bits.splice(bits.length - 1, 0, extra); return bits.join("\n"); }
+  return extra + "\n" + text;
 }
 const isToday = () => state.mode === "daily";
 function puzzleOnlyHash() {
@@ -2626,7 +2683,7 @@ function renderNumber(saved) {
     const who = p.ask || {};
     const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value || "");
     const verdict = $("#numberVerdict");
-    if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${rate}${p.unit ? " " + p.unit : ""}. You scored ${fmtPoints(g.points)}/2.`;
+    if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${rate}${p.unit ? " " + p.unit : ""}.`;
     const fact = $("#numberFact");
     if (fact) fact.innerHTML = quizInfoHtml(p);
     return finishSurface(g);
@@ -2634,7 +2691,9 @@ function renderNumber(saved) {
   if (form) form.classList.remove("hidden");
   if (reveal) reveal.classList.add("hidden");
   const input = $("#numberInput");
-  if (input) input.value = "";
+  if (input) { input.value = ""; input.focus(); }
+  const unit = $("#numberUnit");
+  if (unit) unit.textContent = (p && p.unit) || "";
 }
 function submitNumber(ev) {
   if (ev) ev.preventDefault();
@@ -2650,10 +2709,11 @@ function submitNumber(ev) {
   const reveal = $("#numberReveal"); if (reveal) reveal.classList.remove("hidden");
   const who = p.ask || {};
   const verdict = $("#numberVerdict");
-  if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${window.RankdNumber.fmtRate(who.value)}${p.unit ? " " + p.unit : ""}. You scored ${fmtPoints(state.number.points)}/2.`;
+  if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${window.RankdNumber.fmtRate(who.value)}${p.unit ? " " + p.unit : ""}.`;
   const fact = $("#numberFact");
-  if (fact) fact.innerHTML = quizInfoHtml(p);
-  afterSubmit(() => finishSurface(state.number, { sound: state.number.points >= 2, scroll: true }), state.number.points >= 2 ? "big" : null);
+  if (fact) fact.textContent = "";
+  const close = Number(state.number.accuracy) >= 80;
+  afterSubmit(() => finishSurface(state.number, { sound: close, scroll: true }), close ? "big" : null);
 }
 // ================================================================ RANK IT
 function correctOrder(p) { return p.items.map((it, i) => ({ v: it.value, i })).sort((a, b) => p.higherIs === "bottom" ? a.v - b.v : b.v - a.v).map(x => x.i); }
@@ -3934,10 +3994,24 @@ function paintBundlePile() {
   }).join("");
 }
 function finishSurface(res, opts) {
-  const parts = state.bundleParts || [];
-  const bundled = dayOffersBonus() && parts.length > 1;
-  if (bundled && !(opts && opts.scorecard)) return showPartStrip(res, opts);
   return showResult(res, opts);
+}
+function bundleHasParts() {
+  return dayOffersBonus() && currentParts().length > 1;
+}
+function syncResultChrome() {
+  const btn = $("#nextBtn");
+  const friend = $("#challengeFriendBtn");
+  const bundled = bundleHasParts();
+  const seeingScore = !bundled || !!state.scoreShown;
+  if (btn) {
+    if (bundled && morePartsRemain()) btn.textContent = "Next part →";
+    else if (bundled && !state.scoreShown) btn.textContent = "See your score";
+    else btn.textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
+    btn.classList.add("is-float");
+  }
+  document.body.classList.add("has-float-next");
+  if (friend) friend.classList.toggle("hidden", bundled && !seeingScore);
 }
 function insightPlaces(signed, pct) {
   const weight = Math.max(0.35, Math.min(1, (Number(pct) || 50) / 100));
@@ -4093,7 +4167,7 @@ function showPartStrip(res) {
 function paintDayTotal(res) {
   const box = $("#dayScore");
   if (!box) return;
-  const parts = (state.bundleParts && state.bundleParts.length > 1 && !morePartsRemain()) ? state.bundleParts : [];
+  const parts = (state.scoreShown && state.bundleParts && state.bundleParts.length > 1 && !morePartsRemain()) ? state.bundleParts : [];
   if (!parts.length || (state.mode !== "daily" && state.mode !== "archive" && state.mode !== "preview")) {
     box.classList.add("hidden");
     box.innerHTML = "";
@@ -4104,15 +4178,15 @@ function paintDayTotal(res) {
     const mine = (i === (state.partIndex || 0) ? (res || state.liveResult || stored) : stored);
     return { p, i, s: partScore(p, mine) };
   });
-  const score = rows.reduce((n, row) => n + row.s.score, 0);
-  const max = rows.reduce((n, row) => n + row.s.max, 0);
+  const weight = rows.reduce((n, row) => n + row.s.weight, 0);
+  const score = weight ? Math.round(rows.reduce((n, row) => n + row.s.accuracy * row.s.weight, 0) / weight) : 0;
   box.classList.remove("hidden");
   const partLines = rows.map(row => {
     const stored = storedRow(partStorageKey(row.i), row.p.id);
     const mine = row.i === (state.partIndex || 0) ? (res || state.liveResult || stored) : stored;
     return `<li>${esc(partResultLine(row.i, row.p, mine))}</li>`;
   }).join("");
-  box.innerHTML = `<div class="day-payoff"><p class="day-kicker">Today's score</p><p class="day-total"><b>${fmtPoints(score)}</b><span>/${fmtPoints(max)}</span></p><p class="day-compare" id="dayCompare">Comparing with other players…</p><ul class="day-lines">${partLines}</ul></div><div class="day-podium" id="dayPodium"></div><div class="day-parts">${rows.map(row => `<details class="day-part"><summary>Part ${row.i + 1} · ${esc(row.p.headline || row.p.question || "Puzzle")} · ${fmtPoints(row.s.score)}/${fmtPoints(row.s.max)}</summary><div class="day-part-body" data-part="${row.i}"></div></details>`).join("")}</div>`;
+  box.innerHTML = `<div class="day-payoff"><p class="day-kicker">Today's score</p><p class="day-total"><b>${score}</b><span>/100</span></p><p class="day-compare" id="dayCompare">Comparing with other players…</p><ul class="day-lines">${partLines}</ul></div><div class="day-podium" id="dayPodium"></div><div class="day-parts">${rows.map(row => `<details class="day-part"><summary>Part ${row.i + 1} · ${esc(row.p.headline || row.p.question || "Puzzle")} · ${row.s.accuracy}%</summary><div class="day-part-body" data-part="${row.i}"></div></details>`).join("")}</div>`;
   box.querySelectorAll("details.day-part").forEach(el => {
     el.addEventListener("toggle", () => {
       if (!el.open) return;
@@ -4136,27 +4210,28 @@ function paintDayTotal(res) {
   const podium = $("#dayPodium");
   if (!podium || !seed || typeof renderPlatforms !== "function") return;
   Promise.all(parts.map(p => CommunityStats.fetch(p.id, state.dateKey).catch(() => null))).then(list => {
-    let crowd = 0, known = 0;
+    let crowdWeight = 0, crowdSum = 0, known = 0;
     list.forEach((data, i) => {
       if (data) fillCommunitySeed(data, parts[i]);
-      const pts = crowdPoints(parts[i], data);
-      if (pts == null) return;
-      crowd += pts;
+      const acc = data && data.standing && Number(data.standing.avgAccuracy);
+      if (!Number.isFinite(acc)) return;
+      const w = rows[i].s.weight;
+      crowdWeight += w;
+      crowdSum += Math.max(0, Math.min(100, acc)) * w;
       known++;
     });
-    if (!known || !max) return;
-    const playerPct = Math.round(100 * score / max);
-    const crowdPct = Math.round(100 * crowd / max);
-    const better = Math.max(1, Math.min(99, Math.round(50 + (playerPct - crowdPct))));
+    if (!known || !crowdWeight) return;
+    const crowd = Math.round(crowdSum / crowdWeight);
+    const better = Math.max(1, Math.min(99, Math.round(50 + (score - crowd))));
     podium.innerHTML = "";
     const platforms = renderPlatforms(better, parts.map(p => p.id).join("|") + "|" + score);
     if (platforms) podium.appendChild(platforms);
     const note = document.createElement("p");
     note.className = "platforms-caption";
-    note.textContent = `You ${fmtPoints(score)}/${fmtPoints(max)} · crowd about ${fmtPoints(crowd)}/${fmtPoints(max)}`;
+    note.textContent = `You ${score}/100 · crowd about ${crowd}/100`;
     podium.appendChild(note);
     const compare = $("#dayCompare");
-    if (compare) compare.textContent = `Better than ${better}% of players. The crowd scored about ${fmtPoints(crowd)}/${fmtPoints(max)}.`;
+    if (compare) compare.textContent = `Better than ${better}% of players. The crowd scored about ${crowd}/100.`;
   }).catch(() => {});
 }
 function showResult(res, opts) {
@@ -4204,8 +4279,9 @@ function showResult(res, opts) {
   } else if (res.type === "number") {
     const who = p.ask || {};
     const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value ?? "");
-    $("#scoreBig").textContent = `${fmtPoints(res.points)}/2`;
-    $("#scoreTitle").textContent = Number(res.points) >= 2 ? "Very close." : Number(res.points) > 0 ? "In the neighborhood." : "Way off.";
+    const acc = partAccuracy(p, res);
+    $("#scoreBig").textContent = String(acc);
+    $("#scoreTitle").textContent = acc >= 100 ? "Right on it." : acc >= 60 ? "In the neighborhood." : "Way off.";
     $("#answerBox").innerHTML = `<p class="num-reveal">${esc(who.emoji || "")} ${esc(who.name || "")} is <b>${esc(rate)}</b>${p.unit ? " " + esc(p.unit) : ""}.</p><p class="quiz-fact">${quizInfoHtml(p)}</p>`;
     $("#answerBox").classList.remove("hidden");
   } else if (res.type === "name") {
@@ -4237,7 +4313,7 @@ function showResult(res, opts) {
     if (a) { a.classList.add("hidden"); a.removeAttribute("href"); }
   } else paintSourceCard(p);
   renderChallengeQr(res);
-  $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
+  syncResultChrome();
   renderYouVs(p, null, res);
   renderHeadToHead(res);
   renderCommunity(p, res);
@@ -5630,13 +5706,15 @@ function openPart(index, opts) {
   const p = parts[index];
   if (!p) return false;
   state.partIndex = index;
+  state.scoreShown = false;
+  document.body.classList.remove("has-float-next");
   const view = $("#playView");
   if (view && opts && opts.animate) {
     view.classList.remove("bundle-in");
     void view.offsetWidth;
     view.classList.add("bundle-in");
   }
-  openPuzzle(p, { bonus: index < parts.length - 1 });
+  openPuzzle(p, { bonus: index !== streakIndexOf(parts) });
   paintBundlePile();
   return true;
 }
@@ -5650,7 +5728,7 @@ function playBonus() {
 function playMain() {
   const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : dayParts(dayNumber(state.dateKey));
   state.bundleParts = parts;
-  return openPart(Math.max(0, parts.length - 1), { animate: true });
+  return openPart(streakIndexOf(parts), { animate: true });
 }
 function advancePart() {
   const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : currentParts();
@@ -5674,7 +5752,7 @@ function openDay(opts) {
   const parts = dayOffersBonus() ? dayParts(n) : [puzzleForDay(n)].filter(Boolean);
   state.bundleParts = parts;
   if (!parts.length) return;
-  if (opts && opts.main) return openPart(parts.length - 1, { animate: true });
+  if (opts && opts.main) return openPart(streakIndexOf(parts), { animate: true });
   if (opts && Number.isFinite(opts.part)) return openPart(opts.part, { animate: true });
   try { openPart(0); }
   catch (e) { openPart(parts.length - 1); }
@@ -5784,7 +5862,7 @@ function goArchive() {
     : archiveListHeaderHtml(unlocked, last);
   const rows = [];
   for (let n = last; n >= 0; n--) {
-    const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = r && r.id === p.id ? r : null;
+    const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = rowMatchesPuzzle(r, p) ? r : null;
     const locked = !archiveFreeUnlocked(key);
     let badge = locked ? `<span class="ar unlock">Watch ad ▶</span>` : `<span class="ar">Play →</span>`;
     if (!locked) {
@@ -5868,6 +5946,15 @@ function showFab(on) {
   syncFabPad(); parkFab();
 }
 function next() { if (state.mode === "preview") { location.href = "loadingzone.html"; return; } if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
+function onResultNext() {
+  if (morePartsRemain()) return advancePart();
+  if (bundleHasParts() && !state.scoreShown) {
+    state.scoreShown = true;
+    if (state.liveResult) showResult(state.liveResult, { scorecard: true, scroll: true });
+    return;
+  }
+  next();
+}
 
 // ================================================================ modals
 function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classList.remove("hidden", "sheet"); }
@@ -5994,7 +6081,7 @@ function howModal() {
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
    <p><b>✏️ Name it:</b> type any country that passes both rules (a letter or word rule, plus a stat). Aliases such as USA and Korea count. A guess that isn't a country, or one you already tried, doesn't use a try. Any valid country wins. ${CONFIG.rankMaxTries} tries. Each miss says which rule it broke. At the end, every valid answer is shown.</p>
    <p><b>💡 Quiz:</b> tap a country to highlight it, then Lock it in. One fact appears, once. No second try.</p>
-   <p><b>🔢 Guess the number:</b> one country shows its real value. Type your guess for another and lock it in. Score is out of 2.</p>
+   <p><b>🔢 Guess the number:</b> one country shows its real value. Type your guess for another and lock it in. Accuracy is 100 when the guess matches and falls to 0 when it is about 3× off. The 2 is only that part's weight in the day.</p>
    <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
    <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!. So does a Name it loss where every guess was wrong.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
@@ -6036,7 +6123,7 @@ async function handleFiles(files) {
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
 
 // ================================================================ wire up
-$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; if ($("#quizLock")) $("#quizLock").onclick = quizLock; if ($("#numberForm")) $("#numberForm").onsubmit = submitNumber; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
+$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; if ($("#quizLock")) $("#quizLock").onclick = quizLock; if ($("#numberForm")) $("#numberForm").onsubmit = submitNumber; $("#nextBtn").onclick = onResultNext; $("#fab").onclick = fabGo;
 if ($("#guessForm")) $("#guessForm").addEventListener("submit", e => { e.preventDefault(); top1Commit(); });
 if ($("#guessInput")) {
   $("#guessInput").addEventListener("input", top1UpdateSuggest);
@@ -6062,10 +6149,7 @@ if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCr
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#bonusBtn")) $("#bonusBtn").onclick = () => advancePart();
 if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
-if ($("#partNext")) $("#partNext").onclick = () => {
-  if (morePartsRemain()) return advancePart();
-  if (state.liveResult) showResult(state.liveResult, { scorecard: true, scroll: true });
-};
+if ($("#partNext")) $("#partNext").onclick = () => onResultNext();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
