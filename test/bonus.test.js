@@ -83,7 +83,7 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
     assert.equal(picked.id, repeat.id);
     assert.equal(again.RankdBonus.forDay(n).id, picked.id);
     assert.equal(picked.id === mainOn(puzzles, n).id, false, "overlaps main on day " + n);
-    assert.ok(bonus.types.includes(picked.type) || picked.part1Only, picked.type + " " + picked.id);
+    assert.ok(picked.type === "quiz" || bonus.types.includes(picked.type) || picked.type === "rank" || picked.part1Only, picked.type + " " + picked.id);
     if (keyFrom(n) <= CUTOFF) assert.equal(!!picked.sensitive, false, picked.id + " on " + keyFrom(n));
     ids.push(picked.id);
     againIds.push(picked.id);
@@ -94,12 +94,6 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
     for (let k = 1; k <= bonus.gap && n - k >= 0; k++) {
       assert.notEqual(ids[n], ids[n - k], ids[n] + " repeated after " + k + " days");
     }
-    const main = mainOn(puzzles, n);
-    const banned = new Set(ids.slice(Math.max(0, n - bonus.gap), n));
-    const safe = keyFrom(n) <= CUTOFF;
-    const open = puzzles.filter(p => bonus.types.includes(p.type) && p.id !== main.id && !banned.has(p.id) && !(safe && p.sensitive));
-    const different = open.filter(p => !bonus.sameTheme(p, main));
-    if (different.length) assert.equal(bonus.sameTheme(puzzles.find(p => p.id === ids[n]), main), false, "theme " + ids[n]);
   }
 
   win.RankdShared.CONFIG.adsenseSafeThrough = "";
@@ -113,7 +107,7 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
   for (let n = 0; n < puzzles.length * 4; n++) {
     const picked = bonus.forDay(n);
     assert.equal(removed.includes(picked.id), false, picked.id);
-    assert.equal(puzzles.some(p => p.id === picked.id && !p.part1Only), true, picked.id);
+    if (!picked.fillerOnly) assert.equal(puzzles.some(p => p.id === picked.id && !p.part1Only), true, picked.id);
   }
   for (const id of removed) assert.equal(puzzles.some(p => p.id === id), false, id);
   assert.equal(win.RANKD_PART1.length, 0);

@@ -343,7 +343,7 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 #playView.bundle-in .hero{animation:bundle-in .35s ease}
 @keyframes bundle-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 .bundle-pile{position:relative;height:14px;margin:0 0 -6px;z-index:0}
-.bundle-card{position:absolute;left:14px;right:14px;top:0;height:22px;border-radius:14px 14px 4px 4px;background:rgba(255,255,255,.55);border:1px solid rgba(0,0,0,.08);transform:rotate(var(--rot)) translateY(calc(var(--back) * -6px));transform-origin:center bottom;box-shadow:0 6px 16px rgba(0,0,0,.08)}
+.bundle-card{position:absolute;left:14px;right:14px;top:0;height:22px;border-radius:14px 14px 4px 4px;background:var(--brand);border:1px solid rgba(255,255,255,.35);transform:rotate(var(--rot)) translateY(calc(var(--back) * -6px));transform-origin:center bottom;box-shadow:0 10px 24px -12px rgba(var(--brand-rgb),.9)}
 .bundle-card.is-top{z-index:1}
 .bundle-pile.is-straight .bundle-card.is-top{transform:rotate(0deg) translateY(0);transition:transform .4s ease}
 .part-strip{margin-top:8px}
