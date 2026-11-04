@@ -230,6 +230,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v37/);
+  assert.match(read("sw.js"), /ranki-shell-v38/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

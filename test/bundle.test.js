@@ -103,7 +103,7 @@ test("the pile matches the blue card and shrinks with the parts left", () => {
   assert.equal(bonus.pileBehind(4, 0), 3);
   assert.equal(bonus.pileBehind(4, 1), 2);
   assert.equal(bonus.pileBehind(4, 3), 0);
-  assert.match(read("sw.js"), /ranki-shell-v37/);
+  assert.match(read("sw.js"), /ranki-shell-v38/);
 });
 
 test("the next 90 bundles stay near 12 points and do not repeat a filler inside the gap", () => {
