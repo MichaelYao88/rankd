@@ -107,6 +107,11 @@ test("stored answers are exactly the countries that pass both rules", () => {
     "name-no-divorce": 2,
     "name-tree-country": 2,
     "name-named-for-her": 3,
+    "name-obesity-n": 2,
+    "name-potato-b": 4,
+    "name-gini-s": 7,
+    "name-suicide-l": 2,
+    "name-gdp-i": 4,
   };
   for (const puzzle of puzzles) {
     assert.equal(puzzle.type, "name");
@@ -214,6 +219,10 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const ids = new Set(base.map(p => p.id));
   for (const puzzle of puzzles) {
     assert.equal(ids.has(puzzle.id), false, puzzle.id);
+    if (puzzle.id === "name-suicide-l") {
+      assert.equal(puzzle.sensitive, true);
+      continue;
+    }
     assert.equal(/homicide|suicide|murder|overdose|cannabis|marijuana|penis|pornograph|sex|drug/i.test(`${puzzle.id} ${puzzle.headline} ${puzzle.question} ${puzzle.stat}`), false);
   }
   const store = new Map();

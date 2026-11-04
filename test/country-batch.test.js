@@ -139,15 +139,28 @@ test("name puzzles for divorce and tree names take the next free days", () => {
   let next = 1;
   const assigned = [];
   for (const puzzle of namePuzzles) {
+    const wanted = Math.round(puzzle.order) || 0;
+    if (wanted > 0 && wanted < 10000 && !taken.has(wanted)) {
+      assigned.push([puzzle.id, wanted]);
+      taken.add(wanted);
+      continue;
+    }
     while (taken.has(next)) next += 1;
     assigned.push([puzzle.id, next]);
     taken.add(next);
     next += 1;
   }
-  assert.equal(JSON.stringify(assigned.slice(-3)), JSON.stringify([
+  assert.equal(JSON.stringify(assigned.filter(([id]) => ["name-no-divorce", "name-tree-country", "name-named-for-her"].includes(id))), JSON.stringify([
     ["name-no-divorce", 164],
     ["name-tree-country", 165],
     ["name-named-for-her", 166],
+  ]));
+  assert.equal(JSON.stringify(assigned.filter(([id]) => ["name-obesity-n", "name-potato-b", "name-gini-s", "name-suicide-l", "name-gdp-i"].includes(id))), JSON.stringify([
+    ["name-obesity-n", 247],
+    ["name-potato-b", 249],
+    ["name-gini-s", 251],
+    ["name-suicide-l", 253],
+    ["name-gdp-i", 255],
   ]));
   assert.equal(dateOf(164), "2027-03-18");
   assert.equal(dateOf(165), "2027-03-19");

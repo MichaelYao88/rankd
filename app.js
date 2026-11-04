@@ -860,6 +860,12 @@ function attachNamePuzzles(list) {
   base.forEach(p => { const o = Math.round(p && p.order) || 0; if (o > 0 && o < 10000) taken.add(o); });
   let next = 1;
   fresh.forEach(p => {
+    const wanted = Math.round(p.order) || 0;
+    if (wanted > 0 && wanted < 10000 && !taken.has(wanted)) {
+      p.order = wanted;
+      taken.add(wanted);
+      return;
+    }
     while (taken.has(next)) next += 1;
     p.order = next;
     taken.add(next);
@@ -1291,7 +1297,7 @@ const Practice = {
   generate(seed, tries = 0) {
     if (!tries && window.RankdName && typeof RankdName.practiceFromSeed === "function") {
       const named = RankdName.practiceFromSeed(seed);
-      if (named) return named;
+      if (named && !(named.sensitive && inAdsenseSafeWindow(todayKey()))) return named;
     }
     if (!tries && window.RankdNumber && seed % 29 === 1) {
       const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()));
