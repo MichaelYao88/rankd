@@ -1805,6 +1805,13 @@ const BONUS_TYPE_SET = new Set(BONUS_TYPES);
 const BONUS_GAP = 30;
 const FILLER_GAP = 30;
 const FILLER_LATE_FROM = "2027-02-01";
+// One near AdSense-safe day shows two Guess the number cards with different
+// non-sensitive stats. The pair and the closer are still chosen from the
+// filler pool, so the 30-day repeat rule still applies. Preview it from
+// Loading Zone, or open index.html?preview=2026-11-14. That preview is
+// sandboxed and is not linked from the public pages.
+const SHOWCASE_KEY = "2026-11-14";
+const SHOWCASE_STATS = ["number-tea", "number-life"];
 const BUNDLE_TARGET = 12;
 const BUNDLE_CEILING = 14;
 const BUNDLE_MAX_PARTS = 16;
@@ -2057,10 +2064,27 @@ function takeCloser(i, dateKey, head, fillers, sum) {
   if (sum + CLOSER_WEIGHT > BUNDLE_CEILING) return null;
   if (head.length + fillers.length + 1 > BUNDLE_MAX_PARTS) return null;
   const used = freshUsed(head.concat(fillers));
-  const pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  let pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  if (dateKey === SHOWCASE_KEY) pool = pool.filter(p => !p.sensitive);
   if (!pool.length) return null;
   pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
   return Object.assign({}, pool[0], { role: "closer" });
+}
+function takeShowcaseNumbers(i, dateKey, head, sum, cap) {
+  if (dateKey !== SHOWCASE_KEY) return [];
+  const used = freshUsed(head);
+  const picked = [];
+  let next = sum;
+  for (const stat of SHOWCASE_STATS) {
+    const pool = fillerPool(dateKey).filter(p => p.type === "number" && !p.sensitive && p.parentId === stat && fillerFits(i, p, used, next, cap));
+    if (!pool.length) continue;
+    pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
+    const card = Object.assign({}, pool[0], { role: "filler" });
+    picked.push(card);
+    rememberUsed(used, card);
+    next += bundlePoints(card);
+  }
+  return picked;
 }
 function buildDayParts(i) {
   const main = puzzleOnDay(i);
@@ -2070,13 +2094,35 @@ function buildDayParts(i) {
   const reserve = headSum + CLOSER_WEIGHT <= BUNDLE_CEILING ? CLOSER_WEIGHT : 0;
   const cap = BUNDLE_CEILING - reserve;
   const goal = Math.min(cap, reserve ? BUNDLE_TARGET - reserve : BUNDLE_TARGET);
-  let packed = takeFillers(i, dateKey, head, headSum, cap, Math.max(goal, headSum), false);
-  let closer = reserve ? takeCloser(i, dateKey, head, packed.fillers, packed.sum) : null;
+  const showcase = takeShowcaseNumbers(i, dateKey, head, headSum, cap);
+  const base = head.concat(showcase);
+  const baseSum = headSum + showcase.reduce((sum, p) => sum + bundlePoints(p), 0);
+  let packed = takeFillers(i, dateKey, base, baseSum, cap, Math.max(goal, baseSum), false);
+  packed = { fillers: showcase.concat(packed.fillers), sum: packed.sum };
+  let closer = reserve ? takeCloser(i, dateKey, head.concat(packed.fillers), [], packed.sum) : null;
   if (!closer) {
     const more = takeFillers(i, dateKey, head.concat(packed.fillers), packed.sum, BUNDLE_CEILING, BUNDLE_TARGET, true);
     packed = { fillers: packed.fillers.concat(more.fillers), sum: more.sum };
   }
   return head.concat(packed.fillers, closer ? [closer] : []);
+}
+function cardCatalog() {
+  const out = [];
+  const seen = new Set();
+  const push = p => { if (!p || !p.id || seen.has(p.id)) return; seen.add(p.id); out.push(p); };
+  for (const p of PUZZLES) {
+    if (!p || !p.id) continue;
+    if (p.type === "quiz" && Array.isArray(p.questions)) {
+      for (const q of p.questions) push(quizCard(p, q));
+      continue;
+    }
+    if (p.type === "rank" || p.type === "tier" || p.type === "top1" || p.type === "top5" || p.type === "name" || p.type === "match") push(p);
+  }
+  for (const p of part1Extras()) if (p && p.type === "rank") push(p);
+  if (window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) for (const card of window.RankdNumber.cards(set)) push(card);
+  }
+  return out;
 }
 function dayParts(n) {
   n = Math.round(n);
@@ -2100,6 +2146,7 @@ window.RankdBonus = {
   forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
   lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
+  showcase: SHOWCASE_KEY, catalog: cardCatalog,
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
@@ -5784,6 +5831,16 @@ function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was 
   bindChallenge(opts && opts.challengeToken, { k: "p", id: p.id });
   openPuzzle(p);
 }
+function goPreviewCard(id) {
+  const card = cardCatalog().find(p => p.id === id);
+  if (!card) { toast("That card isn't in the pool"); return goHome(); }
+  state.mode = "preview";
+  state.dateKey = todayKey();
+  state.bundleParts = [card];
+  state.partIndex = 0;
+  state.scoreShown = false;
+  openPuzzle(card);
+}
 function goPreview(key) {   // v12 Studio preview of any scheduled day, past or future (sandboxed storage)
   if (!validKey(key) || dayNumber(key) < 0) { toast("That day isn't scheduled"); return goToday(); }
   state.mode = "preview"; state.dateKey = key; openDay();
@@ -6502,6 +6559,8 @@ applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   dismissLongAd();
+  const cardParam = (() => { try { return new URLSearchParams(location.search).get("card") || ""; } catch (e) { return ""; } })();
+  if (PREVIEW && cardParam) return goPreviewCard(decodeURIComponent(cardParam));
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
   const h = location.hash;
   const RC = window.RankdChallenge;

@@ -79,9 +79,71 @@ $("#sets").addEventListener("click", e => { const b = e.target.closest("button[d
   if (open) { body && body.remove(); return; }
   li.insertAdjacentHTML("beforeend", `<div class="s-body">${table(D[+b.dataset.i])}</div>`); });
 
-const tab = v => { $("#tabPreview").setAttribute("aria-selected", String(v === "preview")); $("#tabData").setAttribute("aria-selected", String(v === "data"));
-  $("#previewView").classList.toggle("hidden", v !== "preview"); $("#dataView").classList.toggle("hidden", v !== "data"); if (location.hash !== "#" + v) history.replaceState(null, "", "#" + v); };
-$("#tabPreview").onclick = () => tab("preview"); $("#tabData").onclick = () => tab("data");
-tab(location.hash === "#data" ? "data" : "preview");
+const bonus = window.RankdBonus;
+if (bonus && bonus.showcase) {
+  const show = document.querySelector(`.day[data-key="${bonus.showcase}"]`);
+  if (show) {
+    const tags = show.querySelector(".tags");
+    if (tags) tags.insertAdjacentHTML("beforeend", `<span class="tag mode-number">Guess the number</span>`);
+  }
+}
+const cardView = $("#cardView");
+const typeLabel = {
+  rank: "Rank it", tier: "Tier it", top1: "Top 1", top5: "Top 5", name: "Name it",
+  match: "Match it", quiz: "Multiple choice", number: "Guess the number",
+};
+if (cardView && bonus && typeof bonus.catalog === "function") {
+  const cards = bonus.catalog();
+  $("#cardNote").textContent = `${cards.length} cards. Each one plays by itself in a sandboxed preview: no streak, no saved stats, and no score is sent.`;
+  const types = [...new Set(cards.map(c => c.type))];
+  let cardType = "all";
+  $("#cardFilters").innerHTML = [`all`, ...types].map(t => `<button type="button" data-type="${esc(t)}" aria-pressed="${t === "all" ? "true" : "false"}">${t === "all" ? "All" : esc(typeLabel[t] || t)}</button>`).join("");
+  $("#cards").innerHTML = cards.map(c => {
+    const title = c.headline || c.question || c.id;
+    const sub = c.question && c.question !== title ? c.question : (c.stat || "");
+    return `<li class="day" data-type="${esc(c.type)}" data-title="${esc((title + " " + sub + " " + c.id).toLowerCase())}">
+      <div class="d-main"><h2>${esc(c.emoji || "")} ${esc(title)}</h2><p>${esc(sub)}</p>
+        <div class="tags"><span class="tag mode-${esc(c.type)}">${esc(typeLabel[c.type] || c.type)}</span>${c.sensitive ? `<span class="tag sens">sensitive</span>` : ""}</div></div>
+      <a class="play" href="index.html?preview=card&amp;card=${encodeURIComponent(c.id)}">Play</a></li>`;
+  }).join("");
+  const applyCards = () => {
+    const q = $("#cardSearch").value.trim().toLowerCase();
+    let n = 0;
+    document.querySelectorAll("#cards .day").forEach(li => {
+      const typeOk = cardType === "all" || li.dataset.type === cardType;
+      const textOk = !q || (li.dataset.title || "").includes(q);
+      const show = typeOk && textOk;
+      li.classList.toggle("hidden", !show);
+      if (show) n++;
+    });
+    $("#cardCount").textContent = n + (n === 1 ? " card" : " cards");
+    const empty = $("#cardEmpty");
+    empty.textContent = q || cardType !== "all" ? "No cards match." : "";
+    empty.classList.toggle("hidden", n !== 0);
+  };
+  $("#cardFilters").addEventListener("click", e => {
+    const b = e.target.closest("button[data-type]");
+    if (!b) return;
+    cardType = b.dataset.type;
+    $("#cardFilters").querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    applyCards();
+  });
+  window.RankdSearch.bindSearch($("#cardSearch"), $("#cardSearchClear"), applyCards);
+  applyCards();
+}
+const tab = v => {
+  $("#tabPreview").setAttribute("aria-selected", String(v === "preview"));
+  if ($("#tabCards")) $("#tabCards").setAttribute("aria-selected", String(v === "cards"));
+  $("#tabData").setAttribute("aria-selected", String(v === "data"));
+  $("#previewView").classList.toggle("hidden", v !== "preview");
+  if ($("#cardView")) $("#cardView").classList.toggle("hidden", v !== "cards");
+  $("#dataView").classList.toggle("hidden", v !== "data");
+  const hash = v === "preview" ? "#preview" : "#" + v;
+  if (location.hash !== hash) history.replaceState(null, "", hash);
+};
+$("#tabPreview").onclick = () => tab("preview");
+if ($("#tabCards")) $("#tabCards").onclick = () => tab("cards");
+$("#tabData").onclick = () => tab("data");
+tab(location.hash === "#data" ? "data" : location.hash === "#cards" ? "cards" : "preview");
 const t = document.querySelector(".day.today"); if (t && location.hash !== "#data") t.scrollIntoView({ block: "center" });
 })();
