@@ -251,7 +251,7 @@
       <p><b>Tier it.</b> Some stats are labels, not a smooth ranking. Language family, the numbers one hand can show, and how many time zones a country keeps are tiers. Several countries can share a tier. You drop each chip into a labeled area and lock it in. Right tiers stay. Wrong ones turn red. Five tries.</p>
       <p><b>Name it.</b> Two rules at once, usually a letter rule and a stat rule. Any country that passes both wins. A guess that is not a country, or a repeat, does not spend a try. Five tries. The miss tells you which rule failed.</p>
       <p><b>Multiple choice.</b> Four countries, one answer, one shot. Tap a flag to highlight it, then press Lock it in. The fact and the source for that question appear once. A quiz day is a run of those questions. Each question is its own card in the daily pile.</p>
-      <p><b>Guess the number.</b> One country shows its real value. You type your guess for a second country. The two points on that part are its weight in the daily package, not a score out of two. Tea, coffee, cocoa, garlic, and life expectancy are the non-sensitive sets. The comparisons are the ones stored with those series, such as Turkey's tea supply against the United Kingdom, or Albania's life expectancy against Russia.</p>
+      <p><b>Guess the number.</b> One country shows its real value. You type your guess for a second country. Accuracy is 100 when the guess matches and falls to 0 when it is about three times off. The two points on that part are its weight in the daily package, not a score out of two. Tea, coffee, cocoa, garlic, and life expectancy are the non-sensitive sets. The comparisons are the ones stored with those series, such as Turkey's tea supply against the United Kingdom, or Albania's life expectancy against Russia.</p>
       <h2>Why the data is worth a round</h2>
       <p>The interesting part is a contrast you can check. Belarus has more potatoes available per person than Ireland on the FAO card. Japan is more forested, as a share of land, than Brazil on the World Bank card. Iceland leads the Human Development Index card on this site, and the United Arab Emirates edges the United States on that same index. France has more time zones than the United Kingdom once overseas territories count. None of those sentences adds a number that is not already on the <a href="learn/index.html">learn pages</a>, and each page links the publisher.</p>
       <p>Read the explainers, then play. <a href="learn/index.html">Browse the numbers</a>. <a href="how-to-play.html">How to play</a> is the longer rules page. <a href="about.html">About</a> says who makes the game. <a href="sources.html">Sources</a> lists the publishers. <a href="contact.html">Contact</a> is the published email for a wrong figure.</p>
@@ -390,8 +390,11 @@
       <!-- GUESS THE NUMBER: one real value, type the other. -->
       <section id="numberGame" class="hidden">
         <p class="quiz-ask" id="numberAsk"></p>
-        <form class="guess-form" id="numberForm" autocomplete="off">
-          <input id="numberInput" type="text" inputmode="decimal" placeholder="type a number…" aria-label="Your guess" enterkeyhint="done" autocomplete="off">
+        <form class="guess-form number-form" id="numberForm" autocomplete="off">
+          <label class="number-field">
+            <input id="numberInput" type="text" inputmode="decimal" placeholder="0" aria-label="Your guess" enterkeyhint="done" autocomplete="off">
+            <span class="number-unit" id="numberUnit"></span>
+          </label>
           <div class="card-foot actions">
             <button class="pill-btn outline" id="numberLock" type="submit">Lock it in ↵</button>
           </div>

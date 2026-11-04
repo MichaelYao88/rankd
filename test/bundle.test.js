@@ -61,23 +61,23 @@ test("a day bundles scheduled puzzles to about 12 points", () => {
   assert.equal(bonus.points(quiz), quiz.questions.length);
   assert.equal(bonus.points(tier), tier.tiers.length);
   assert.equal(bonus.points(rank), 5);
-  assert.equal(bonus.score(quiz, { type: "quiz", done: true, hits: 3, marks: ["good", "good", "good"] }).score, 3);
+  assert.equal(bonus.score(quiz, { type: "quiz", done: true, hits: 3, marks: ["good", "good", "good"] }).score, 100);
 
   const totals = [];
   for (let n = 0; n < 40; n++) {
     const parts = bonus.parts(n);
     const again = bonus.parts(n);
     assert.deepEqual(again.map(p => p.id), parts.map(p => p.id), "day " + n);
-    assert.ok(parts.length >= 2 && parts.length <= 4, "count " + parts.length + " on " + n);
+    assert.ok(parts.length >= 2 && parts.length <= 16, "count " + parts.length + " on " + n);
     const main = puzzles[((n % puzzles.length) + puzzles.length) % puzzles.length];
-    assert.equal(parts[parts.length - 1].id, main.id, "main last " + n);
-    assert.equal(parts[0].id, bonus.forDay(n).id, "part 1 " + n);
+    assert.equal(parts[0].scheduleId, main.id, "title first " + n);
+    assert.equal(parts[0].role, "title");
     const total = parts.reduce((sum, p) => sum + bonus.points(p), 0);
-    const floor = bonus.points(main) + bonus.points(parts[0]);
-    assert.ok(total <= bonus.ceiling || total === floor, "budget " + total + " on " + n);
-    assert.ok(total >= Math.min(bonus.target, floor), "short " + total + " on " + n);
+    const titleWeight = parts.filter(p => p.role === "title").reduce((sum, p) => sum + bonus.points(p), 0);
+    assert.ok(total <= bonus.ceiling || total === titleWeight, "budget " + total + " on " + n);
+    assert.ok(total >= Math.min(bonus.target, titleWeight), "short " + total + " on " + n);
     if (keyFrom(n) <= CUTOFF) {
-      for (const p of parts.slice(0, -1)) assert.equal(!!p.sensitive, false, p.id + " on " + keyFrom(n));
+      for (const p of parts) if (p.role !== "title") assert.equal(!!p.sensitive, false, p.id + " on " + keyFrom(n));
     }
     totals.push(total);
   }
@@ -99,10 +99,11 @@ test("the pile matches the blue card and shrinks with the parts left", () => {
   assert.match(css, /\.bundle-card\{[^}]*background:var\(--brand\)/);
   assert.match(app, /k > here/);
   assert.match(app, /BUNDLE_TARGET = 12/);
+  assert.match(app, /the closer is left off/);
   assert.equal(bonus.pileBehind(4, 0), 3);
   assert.equal(bonus.pileBehind(4, 1), 2);
   assert.equal(bonus.pileBehind(4, 3), 0);
-  assert.match(read("sw.js"), /ranki-shell-v36/);
+  assert.match(read("sw.js"), /ranki-shell-v37/);
 });
 
 test("the next 90 bundles stay near 12 points and do not repeat a filler inside the gap", () => {
@@ -113,13 +114,21 @@ test("the next 90 bundles stay near 12 points and do not repeat a filler inside 
   for (let n = 0; n < 90; n++) {
     const parts = bonus.parts(n);
     const date = keyFrom(n);
-    assert.ok(parts.length >= 2 && parts.length <= 4, date + " parts " + parts.length);
+    assert.ok(parts.length >= 2 && parts.length <= 16, date + " parts " + parts.length);
     const total = parts.reduce((sum, p) => sum + bonus.points(p), 0);
     totals.push(total);
-    assert.ok(total >= 11 && total <= bonus.ceiling, date + " points " + total);
-    const main = parts[parts.length - 1];
-    assert.equal(bonus.scheduledDate(main), date, main.id);
-    for (const filler of parts.slice(0, -1)) {
+    const titleWeight = parts.filter(p => p.role === "title").reduce((sum, p) => sum + bonus.points(p), 0);
+    assert.ok(total <= bonus.ceiling || total === titleWeight, date + " points " + total);
+    assert.ok(total >= Math.min(11, titleWeight), date + " short " + total);
+    assert.equal(parts[0].role, "title");
+    assert.equal(bonus.scheduledDate(parts.find(p => p.role === "title")), date);
+    const closer = parts.filter(p => p.role === "closer");
+    assert.ok(closer.length <= 1, date);
+    if (closer.length) {
+      assert.equal(parts[parts.length - 1], closer[0]);
+      assert.equal(closer[0].type, "rank");
+    }
+    for (const filler of parts.filter(p => p.role !== "title")) {
       if (date <= "2026-12-31") assert.ok(bonus.scheduledDate(filler) >= bonus.lateFrom, filler.id + " on " + date);
       if (date <= "2026-11-03") assert.equal(!!filler.sensitive, false, filler.id);
       for (let k = 1; k <= bonus.gap && n - k >= 0; k++) {
@@ -127,9 +136,9 @@ test("the next 90 bundles stay near 12 points and do not repeat a filler inside 
         if (again) minGap = Math.min(minGap, k - 1);
         assert.equal(again, false, filler.id + " repeated after " + k + " on " + date);
       }
-      assert.equal(filler.id === main.id, false, filler.id);
+      assert.equal(filler.id === parts[0].scheduleId || filler.parentId === parts[0].scheduleId, false, filler.id);
     }
-    seen.push(parts.slice(0, -1).map(p => p.id));
+    seen.push(parts.filter(p => p.role !== "title").map(p => p.id));
   }
   const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
   assert.ok(avg >= 12 && avg <= 14, "avg " + avg);

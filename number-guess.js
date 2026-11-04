@@ -1,12 +1,10 @@
 /* Guess the number. One real value is shown; the player types the other.
-   Scoring uses the error ratio bigger/smaller. Bands, out of 2:
-     ratio ≤ 1.25 → 2
-     ratio ≤ 1.5  → 1.5
-     ratio ≤ 2    → 1
-     ratio ≤ 3    → 0.5
-     otherwise    → 0
-   A blank, zero, or negative guess scores 0. The package max stays 2,
-   an integer. The earned score can be a half, and the UI prints it as 1.5/2.
+   Accuracy is out of 100, from the error ratio bigger/smaller:
+     accuracy = round(100 * max(0, 1 - ln(ratio) / ln(3)))
+   A matching guess is 100. The score falls smoothly and reaches 0 when the
+   guess is 3× the truth, or the truth is 3× the guess. A blank, zero, or
+   negative guess is 0. The 2 on this part is only its weight in the day's
+   package, not a score out of 2. There is no half-point display.
    Other stats can be added as more sets in number-puzzles.js. */
 (function (root) {
   "use strict";
@@ -20,14 +18,11 @@
   function score(guess, truth) {
     const g = Number(guess);
     const t = Number(truth);
-    if (!Number.isFinite(g) || !Number.isFinite(t) || g <= 0 || t <= 0) return { ratio: null, points: 0 };
+    if (!Number.isFinite(g) || !Number.isFinite(t) || g <= 0 || t <= 0) return { ratio: null, accuracy: 0 };
     const ratio = Math.max(g, t) / Math.min(g, t);
-    let points = 0;
-    if (ratio <= 1.25) points = 2;
-    else if (ratio <= 1.5) points = 1.5;
-    else if (ratio <= 2) points = 1;
-    else if (ratio <= 3) points = 0.5;
-    return { ratio: ratio, points: points };
+    const drop = Math.log(ratio) / Math.log(3);
+    const accuracy = Math.max(0, Math.min(100, Math.round(100 * (1 - drop))));
+    return { ratio: ratio, accuracy: accuracy };
   }
 
   function sets() {
@@ -86,20 +81,19 @@
   }
 
   function blank() {
-    return { type: "number", guess: null, phase: "ask", done: false, solved: false, points: 0, ratio: null, tries: 0 };
+    return { type: "number", guess: null, phase: "ask", done: false, solved: false, accuracy: 0, ratio: null, tries: 0 };
   }
 
   function lock(g, puzzle, raw) {
     if (!g || g.done || !puzzle || !puzzle.ask) return g;
     const scored = score(raw, puzzle.ask.value);
-    const points = scored.points;
     return {
       type: "number",
       guess: String(raw),
       phase: "reveal",
       done: true,
-      solved: points >= 2,
-      points: points,
+      solved: scored.accuracy >= 100,
+      accuracy: scored.accuracy,
       ratio: scored.ratio,
       tries: 1,
     };
