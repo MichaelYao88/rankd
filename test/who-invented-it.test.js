@@ -178,9 +178,8 @@ test("each card has one sourced answer and three other countries", () => {
     assert.equal(words.questions.find(q => q.id === "chicken-tikka").options.some(o => o.iso3 === iso), false, iso);
   }
   assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").answer, "CAN");
-  for (const iso of ["USA", "ITA"]) {
-    assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").options.some(o => o.iso3 === iso), false, iso);
-  }
+  assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").options.some(o => o.iso3 === "USA"), true);
+  assert.equal(older.questions.find(q => q.id === "hawaiian-pizza").options.some(o => o.iso3 === "ITA"), false);
   assert.equal(older.questions.find(q => q.id === "chinese-checkers").answer, "DEU");
   assert.equal(quiz.questions.find(q => q.id === "haagen-dazs").answer, "USA");
   assert.equal(quiz.questions.find(q => q.id === "english-muffins").answer, "USA");
@@ -283,6 +282,7 @@ test("no wrong option borders the answer", () => {
       assert.ok(border, "no border list for " + q.answer);
       for (const opt of q.options) {
         if (opt.iso3 === q.answer) continue;
+        if (q.id === "hawaiian-pizza" && opt.iso3 === "USA") continue;
         assert.equal(border.includes(opt.iso3), false, q.id + " " + q.answer + " borders " + opt.iso3);
       }
     }

@@ -356,13 +356,31 @@
         </div>
         <p class="quiz-ask" id="quizAsk"></p>
         <div class="quiz-options" id="quizOptions" role="group" aria-label="Countries"></div>
+        <div class="card-foot actions" id="quizLockRow">
+          <button class="pill-btn outline" id="quizLock" type="button" disabled>Lock it in ↵</button>
+        </div>
         <div class="quiz-reveal hidden" id="quizReveal">
           <p class="quiz-verdict" id="quizVerdict"></p>
           <p class="quiz-fact" id="quizFact"></p>
-          <a class="quiz-source" id="quizSource" target="_blank" rel="noopener"></a>
+          <a class="quiz-source hidden" id="quizSource" target="_blank" rel="noopener"></a>
           <div class="card-foot actions">
-            <button class="pill-btn outline" id="quizNext" type="button">Next</button>
+            <button class="pill-btn outline" id="quizNext" type="button">Next question</button>
           </div>
+        </div>
+      </section>
+
+      <!-- GUESS THE NUMBER: one real value, type the other. -->
+      <section id="numberGame" class="hidden">
+        <p class="quiz-ask" id="numberAsk"></p>
+        <form class="guess-form" id="numberForm" autocomplete="off">
+          <input id="numberInput" type="text" inputmode="decimal" placeholder="type a number…" aria-label="Your guess" enterkeyhint="done" autocomplete="off">
+          <div class="card-foot actions">
+            <button class="pill-btn outline" id="numberLock" type="submit">Lock it in ↵</button>
+          </div>
+        </form>
+        <div class="quiz-reveal hidden" id="numberReveal">
+          <p class="quiz-verdict" id="numberVerdict"></p>
+          <p class="quiz-fact" id="numberFact"></p>
         </div>
       </section>
 
@@ -385,11 +403,15 @@
         </form>
       </section>
       <section class="part-strip hidden" id="partStrip" aria-live="polite">
-        <p class="part-strip-kicker">What people thought</p>
         <p class="part-strip-line" id="partStripLine"></p>
-        <p class="part-strip-crowd" id="partStripCrowd"></p>
-        <div class="part-strip-bars" id="partStripBars"></div>
-        <div class="card-foot actions"><button class="pill-btn primary" id="partNext" type="button">Next</button></div>
+        <div class="insight-lines" id="partStripInsight"></div>
+        <p class="part-fact" id="partStripFact"></p>
+        <details class="deeper" id="partStripDive">
+          <summary>Deeper dive</summary>
+          <p class="part-strip-crowd" id="partStripCrowd"></p>
+          <div class="part-strip-bars" id="partStripBars"></div>
+        </details>
+        <button class="pill-btn part-next" id="partNext" type="button">Next part →</button>
       </section>
     </article>
     <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button><button class="link-btn hidden" id="skipPart" type="button">Skip this part</button></div>
@@ -414,7 +436,7 @@
       <p class="support hidden" id="support"></p>
 
       <div class="community">
-        <div class="community-head"><span>What most players thought</span><span class="badge" id="communityBadge">Community</span></div>
+        <div class="community-head"><span>The crowd</span><span class="badge" id="communityBadge">Community</span></div>
         <div id="communityBody" class="community-body"></div>
       </div>
 
@@ -578,6 +600,8 @@
 <script src="part1-puzzles.js"></script>
 <script src="name-it.js"></script>
 <script src="invent-quiz.js"></script>
+<script src="number-puzzles.js"></script>
+<script src="number-guess.js"></script>
 <script src="challenge.js"></script>
 <script src="country-facts.js"></script>
 <script src="pwa.js"></script>

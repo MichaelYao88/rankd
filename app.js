@@ -1281,6 +1281,10 @@ const Practice = {
       const named = RankdName.practiceFromSeed(seed);
       if (named) return named;
     }
+    if (!tries && window.RankdNumber && seed % 29 === 1 && !inAdsenseSafeWindow(todayKey())) {
+      const dealt = window.RankdNumber.practicePuzzle(seed);
+      if (dealt) return dealt;
+    }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
     const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
     const again = () => tries < 30 ? this.generate(seed, tries + 1) : null;
@@ -1413,6 +1417,7 @@ const Practice = {
   },
 };
 window.RankdPractice = { generate: s => Practice.generate(s), rules: Practice.rules, data: PR, ok: Practice.ok, popular: POPULAR_COUNTRIES };
+window.RankdInsight = { lines: (...args) => crowdInsightLines(...args), fromBars: (...args) => insightFromBars(...args) };
 // v12: Rankd Studio (studio.html) loads this file with window.RANKD_STUDIO = true to reuse the game's rules and data
 // helpers; the game UI below is not started there.
 // valueGlossOf is a function declaration (hoisted). The fallback map has to be initialized before this
@@ -1493,6 +1498,7 @@ const PUZZLE_TYPE_LABEL = Object.freeze({
   tier: "Tier it",
   name: "Name it",
   quiz: "Quiz",
+  number: "Guess the number",
 });
 const SUBMISSION_LIMITS = Object.freeze({
   question: 280, countries: 200, source_url: 300, handle: 40, user_agent: 240, anon_id: 80,
@@ -1870,6 +1876,7 @@ let bonusMemoCut = null;
 let bonusMemoExtras = null;
 function scheduledDateOf(p) {
   if (!p) return "";
+  if (p.fillerDate) return String(p.fillerDate);
   if (p.parentId) {
     const parent = PUZZLES.find(x => x.id === p.parentId);
     return scheduledDateOf(parent);
@@ -1913,6 +1920,9 @@ function fillerPool(dateKey) {
     }
     if (p.type === "rank" || p.type === "top1" || p.type === "tier" || p.type === "match" || p.type === "name") push(p);
   }
+  if (window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) for (const card of window.RankdNumber.cards(set)) push(card);
+  }
   return out;
 }
 function fillerBlocked(i, p) {
@@ -1936,8 +1946,14 @@ function bonusForDayNumber(n) {
   const fillers = dayFillers(n);
   return fillers.length ? fillers[0] : null;
 }
+function fmtPoints(n) {
+  const x = Math.round(Number(n) * 10) / 10;
+  if (!Number.isFinite(x)) return "0";
+  return Number.isInteger(x) ? String(x) : x.toFixed(1);
+}
 function bundlePoints(p) {
   if (!p) return 0;
+  if (p.type === "number") return 2;
   if (p.type === "quiz") return (p.questions || []).length;
   if (p.type === "tier") return (p.tiers || []).length;
   if (p.type === "match") return (p.people || []).length;
@@ -1947,6 +1963,10 @@ function bundlePoints(p) {
 function partScore(p, res) {
   const max = bundlePoints(p);
   if (!p || !res || !res.done) return { score: 0, max };
+  if (p.type === "number") {
+    const pts = Number(res.points);
+    return { score: Number.isFinite(pts) ? Math.max(0, Math.min(max, pts)) : 0, max };
+  }
   if (p.type === "quiz") {
     const hits = Number(res.hits) || ((res.marks || []).filter(m => m === "good").length);
     return { score: Math.min(max, hits), max };
@@ -2007,7 +2027,7 @@ function pileBehind(partCount, index) {
 window.RankdBonus = {
   forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
-  lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf,
+  lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
@@ -2225,6 +2245,7 @@ function partResultLine(index, p, r) {
   if (!p || !r || !isDone(r)) return `${label} · skipped`;
   const kind = PUZZLE_TYPE_LABEL[p.type] || "Rank it";
   if (p.type === "quiz" && window.RankdQuiz) return `${label} · Quiz · ${RankdQuiz.shareBits(p, r).line}`;
+  if (p.type === "number") return `${label} · Guess the number · ${fmtPoints(r.points)}/${bundlePoints(p)}`;
   const solved = p.type === "top1" ? !!r.solved : p.type === "top5" ? !!(r.won || r.solved) : !!r.solved;
   const tries = Number(r.tries) || (Array.isArray(r.guesses) ? r.guesses.length : 0) || 0;
   if (!solved) return `${label} · ${kind} · X/${CONFIG.rankMaxTries}`;
@@ -2403,7 +2424,7 @@ function renderHero() {
     skip.classList.toggle("hidden", !mid);
     if (mid) skip.textContent = "Skip this part";
   }
-  $("#heroKind").textContent = p.type === "top1" ? `🥇 Top 1` : p.type === "name" ? `✏️ Name it` : p.type === "quiz" ? `💡 Quiz` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
+  $("#heroKind").textContent = p.type === "number" ? `🔢 Guess the number` : p.type === "top1" ? `🥇 Top 1` : p.type === "name" ? `✏️ Name it` : p.type === "quiz" ? `💡 Quiz` : p.type === "top5" ? `🖐️ Top 5` : p.type === "match" ? `🔗 Match it` : p.type === "tier" ? `${p.emoji || "📊"} Tier it` : `${p.emoji || "📊"} Rank it`;
   $("#headline").textContent = heroHeadline(p);
   // Subtitle = question (when it differs from the fun headline). Stat line is the long measurement
   // label — hide it when it only repeats the subtitle (e.g. Share the Tape had both).
@@ -2458,7 +2479,7 @@ function renderName(saved) {
       const tier = !restore ? winTier(g) : null;
       const cheer = !restore ? cheerChoice(g, false) : null;
       if (cheer) Fx.celebrate(cheer, "name");
-      const reveal = () => showResult(g, { scroll: !restore, sound: !restore });
+      const reveal = () => (restore ? showResult : finishSurface)(g, { scroll: !restore, sound: !restore, scorecard: !!restore });
       if (restore) reveal();
       else afterSubmit(reveal, tier);
     },
@@ -2475,7 +2496,7 @@ function openPuzzle(p, opts) {
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
   const strip = $("#partStrip"); if (strip) strip.classList.add("hidden");
   const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
-  const g = p.type === "top1"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#nameGame").classList.toggle("hidden", p.type !== "name"); $("#quizGame").classList.toggle("hidden", p.type !== "quiz"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top1", p.type === "top1"); $("#hero").classList.toggle("is-top5", false); $("#hero").classList.toggle("is-name", p.type === "name"); $("#hero").classList.toggle("is-quiz", p.type === "quiz"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", true);
+  const g = p.type === "top1"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#nameGame").classList.toggle("hidden", p.type !== "name"); $("#quizGame").classList.toggle("hidden", p.type !== "quiz"); $("#numberGame").classList.toggle("hidden", p.type !== "number"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top1", p.type === "top1"); $("#hero").classList.toggle("is-top5", false); $("#hero").classList.toggle("is-name", p.type === "name"); $("#hero").classList.toggle("is-quiz", p.type === "quiz"); $("#hero").classList.toggle("is-number", p.type === "number"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", true);
   const t5board = $("#t5board"); if (t5board) t5board.classList.add("hidden");
   const hintsEl = $("#hints"); if (hintsEl) hintsEl.classList.add("hidden");
   setHash(linkHash());
@@ -2485,6 +2506,8 @@ function openPuzzle(p, opts) {
   state.tier = null;
   state.guess = null;
   state.quiz = null;
+  state.quizSel = null;
+  state.number = null;
   // Daily, archive, practice, and the all-puzzles list always open a fresh board.
   // The stored row is the first finish only, and a reload must not put it back on the cards.
   // The other game objects are cleared too, so a finished board from the previous puzzle
@@ -2492,7 +2515,7 @@ function openPuzzle(p, opts) {
   const saved = state.mode === "preview" ? getResult() : null;
   if (freshRound(saved) && state.slot !== "bonus") track("game_started", { mode: state.mode, puzzle_type: p.type });
   const h2h = $("#h2h"); if (h2h) { h2h.classList.add("hidden"); h2h.replaceChildren(); }
-  p.type === "quiz" ? renderQuiz(saved) : p.type === "name" ? renderName(saved) : p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop1(saved);
+  p.type === "number" ? renderNumber(saved) : p.type === "quiz" ? renderQuiz(saved) : p.type === "name" ? renderName(saved) : p.type === "rank" ? renderRank(saved) : p.type === "match" ? renderMatch(saved) : p.type === "tier" ? renderTier(saved) : renderTop1(saved);
   if (state.challengeOpenedFresh) {
     state.challengeOpenedFresh = false;
     track("challenge_link_opened", { mode: state.mode, puzzle_type: p.type });
@@ -2508,12 +2531,18 @@ function quizBits(p, g) {
   const hits = marks.filter(m => m === "good").length;
   return { hits, total: (p.questions || []).length || marks.length, line: hits + "/" + marks.length, grid: marks.map(m => m === "good" ? "🟩" : "🟥").join("") };
 }
+function quizInfoHtml(q) {
+  const fact = q && q.fact ? esc(q.fact) : "";
+  const link = q && q.sourceUrl ? ` <a href="${esc(q.sourceUrl)}" target="_blank" rel="noopener">${esc(q.source || "Source")}</a>` : "";
+  return fact + link;
+}
 function paintQuiz() {
   const p = state.puzzle, g = state.quiz;
   const qs = (p && p.questions) || [];
   const q = qs[g.index];
   const box = $("#quizOptions");
   const reveal = $("#quizReveal");
+  const lockRow = $("#quizLockRow");
   const n = qs.length;
   $("#quizDir").textContent = g.done ? `${g.hits}/${n}` : `Question ${Math.min(g.index + 1, n)} of ${n}`;
   $("#quizScore").textContent = `${g.hits} correct`;
@@ -2523,13 +2552,18 @@ function paintQuiz() {
   box.innerHTML = (q.options || []).map(o => {
     const picked = locked && g.picks[g.index] && g.picks[g.index].iso3 === o.iso3;
     const right = locked && o.iso3 === q.answer;
-    const cls = right ? "good" : picked ? "bad" : "";
+    const on = !locked && state.quizSel === o.iso3 ? "is-on" : "";
+    const cls = right ? "good" : picked ? "bad" : on;
     return `<button type="button" class="quiz-opt ${cls}" data-iso="${esc(o.iso3)}" ${locked ? "disabled" : ""}><span class="qo-flag" aria-hidden="true">${esc(o.emoji)}</span><span class="qo-name">${esc(o.name)}</span></button>`;
   }).join("");
+  const lock = $("#quizLock");
   if (!locked) {
     reveal.classList.add("hidden");
-    $$("#quizOptions .quiz-opt").forEach(btn => { btn.onclick = () => quizChoose(btn.dataset.iso); });
+    if (lockRow) lockRow.classList.remove("hidden");
+    if (lock) lock.disabled = !state.quizSel;
+    $$("#quizOptions .quiz-opt").forEach(btn => { btn.onclick = () => { state.quizSel = btn.dataset.iso; paintQuiz(); }; });
   } else {
+    if (lockRow) lockRow.classList.add("hidden");
     reveal.classList.remove("hidden");
     const pick = g.picks[g.index];
     const right = (q.options || []).find(o => o.iso3 === q.answer) || { emoji: "", name: "" };
@@ -2537,42 +2571,86 @@ function paintQuiz() {
       ? `Right. ${right ? right.emoji + " " + right.name : ""}`
       : `The answer is ${right ? right.emoji + " " + right.name : ""}`;
     $("#quizNext").parentElement.classList.remove("hidden");
-    $("#quizFact").textContent = q.fact || "";
+    $("#quizFact").innerHTML = quizInfoHtml(q);
     const src = $("#quizSource");
-    if (q.sourceUrl) {
-      src.href = q.sourceUrl;
-      src.textContent = q.source || q.sourceUrl;
-      src.classList.remove("hidden");
-    } else src.classList.add("hidden");
-    const last = g.index + 1 >= n;
-    $("#quizNext").textContent = last ? "See score" : "Next";
+    if (src) src.classList.add("hidden");
+    $("#quizNext").textContent = "Next question";
   }
 }
 function renderQuiz(saved) {
   const p = state.puzzle;
   const fresh = !(saved && saved.type === "quiz");
+  state.quizSel = null;
   const g = state.quiz = fresh || !window.RankdQuiz ? (window.RankdQuiz ? RankdQuiz.blank(p) : { type: "quiz", picks: [], marks: [], guesses: [], index: 0, phase: "ask", done: false, solved: false, hits: 0, tries: 1 }) : saved;
-  if (g.done) { paintQuiz(); return showResult(g); }
+  if (g.done) { paintQuiz(); return finishSurface(g); }
   paintQuiz();
 }
-function quizChoose(iso) {
+function quizLock() {
   const p = state.puzzle, g = state.quiz;
-  if (!p || !g || g.done || g.phase !== "ask" || !window.RankdQuiz) return;
+  if (!p || !g || g.done || g.phase !== "ask" || !window.RankdQuiz || !state.quizSel) return;
+  const iso = state.quizSel;
+  state.quizSel = null;
   state.quiz = RankdQuiz.choose(g, p, iso);
   if (state.quiz === g) return;
   Snd.lock();
-  paintQuiz();
+  const n = (p.questions || []).length;
+  if (state.quiz.index + 1 < n) { paintQuiz(); return; }
+  quizAdvance();
 }
 function quizAdvance() {
   const p = state.puzzle, g = state.quiz;
   if (!p || !g || !window.RankdQuiz || g.phase !== "reveal") return;
   const next = RankdQuiz.advance(g, p);
   state.quiz = next;
+  state.quizSel = null;
   if (!next.done) { paintQuiz(); return; }
   commitFinish(next);
   trackGameCompleted(next);
   const tier = next.solved ? "big" : null;
-  afterSubmit(() => showResult(next, { sound: !!next.solved, scroll: true }), tier);
+  afterSubmit(() => finishSurface(next, { sound: !!next.solved, scroll: true }), tier);
+}
+function renderNumber(saved) {
+  const p = state.puzzle;
+  const fresh = !(saved && saved.type === "number" && saved.done);
+  const g = state.number = fresh || !window.RankdNumber ? (window.RankdNumber ? window.RankdNumber.blank() : { type: "number", done: false, phase: "ask" }) : saved;
+  const ask = $("#numberAsk");
+  if (ask) ask.textContent = p.question || "";
+  const reveal = $("#numberReveal");
+  const form = $("#numberForm");
+  if (g.done) {
+    if (form) form.classList.add("hidden");
+    if (reveal) reveal.classList.remove("hidden");
+    const who = p.ask || {};
+    const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value || "");
+    const verdict = $("#numberVerdict");
+    if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${rate}${p.unit ? " " + p.unit : ""}. You scored ${fmtPoints(g.points)}/2.`;
+    const fact = $("#numberFact");
+    if (fact) fact.innerHTML = quizInfoHtml(p);
+    return finishSurface(g);
+  }
+  if (form) form.classList.remove("hidden");
+  if (reveal) reveal.classList.add("hidden");
+  const input = $("#numberInput");
+  if (input) input.value = "";
+}
+function submitNumber(ev) {
+  if (ev) ev.preventDefault();
+  const p = state.puzzle, g = state.number;
+  if (!p || !g || g.done || !window.RankdNumber) return;
+  const raw = ($("#numberInput") && $("#numberInput").value || "").trim();
+  if (!raw || !Number.isFinite(Number(raw)) || Number(raw) <= 0) { toast("Type a number above zero"); return; }
+  state.number = window.RankdNumber.lock(g, p, raw);
+  Snd.lock();
+  commitFinish(state.number);
+  trackGameCompleted(state.number);
+  const form = $("#numberForm"); if (form) form.classList.add("hidden");
+  const reveal = $("#numberReveal"); if (reveal) reveal.classList.remove("hidden");
+  const who = p.ask || {};
+  const verdict = $("#numberVerdict");
+  if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${window.RankdNumber.fmtRate(who.value)}${p.unit ? " " + p.unit : ""}. You scored ${fmtPoints(state.number.points)}/2.`;
+  const fact = $("#numberFact");
+  if (fact) fact.innerHTML = quizInfoHtml(p);
+  afterSubmit(() => finishSurface(state.number, { sound: state.number.points >= 2, scroll: true }), state.number.points >= 2 ? "big" : null);
 }
 // ================================================================ RANK IT
 function correctOrder(p) { return p.items.map((it, i) => ({ v: it.value, i })).sort((a, b) => p.higherIs === "bottom" ? a.v - b.v : b.v - a.v).map(x => x.i); }
@@ -2787,8 +2865,8 @@ function revealRank(res, animate) {
     li.querySelector(".yourpick").textContent = res.solved ? (res.tries === 1 ? "✓ first try" : "✓ solved") : markOf[i] === "good" ? "✓ you had it right" : `you put it #${userPos[i] + 1}`;
     li.classList.add("revealed"); if (animate) li.classList.add("pop");
   }, animate ? 200 + n * 160 : 0));
-  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => showResult(res, { scroll: true, sound: true }), 1150 + right.length * 160); }
-  else { doMove(); fill(); showResult(res); }
+  if (animate) { setTimeout(doMove, 350); setTimeout(fill, 1000); setTimeout(() => finishSurface(res, { scroll: true, sound: true }), 1150 + right.length * 160); }
+  else { doMove(); fill(); finishSurface(res); }
 }
 
 // ================================================================ MATCH IT (v12)
@@ -2896,7 +2974,7 @@ function revealMatch(res, animate) {
     li.querySelector(".m-target").innerHTML = `${flagHtml(p.people[k])}<span class="tn"> ${esc(shortName(p.people[k]))}</span>${ok ? "" : ` <s>${flagHtml(p.people[last.assign[k]])}<span class="tn">${esc(shortName(p.people[last.assign[k]]))}</span></s>`}`;
     if (animate) setTimeout(() => li.classList.add("pop"), 120 * n); });
   $$("#mPeople .m-person").forEach(b => { const i = +b.dataset.p; b.querySelector(".m-got").textContent = letterOf(i); b.classList.toggle("good", last.marks[i] === "good"); b.classList.toggle("bad", last.marks[i] !== "good"); b.disabled = true; });
-  if (animate) setTimeout(() => showResult(res, { scroll: true, sound: true }), 300 + 120 * p.people.length); else showResult(res);
+  if (animate) setTimeout(() => finishSurface(res, { scroll: true, sound: true }), 300 + 120 * p.people.length); else finishSurface(res);
 }
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
   return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
@@ -3122,7 +3200,7 @@ function revealTier(res, animate) {
   g.cur = right.slice();
   paintTier(res.marks || scoreTier(p, right));
   if (animate) $$(".tier-chip").forEach(c => { c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); });
-  showResult(res, animate ? { scroll: true, sound: true } : null); fitLayout();
+  finishSurface(res, animate ? { scroll: true, sound: true } : null); fitLayout();
 }
 function isIdentityTier(p) {
   if (!p || p.type !== "tier" || !p.items || !p.items.length) return false;
@@ -3179,7 +3257,7 @@ function renderTop1(saved) {
   const input = $("#guessInput"); if (input) input.value = "";
   top1CloseSuggest();
   top1Paint();
-  if (g.done) showResult(g); else fitLayout();
+  if (g.done) finishSurface(g); else fitLayout();
 }
 function top1Paint() {
   const p = state.puzzle, g = state.guess, max = CONFIG.rankMaxTries;
@@ -3279,7 +3357,7 @@ function submitTop1(c) {
     $("#guessGame").classList.add("locked");
     top1Paint();
     const cheer = cheerChoice(g, false); if (cheer) Fx.celebrate(cheer, "top1");
-    afterSubmit(() => showResult(g, { scroll: true, sound: true }), cheer);
+    afterSubmit(() => finishSurface(g, { scroll: true, sound: true }), cheer);
     return;
   }
   rememberDraft(g); top1Paint();
@@ -3322,7 +3400,7 @@ function renderTop5(saved) {
     $("#guessGame").classList.add("locked");
     const btn = $("#t5Submit"); if (btn) btn.parentElement.classList.add("hidden");
     const hint = $("#t5Hint"); if (hint) hint.classList.add("hidden");
-    showResult(saved);
+    finishSurface(saved);
     fitLayout();
     return;
   }
@@ -3559,7 +3637,7 @@ function revealTop5(res, animate) {
     if (out) { out.textContent = line; out.classList.toggle("hidden", !line); }
     const dir = $("#t5Dir"); if (dir) dir.textContent = "The top 5";
   }
-  if (animate) setTimeout(() => showResult(res, { scroll: true, sound: true }), 420); else showResult(res);
+  if (animate) setTimeout(() => finishSurface(res, { scroll: true, sound: true }), 420); else finishSurface(res);
 }
 (function top5Drag() {
   let d = null, suppressClick = false;
@@ -3852,35 +3930,154 @@ function paintBundlePile() {
     return `<span class="bundle-card" style="--rot:${rot}deg;--back:${back}" title="${esc(p.headline || p.question || "")}"></span>`;
   }).join("");
 }
+function finishSurface(res, opts) {
+  const parts = state.bundleParts || [];
+  const bundled = dayOffersBonus() && parts.length > 1;
+  if (bundled && !(opts && opts.scorecard)) return showPartStrip(res, opts);
+  return showResult(res, opts);
+}
+function insightPlaces(signed, pct) {
+  const weight = Math.max(0.35, Math.min(1, (Number(pct) || 50) / 100));
+  const mag = Math.abs(signed) * weight;
+  if (mag < 0.4) return null;
+  const rounded = Math.round(mag * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  const word = Math.abs(rounded - 1) < 0.05 ? "place" : "places";
+  return { mag: mag, text: text, word: word, higher: signed > 0 };
+}
+function insightFromBars(p, bars, where) {
+  if (!p || !bars || !bars.length) return null;
+  const who = where || "Players worldwide";
+  if (p.type === "rank" || bars.some(bar => bar.slot)) {
+    const items = p.items || [];
+    if (!items.length) return null;
+    const higherBottom = p.higherIs === "bottom";
+    const order = items.map(it => it).slice().sort((a, b) => higherBottom ? Number(a.value) - Number(b.value) : Number(b.value) - Number(a.value));
+    const truth = {};
+    order.forEach((it, i) => { if (it && it.name) truth[it.name] = i + 1; });
+    let best = null;
+    for (const bar of bars) {
+      const real = truth[bar.name];
+      const crowd = Number(bar.slot);
+      if (!real || !crowd) continue;
+      const place = insightPlaces(real - crowd, bar.pct);
+      if (!place) continue;
+      if (!best || place.mag > best.mag) best = Object.assign({ name: bar.name }, place);
+    }
+    if (!best) return null;
+    const dir = best.higher ? "higher than it really is" : "too low";
+    return { mag: best.mag, text: `${who} ranked ${best.name} ${best.text} ${best.word} ${dir}.` };
+  }
+  if (p.type === "tier") {
+    const labels = (p.tiers || []).map(t => t.label);
+    let best = null;
+    for (const bar of bars) {
+      const item = (p.items || []).find(it => it.name === bar.name);
+      if (!item) continue;
+      const real = labels[item.tierIndex];
+      if (!real || !bar.tier || bar.tier === real) continue;
+      const gap = Math.abs(labels.indexOf(bar.tier) - labels.indexOf(real));
+      const mag = Math.max(1, gap) * Math.max(0.35, Math.min(1, (Number(bar.pct) || 50) / 100));
+      if (!best || mag > best.mag) best = { mag: mag, name: bar.name, tier: bar.tier, real: real };
+    }
+    if (!best) return null;
+    return { mag: best.mag, text: `${who} put ${best.name} in ${best.tier}. It belongs in ${best.real}.` };
+  }
+  if (p.type === "quiz") {
+    const q = (p.questions || [])[0];
+    const right = q && (q.options || []).find(o => o.iso3 === q.answer);
+    const top = bars.slice().sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0))[0];
+    if (!top || !top.name) return null;
+    const answer = right && top.name !== right.name ? ` ${right.name} is the answer.` : "";
+    return { mag: Number(top.pct) || 1, text: `${who} picked ${top.name} ${Math.round(Number(top.pct) || 0)}% of the time.${answer}` };
+  }
+  if (p.type === "top1") {
+    const top = bars[0];
+    if (!top || !top.name) return null;
+    const leader = (p.countries || []).slice().sort((a, b) => Number(b.value) - Number(a.value))[0];
+    const note = leader && leader.name !== top.name ? ` The top country is ${leader.name}.` : "";
+    return { mag: Number(top.pct) || 1, text: `${who} guessed ${top.name} first ${Math.round(Number(top.pct) || 0)}% of the time.${note}` };
+  }
+  if (p.type === "name") {
+    const top = bars.slice().sort((a, b) => (Number(b.pct) || 0) - (Number(a.pct) || 0))[0];
+    if (!top || !top.name) return null;
+    return { mag: Number(top.pct) || 1, text: `${who} named ${top.name} most often.` };
+  }
+  if (p.type === "match") {
+    const miss = bars.find(bar => bar.matchedTo && bar.name && bar.matchedTo !== bar.name) || bars[0];
+    if (!miss || !miss.name) return null;
+    if (!miss.matchedTo || miss.matchedTo === miss.name) return null;
+    return { mag: 2, text: `${who} matched ${miss.name} to ${miss.matchedTo}.` };
+  }
+  if (p.type === "number") return null;
+  const top = bars[0];
+  if (!top || !(top.name || top.label)) return null;
+  return { mag: Number(top.pct) || 1, text: `${who} went for ${top.name || top.label} most often.` };
+}
+function insightBlockReady(data, block, country) {
+  const players = block ? Number(block.players) || 0 : 0;
+  if (country) return players >= COMMUNITY_MIN_COUNTRY ? block : null;
+  if (players >= 8) return block;
+  const standing = Number(data && data.standing && data.standing.n) || 0;
+  // A seeded ordering is one play. The standing crowd is the sample, and that seed sits a little under a clear.
+  if (data && data.seeded !== false && standing >= 30 && block && communityBars(block).length) return block;
+  return null;
+}
+function crowdInsightLines(p, data, countryCode) {
+  if (!p || !data) return [];
+  const worldBlock = data.firstGuessWorld || (Array.isArray(data.firstGuess) ? { players: data.players, bars: data.firstGuess } : null);
+  const lines = [];
+  const world = insightBlockReady(data, worldBlock, false);
+  if (world) {
+    const hit = insightFromBars(p, communityBars(world), "Players worldwide");
+    if (hit) lines.push(hit);
+  }
+  const bucket = countryCode && data.firstGuessByCountry && data.firstGuessByCountry[countryCode];
+  const local = insightBlockReady(data, bucket, true);
+  if (local) {
+    const where = "Players in " + (regionName(countryCode) || countryCode);
+    const hit = insightFromBars(p, communityBars(local), where);
+    if (hit && !lines.some(line => line.text === hit.text)) lines.push(hit);
+  }
+  lines.sort((a, b) => b.mag - a.mag);
+  return lines.slice(0, 2).map(line => line.text);
+}
 function showPartStrip(res) {
   const p = state.puzzle;
   hidePlayBoards();
   const quiz = $("#quizGame"); if (quiz) quiz.classList.add("hidden");
+  const number = $("#numberGame"); if (number) number.classList.add("hidden");
   $("#result").classList.add("hidden");
   const strip = $("#partStrip");
   if (!strip) return;
   const mine = partScore(p, res);
   const line = $("#partStripLine");
-  if (line) line.textContent = `You ${mine.score}/${mine.max}`;
+  if (line) line.textContent = `You ${fmtPoints(mine.score)}/${fmtPoints(mine.max)}`;
+  const insight = $("#partStripInsight");
+  if (insight) insight.innerHTML = "";
+  const fact = $("#partStripFact");
+  if (fact) fact.textContent = (p && p.fact) || "";
   const crowd = $("#partStripCrowd");
   if (crowd) crowd.textContent = "Crowd…";
   const bars = $("#partStripBars");
   if (bars) bars.innerHTML = "";
   const next = $("#partNext");
-  if (next) next.textContent = "Next";
+  if (next) next.textContent = morePartsRemain() ? "Next part →" : "See your score";
   strip.classList.remove("hidden");
   const pile = $("#bundlePile");
   if (pile && !motionReduce()) pile.classList.add("is-straight");
   showFab(false);
   syncPlaying();
-  CommunityStats.fetch(p && p.id, state.dateKey).then(data => {
+  Promise.all([
+    CommunityStats.fetch(p && p.id, state.dateKey).catch(() => null),
+    ViewerGeo.country().catch(() => null),
+  ]).then(([data, code]) => {
     if (!data || state.puzzle !== p) return;
     fillCommunitySeed(data, p);
     const theirs = crowdPoints(p, data);
-    if (crowd) {
-      const seeded = data.seeded !== false;
-      crowd.textContent = theirs == null ? "Crowd still filling in" : `Crowd ${theirs}/${mine.max}${seeded ? "" : ""}`;
-    }
+    if (crowd) crowd.textContent = theirs == null ? "Crowd still filling in" : `Crowd ${fmtPoints(theirs)}/${fmtPoints(mine.max)}`;
+    const lines = crowdInsightLines(p, data, code);
+    if (insight) insight.innerHTML = lines.map(text => `<p class="insight-line">${esc(text)}</p>`).join("");
     const world = communityBars(data.firstGuessWorld || data.firstGuess);
     const yours = new Set(yourAnswerNames(p, res));
     if (bars) bars.innerHTML = world.slice(0, 4).map(bar => {
@@ -3907,7 +4104,12 @@ function paintDayTotal(res) {
   const score = rows.reduce((n, row) => n + row.s.score, 0);
   const max = rows.reduce((n, row) => n + row.s.max, 0);
   box.classList.remove("hidden");
-  box.innerHTML = `<div class="day-score-top"><b>${score}/${max}</b><span>Today's score</span></div><div class="day-podium" id="dayPodium"></div><div class="day-parts">${rows.map(row => `<details class="day-part"><summary>Part ${row.i + 1} · ${esc(row.p.headline || row.p.question || "Puzzle")} · ${row.s.score}/${row.s.max}</summary><div class="day-part-body" data-part="${row.i}"></div></details>`).join("")}</div>`;
+  const partLines = rows.map(row => {
+    const stored = storedRow(partStorageKey(row.i), row.p.id);
+    const mine = row.i === (state.partIndex || 0) ? (res || state.liveResult || stored) : stored;
+    return `<li>${esc(partResultLine(row.i, row.p, mine))}</li>`;
+  }).join("");
+  box.innerHTML = `<div class="day-payoff"><p class="day-kicker">Today's score</p><p class="day-total"><b>${fmtPoints(score)}</b><span>/${fmtPoints(max)}</span></p><p class="day-compare" id="dayCompare">Comparing with other players…</p><ul class="day-lines">${partLines}</ul></div><div class="day-podium" id="dayPodium"></div><div class="day-parts">${rows.map(row => `<details class="day-part"><summary>Part ${row.i + 1} · ${esc(row.p.headline || row.p.question || "Puzzle")} · ${fmtPoints(row.s.score)}/${fmtPoints(row.s.max)}</summary><div class="day-part-body" data-part="${row.i}"></div></details>`).join("")}</div>`;
   box.querySelectorAll("details.day-part").forEach(el => {
     el.addEventListener("toggle", () => {
       if (!el.open) return;
@@ -3948,13 +4150,18 @@ function paintDayTotal(res) {
     if (platforms) podium.appendChild(platforms);
     const note = document.createElement("p");
     note.className = "platforms-caption";
-    note.textContent = `You ${score}/${max} · crowd about ${crowd}/${max}`;
+    note.textContent = `You ${fmtPoints(score)}/${fmtPoints(max)} · crowd about ${fmtPoints(crowd)}/${fmtPoints(max)}`;
     podium.appendChild(note);
+    const compare = $("#dayCompare");
+    if (compare) compare.textContent = `Better than ${better}% of players. The crowd scored about ${fmtPoints(crowd)}/${fmtPoints(max)}.`;
   }).catch(() => {});
 }
 function showResult(res, opts) {
   if (opts && opts.sound) Snd.success(res);
   const p = state.puzzle;
+  const quizEl = $("#quizGame"); if (quizEl) quizEl.classList.add("hidden");
+  const numberEl = $("#numberGame"); if (numberEl) numberEl.classList.add("hidden");
+  const strip = $("#partStrip"); if (strip) strip.classList.add("hidden");
   if (res) state.liveResult = res;
   pendingResultScroll = !!(opts && opts.scroll);
   $("#scoreBig").classList.remove("is-words");
@@ -3991,6 +4198,13 @@ function showResult(res, opts) {
     }).join("");
     $("#answerBox").innerHTML = rows;
     $("#answerBox").classList.remove("hidden");
+  } else if (res.type === "number") {
+    const who = p.ask || {};
+    const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value ?? "");
+    $("#scoreBig").textContent = `${fmtPoints(res.points)}/2`;
+    $("#scoreTitle").textContent = Number(res.points) >= 2 ? "Very close." : Number(res.points) > 0 ? "In the neighborhood." : "Way off.";
+    $("#answerBox").innerHTML = `<p class="num-reveal">${esc(who.emoji || "")} ${esc(who.name || "")} is <b>${esc(rate)}</b>${p.unit ? " " + esc(p.unit) : ""}.</p><p class="quiz-fact">${quizInfoHtml(p)}</p>`;
+    $("#answerBox").classList.remove("hidden");
   } else if (res.type === "name") {
     const max = CONFIG.rankMaxTries;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
@@ -4010,9 +4224,15 @@ function showResult(res, opts) {
       <span>${s.group.map(c => esc(c.name) + (guessed.has(cKey(c)) ? " ✓" : "")).join(" = ")}${s.tied ? `<small class="tienote"> tied at ${fmt1(s.value)}: either one counted</small>` : ""}</span><span class="tv">${fmt1(s.value)}${unitAside(p)}</span></div>`; }).join("");
     $("#answerBox").classList.remove("hidden");
   }
-  $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", !p.fact && !p.caveat);
+  const quizRepeatsFact = res.type === "quiz" && (p.questions || []).some(q => q.fact && q.fact === p.fact);
+  const numberRepeatsFact = res.type === "number";
+  $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", quizRepeatsFact || numberRepeatsFact || (!p.fact && !p.caveat));
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
-  paintSourceCard(p);
+  const quizRepeatsSource = res.type === "quiz" && (p.questions || []).some(q => q.sourceUrl && q.sourceUrl === p.sourceUrl);
+  if (quizRepeatsSource || res.type === "number") {
+    const a = $("#sourceLink");
+    if (a) { a.classList.add("hidden"); a.removeAttribute("href"); }
+  } else paintSourceCard(p);
   renderChallengeQr(res);
   $("#nextBtn").textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
   renderYouVs(p, null, res);
@@ -4592,7 +4812,7 @@ async function renderCommunity(p, res) {
   if (!data && p.type === "name" && window.RankdName && RankdName.seedSnapshot) data = RankdName.seedSnapshot(p);
   if (!data) {
     badge.textContent = "Community";
-    if (headLabel) headLabel.textContent = "What most players thought";
+    if (headLabel) headLabel.textContent = "The crowd";
     body.innerHTML = `<p class="community-empty">No community snapshot for this puzzle yet.</p>`;
     renderYouVs(p, null, res || getResult());
     scheduleFit();
@@ -4605,14 +4825,11 @@ async function renderCommunity(p, res) {
   badge.title = data.seeded ? "Seeded snapshot until live aggregates exist" : "";
   const worldBlock = data.firstGuessWorld || (p.type === "top5" && data.firstGuess ? { bars: data.firstGuess, players: n } : null);
   const worldBars = communityBars(worldBlock);
-  if (headLabel) headLabel.textContent = "What most players thought";
-  let html = "";
-  if (worldBars.length) {
-    html += communityOrderList(worldBars, p);
-    html += communityCountrySection(data, countryCode, p);
-  } else html += `<p class="community-empty">No first guesses for this puzzle yet.</p>`;
-  html += communityLeaderboard(data, p);
-  body.innerHTML = html;
+  if (headLabel) headLabel.textContent = "The crowd";
+  const lines = crowdInsightLines(p, data, countryCode);
+  const breakdown = (worldBars.length ? communityOrderList(worldBars, p) + communityCountrySection(data, countryCode, p) : `<p class="community-empty">No first guesses for this puzzle yet.</p>`) + communityLeaderboard(data, p);
+  const insight = lines.length ? `<div class="insight-lines">${lines.map(text => `<p class="insight-line">${esc(text)}</p>`).join("")}</div>` : "";
+  body.innerHTML = insight + `<details class="deeper"><summary>Deeper dive</summary>${breakdown}</details>`;
   if (p.type === "name" && window.RankdName) RankdName.paintRarity(p, data);
   renderYouVs(p, data, res || getResult());
   scheduleFit();
@@ -5773,6 +5990,8 @@ function howModal() {
    <p><b>🔗 Match it:</b> match each clue (4 to 7 of them) to the right person. Drag a clue onto a person, or tap a clue and then the person. When all are placed, lock it in: right pairs turn 🟩 green and lock, wrong ones turn 🟥 red. Fix them and try again, ${CONFIG.rankMaxTries} tries in all.</p>
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
    <p><b>✏️ Name it:</b> type any country that passes both rules (a letter or word rule, plus a stat). Aliases such as USA and Korea count. A guess that isn't a country, or one you already tried, doesn't use a try. Any valid country wins. ${CONFIG.rankMaxTries} tries. Each miss says which rule it broke. At the end, every valid answer is shown.</p>
+   <p><b>💡 Quiz:</b> tap a country to highlight it, then Lock it in. One fact appears, once. No second try.</p>
+   <p><b>🔢 Guess the number:</b> one country shows its real value. Type your guess for another and lock it in. Score is out of 2.</p>
    <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
    <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!. So does a Name it loss where every guess was wrong.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
@@ -5814,7 +6033,7 @@ async function handleFiles(files) {
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
 
 // ================================================================ wire up
-$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
+$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; if ($("#quizLock")) $("#quizLock").onclick = quizLock; if ($("#numberForm")) $("#numberForm").onsubmit = submitNumber; $("#nextBtn").onclick = next; $("#fab").onclick = fabGo;
 if ($("#guessForm")) $("#guessForm").addEventListener("submit", e => { e.preventDefault(); top1Commit(); });
 if ($("#guessInput")) {
   $("#guessInput").addEventListener("input", top1UpdateSuggest);
@@ -5840,7 +6059,10 @@ if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCr
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#bonusBtn")) $("#bonusBtn").onclick = () => advancePart();
 if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
-if ($("#partNext")) $("#partNext").onclick = () => advancePart();
+if ($("#partNext")) $("#partNext").onclick = () => {
+  if (morePartsRemain()) return advancePart();
+  if (state.liveResult) showResult(state.liveResult, { scorecard: true, scroll: true });
+};
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
@@ -5958,6 +6180,8 @@ document.addEventListener("keydown", e => {
     else if (p.type === "match" && !$("#matchSubmit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitMatch(); }
     else if (p.type === "tier" && !$("#tierSubmit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitTier(); }
     else if (p.type === "top5" && $("#t5Submit") && !$("#t5Submit").parentElement.classList.contains("hidden")) { e.preventDefault(); submitTop5(); }
+    else if (p.type === "quiz" && $("#quizLock") && !$("#quizLock").disabled && !$("#quizLockRow").classList.contains("hidden")) { e.preventDefault(); quizLock(); }
+    else if (p.type === "quiz" && $("#quizNext") && !$("#quizReveal").classList.contains("hidden")) { e.preventDefault(); quizAdvance(); }
   }
 });
 
