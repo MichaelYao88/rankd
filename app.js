@@ -2227,7 +2227,19 @@ function partStorageKey(i) {
     return state.mode === "preview" ? `v:${id}:${state.dateKey}` : `d:${state.dateKey}`;
   }
   if (state.mode === "preview") return `vb:${(puzzle && puzzle.id) || ""}:${state.dateKey}`;
-  return `b:${state.dateKey}:${i}`;
+  return i > 0 ? `b:${state.dateKey}:${i}` : `b:${state.dateKey}`;
+}
+function partStoredDone(i) {
+  const parts = currentParts();
+  const puzzle = parts[i];
+  if (!puzzle) return false;
+  const row = load(LS.results, {})[partStorageKey(i)];
+  if (!row || !isDone(row)) return false;
+  return row.id === puzzle.id || row.scheduleId === puzzle.id;
+}
+function firstUnfinishedPart(parts) {
+  for (let i = 0; i < parts.length; i++) if (!partStoredDone(i)) return i;
+  return 0;
 }
 const resultKey = () => {
   if (state.slot === "bonus" && dayOffersBonus()) {
@@ -3950,9 +3962,8 @@ function paintSourceCard(p) {
   else showIcon();
 }
 function morePartsRemain() {
-  if (state.slot !== "bonus") return false;
   if (state.mode !== "daily" && state.mode !== "archive" && state.mode !== "preview") return false;
-  const parts = state.bundleParts || [];
+  const parts = currentParts();
   return parts.length > 1 && (state.partIndex || 0) < parts.length - 1;
 }
 function crowdPoints(p, data) {
@@ -5754,7 +5765,9 @@ function openDay(opts) {
   if (!parts.length) return;
   if (opts && opts.main) return openPart(streakIndexOf(parts), { animate: true });
   if (opts && Number.isFinite(opts.part)) return openPart(opts.part, { animate: true });
-  try { openPart(0); }
+  // A reload after Part 1 (the scheduled puzzle) must open the next unplayed
+  // part. Finishing that puzzle used to look like the whole day was done.
+  try { openPart(firstUnfinishedPart(parts)); }
   catch (e) { openPart(parts.length - 1); }
 }
 function goToday(opts) {
