@@ -173,13 +173,17 @@ test("result sections sit below the card, and the next button is not floating", 
   for (const id of ["fact", "sourceLink", "youVs", "communityBody", "scoreBig", "nextBtn", "dayScore", "partStrip", "challengeQr", "challengeFriendBtn"]) {
     assert.equal(hero.includes('id="' + id + '"'), false, id + " is inside the card");
   }
+  assert.ok(hero.includes('id="cardNext"'), "the card keeps a Next button");
   const result = play.slice(resultAt);
+  const share = result.indexOf('id="sharePuzzleBtn"');
   const next = result.indexOf('id="nextBtn"');
   const qr = result.indexOf('id="challengeQr"');
-  assert.ok(next >= 0 && qr > next, "next button is in flow before the QR");
-  assert.match(css, /#nextBtn\{[^}]*position:static/);
-  assert.match(css, /#nextBtn\{[^}]*width:100%/);
-  assert.doesNotMatch(css, /#nextBtn\.is-float\{[^}]*position:\s*fixed/);
+  assert.ok(share >= 0 && next > share && qr > next, "the flow Next button is grouped with Share and sits before the QR");
+  assert.match(css, /#nextBtn,#cardNext\{[^}]*position:static/);
+  assert.match(css, /\.part-next,#nextBtn\{[^}]*width:100%/);
+  assert.doesNotMatch(css, /#nextBtn[^{]*\{[^}]*position:\s*(fixed|sticky)/);
+  assert.doesNotMatch(css, /#cardNext[^{]*\{[^}]*position:\s*(fixed|sticky)/);
+  assert.doesNotMatch(css, /\.fab\{[^}]*position:\s*fixed/);
 });
 
 test("finishing part 1 continues the bundle, and a reload resumes the rest", () => {
