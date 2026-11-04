@@ -76,29 +76,40 @@ test("guess the number scores by the error ratio and stays out of 2", () => {
   assert.equal(NumberGuess.score(0, truth).points, 0);
   assert.equal(NumberGuess.score("", truth).points, 0);
   const sets = NumberGuess.sets();
-  assert.equal(sets.length, 1);
-  assert.equal(sets[0].sensitive, true);
-  assert.ok(sets[0].pairs.length >= 20);
-  const rows = Object.fromEntries(practice.datasets.find(d => d.id === "unodc-homicide-female").rows.map(r => [r[0], r]));
-  const seen = new Set();
-  for (const pair of sets[0].pairs) {
-    const known = rows[pair.known.iso3];
-    const ask = rows[pair.ask.iso3];
-    assert.ok(known && ask, pair.known.iso3 + " " + pair.ask.iso3);
-    assert.equal(pair.known.value, known[1]);
-    assert.equal(pair.ask.value, ask[1]);
-    assert.equal(String(pair.known.year), String(known[2]));
-    assert.equal(String(pair.ask.year), String(ask[2]));
-    assert.ok(pair.fact && pair.fact.length > 20);
-    const id = pair.known.iso3 + "-" + pair.ask.iso3;
-    assert.equal(seen.has(id), false, id);
-    seen.add(id);
-    const card = NumberGuess.card(sets[0], pair);
-    assert.equal(card.type, "number");
-    assert.equal(card.sensitive, true);
-    assert.equal(card.fillerDate, "2027-05-06");
-    assert.match(card.question, new RegExp(pair.known.name));
-    assert.doesNotMatch(card.question, new RegExp(pair.ask.value));
+  const stats = (() => {
+    const box = { window: {} };
+    vm.runInNewContext(read("number-stats.js"), box);
+    return box.window.RANKD_NUMBER_STATS;
+  })();
+  assert.equal(sets.filter(s => s.sensitive).map(s => s.id).join(","), "number-femicide");
+  assert.ok(sets.length >= 6);
+  const homicide = Object.fromEntries(practice.datasets.find(d => d.id === "unodc-homicide-female").rows.map(r => [r[0], r]));
+  for (const set of sets) {
+    const floor = set.id === "number-femicide" ? 20 : 15;
+    assert.ok(set.pairs.length >= floor && set.pairs.length <= 24, set.id + " " + set.pairs.length);
+    const series = stats.find(s => s.id === set.id);
+    const seen = new Set();
+    for (const pair of set.pairs) {
+      if (set.id === "number-femicide") {
+        assert.equal(pair.known.value, homicide[pair.known.iso3][1]);
+        assert.equal(pair.ask.value, homicide[pair.ask.iso3][1]);
+      } else {
+        const known = series.rows.find(r => r[0] === pair.known.iso3);
+        const ask = series.rows.find(r => r[0] === pair.ask.iso3);
+        assert.equal(pair.known.value, known[1], set.id + " " + pair.known.iso3);
+        assert.equal(pair.ask.value, ask[1], set.id + " " + pair.ask.iso3);
+        assert.match(pair.fact, new RegExp(pair.known.name));
+        assert.match(pair.fact, new RegExp(pair.ask.name));
+      }
+      assert.ok(pair.fact && pair.fact.length > 40, set.id);
+      const id = pair.known.iso3 + "-" + pair.ask.iso3;
+      assert.equal(seen.has(id), false, set.id + " " + id);
+      seen.add(id);
+      const card = NumberGuess.card(set, pair);
+      assert.equal(card.sensitive, !!set.sensitive);
+      assert.equal(card.fillerDate, "2027-05-06");
+      assert.match(card.question, new RegExp(pair.known.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    }
   }
 });
 
@@ -110,9 +121,11 @@ test("number cards fill the bundle after the AdSense window and score halves", (
   assert.equal(bonus.points(cards[0]), 2);
   assert.ok(bonus.scheduledDate(cards[0]) >= bonus.lateFrom);
   const early = bonus.pool(CUTOFF);
-  assert.equal(early.some(p => p.type === "number" || p.sensitive), false);
+  assert.equal(early.some(p => p.sensitive), false);
+  assert.ok(early.some(p => p.type === "number" && !p.sensitive), "a non-sensitive stat fills safe dates");
   const later = bonus.pool("2026-11-04");
-  assert.ok(later.some(p => p.type === "number" && p.sensitive), "number cards enter the filler pool");
+  assert.ok(later.some(p => p.type === "number" && p.sensitive), "female homicide stays available after the window");
+  assert.ok(later.some(p => p.type === "number" && !p.sensitive));
   const puzzle = cards.find(c => c.ask.iso3 === "USA" && c.known.iso3 === "IND");
   const close = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 2.4);
   assert.equal(close.done, true);
@@ -124,34 +137,50 @@ test("number cards fill the bundle after the AdSense window and score halves", (
   assert.equal(bonus.score(puzzle, off).score, 0.5);
 
   win.RankdShared.CONFIG.adsenseSafeThrough = "";
-  let found = null;
-  for (let seed = 1; seed <= 800 && !found; seed++) {
+  let sawSensitive = false, sawOpen = false;
+  for (let seed = 1; seed <= 900 && !(sawSensitive && sawOpen); seed++) {
     const dealt = win.RankdPractice.generate(seed);
-    if (dealt && dealt.type === "number") found = dealt;
+    if (dealt && dealt.type === "number") {
+      assert.equal(dealt.practice, true);
+      if (dealt.sensitive) sawSensitive = true;
+      else sawOpen = true;
+    }
   }
-  assert.ok(found, "practice can deal a number card");
-  assert.equal(found.sensitive, true);
-  assert.equal(found.practice, true);
+  assert.ok(sawSensitive && sawOpen, "practice deals both kinds outside the window");
   win.RankdShared.CONFIG.adsenseSafeThrough = "2099-01-01";
-  for (let seed = 1; seed <= 80; seed++) {
+  let sawSafePractice = false;
+  for (let seed = 1; seed <= 400; seed++) {
     const dealt = win.RankdPractice.generate(seed);
     assert.ok(dealt, "seed " + seed);
-    assert.notEqual(dealt.type, "number", seed);
     assert.equal(!!dealt.sensitive, false, seed);
+    if (dealt.type === "number") sawSafePractice = true;
   }
+  assert.ok(sawSafePractice, "practice still deals a non-sensitive number inside the window");
 
-  let saw = false;
-  for (let n = 0; n < 80; n++) {
+  win.RankdShared.CONFIG.adsenseSafeThrough = CUTOFF;
+  const used = [];
+  const statIds = new Set();
+  for (let n = 0; n < 120; n++) {
     const parts = bonus.parts(n);
     const date = keyFrom(n);
     const total = parts.reduce((sum, p) => sum + bonus.points(p), 0);
-    assert.ok(total <= bonus.ceiling || total >= 11, date + " " + total);
-    for (const filler of parts.slice(0, -1)) {
-      if (date <= CUTOFF) assert.equal(!!filler.sensitive, false, filler.id);
-      if (filler.type === "number") saw = true;
+    const floor = parts.reduce((sum, p) => sum + bonus.points(p), 0);
+    assert.ok(total <= bonus.ceiling || total === bonus.points(parts[parts.length - 1]) + bonus.points(parts[0]), date + " " + total);
+    assert.ok(floor >= 1, date);
+    const numbers = parts.filter(p => p.type === "number");
+    assert.equal(new Set(numbers.map(p => p.parentId)).size, numbers.length, date);
+    for (const filler of numbers) {
+      if (date <= CUTOFF) assert.equal(filler.sensitive, false, filler.id);
+      for (const prev of used) {
+        if (n - prev.n > 30) continue;
+        assert.notEqual(prev.id, filler.id, filler.id);
+        assert.notEqual(prev.parent, filler.parentId, filler.parentId + " on " + date);
+      }
+      used.push({ n, id: filler.id, parent: filler.parentId });
+      statIds.add(filler.parentId);
     }
   }
-  assert.equal(typeof saw, "boolean");
+  assert.ok(statIds.size >= 2, "stats " + [...statIds].join(","));
 });
 
 test("the crowd line uses a big enough sample and keeps the old breakdown behind a deeper dive", () => {
@@ -201,6 +230,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v34/);
+  assert.match(read("sw.js"), /ranki-shell-v35/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

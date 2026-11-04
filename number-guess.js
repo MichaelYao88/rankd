@@ -14,7 +14,7 @@
   function fmtRate(v) {
     const n = Number(v);
     if (!Number.isFinite(n)) return "";
-    return n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    return n.toFixed(3).replace(/0+$/, "").replace(/\.$/, "");
   }
 
   function score(guess, truth) {
@@ -70,8 +70,9 @@
     return out;
   }
 
-  function practicePuzzle(seed) {
-    const all = allCards();
+  function practicePuzzle(seed, safe) {
+    let all = allCards();
+    if (safe) all = all.filter(c => !c.sensitive);
     if (!all.length) return null;
     const s = Number(seed) >>> 0;
     const pick = all[s % all.length];
