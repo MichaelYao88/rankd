@@ -77,16 +77,17 @@ test("maskable icon keeps the mark inside the safe circle on a full-bleed tile",
 });
 
 test("every HTML page links the manifest and iOS tags", () => {
-  const pages = [
-    "index.html",
-    "about.html",
-    "privacy.html",
-    "how-to-play.html",
-    "terms.html",
-    "studio.html",
-    "loadingzone.html",
-    "loadingzone/index.html",
-  ];
+  const pages = [];
+  const walk = dir => {
+    for (const name of fs.readdirSync(dir)) {
+      const abs = path.join(dir, name);
+      if (fs.statSync(abs).isDirectory()) {
+        if (name === "node_modules" || name === "vendor") continue;
+        walk(abs);
+      } else if (name.endsWith(".html")) pages.push(path.relative(root, abs));
+    }
+  };
+  walk(root);
   for (const page of pages) {
     const html = read(page);
     assert.match(html, /rel="manifest" href="\/manifest\.webmanifest" type="application\/manifest\+json"/, page);
@@ -100,8 +101,8 @@ test("every HTML page links the manifest and iOS tags", () => {
 });
 
 test("the service worker is registered from the game and static pages, not Studio", () => {
-  for (const page of ["index.html", "about.html", "privacy.html", "how-to-play.html", "terms.html"]) {
-    assert.match(read(page), /src="pwa\.js"/, page);
+  for (const page of ["index.html", "about.html", "privacy.html", "how-to-play.html", "terms.html", "sources.html", "contact.html", "learn/index.html"]) {
+    assert.match(read(page), /src="pwa\.js"|src="\.\.\/pwa\.js"/, page);
   }
   for (const page of ["studio.html", "loadingzone.html", "loadingzone/index.html"]) {
     assert.doesNotMatch(read(page), /pwa\.js/, page);
@@ -115,7 +116,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v35");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v36");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 

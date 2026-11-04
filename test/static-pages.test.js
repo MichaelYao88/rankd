@@ -1,0 +1,105 @@
+const test = require("node:test");
+const assert = require("node:assert/strict");
+const fs = require("fs");
+const path = require("path");
+
+const root = path.join(__dirname, "..");
+const read = file => fs.readFileSync(path.join(root, file), "utf8");
+
+function walk(dir, acc = []) {
+  for (const name of fs.readdirSync(dir)) {
+    const abs = path.join(dir, name);
+    if (fs.statSync(abs).isDirectory()) {
+      if (name === "node_modules" || name === "vendor") continue;
+      walk(abs, acc);
+    } else acc.push(abs);
+  }
+  return acc;
+}
+
+function words(html) {
+  const main = html.split("<main")[1] || html;
+  const cut = main.split("</main>")[0] || main;
+  return cut.replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/g, " ").replace(/\s+/g, " ").trim().split(" ").filter(Boolean).length;
+}
+
+test("sitemap, robots, and ads.txt stay crawlable", () => {
+  const robots = read("robots.txt");
+  assert.match(robots, /Allow: \//);
+  assert.match(robots, /Sitemap: https:\/\/ranki\.gg\/sitemap\.xml/);
+  assert.match(robots, /Disallow: \/studio\.html/);
+  assert.equal(read("ads.txt").trim(), "google.com, pub-5196178239625142, DIRECT, f08c47fec0942fa0");
+  const sitemap = read("sitemap.xml");
+  const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
+  assert.ok(locs.includes("https://ranki.gg/"));
+  assert.ok(locs.includes("https://ranki.gg/learn/index.html"));
+  assert.ok(locs.includes("https://ranki.gg/sources.html"));
+  assert.ok(locs.includes("https://ranki.gg/contact.html"));
+  for (const loc of locs) {
+    assert.match(loc, /^https:\/\/ranki\.gg\//);
+    const rel = loc.replace("https://ranki.gg/", "");
+    const file = rel === "" ? "index.html" : rel;
+    assert.equal(fs.existsSync(path.join(root, file)), true, file);
+  }
+  assert.doesNotMatch(sitemap, /studio|loadingzone|homicide/i);
+});
+
+test("learn pages are static, sourced, and long enough", () => {
+  const pages = fs.readdirSync(path.join(root, "learn")).filter(name => name.endsWith(".html") && name !== "index.html");
+  assert.ok(pages.length >= 10 && pages.length <= 20, "count " + pages.length);
+  const banned = /homicide|suicide|murder|cannabis|overdose|pornograph|penis|slang|rape/i;
+  for (const name of pages) {
+    const html = read(path.join("learn", name));
+    const n = words(html);
+    assert.ok(n >= 300 && n <= 700, name + " " + n);
+    assert.match(html, /rel="canonical"/, name);
+    assert.match(html, /adsbygoogle\.js\?client=ca-pub-5196178239625142/, name);
+    assert.match(html, /Play this puzzle/, name);
+    assert.match(html, /<table>/, name);
+    assert.doesNotMatch(html, banned, name);
+    assert.doesNotMatch(html, /under construction|coming soon|lorem ipsum/i, name);
+  }
+  const index = read("learn/index.html");
+  assert.match(index, /rel="canonical" href="https:\/\/ranki\.gg\/learn\/index\.html"/);
+  for (const name of pages) assert.match(index, new RegExp(name.replace(".", "\\.")), name);
+});
+
+test("static pages do not link to a missing local file", () => {
+  const htmlFiles = walk(root).filter(abs => abs.endsWith(".html"));
+  const missing = [];
+  for (const abs of htmlFiles) {
+    const dir = path.dirname(abs);
+    const html = fs.readFileSync(abs, "utf8");
+    const hrefs = [...html.matchAll(/\b(?:href|src)="([^"]+)"/g)].map(m => m[1]);
+    for (const href of hrefs) {
+      if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("data:") || href.startsWith("javascript:")) continue;
+      if (/^https?:\/\//i.test(href)) continue;
+      const clean = href.split("#")[0].split("?")[0];
+      if (!clean) continue;
+      const target = clean.startsWith("/")
+        ? path.join(root, decodeURIComponent(clean.slice(1)))
+        : path.resolve(dir, decodeURIComponent(clean));
+      if (!fs.existsSync(target)) missing.push(path.relative(root, abs) + " -> " + href);
+    }
+  }
+  assert.deepEqual(missing, []);
+});
+
+test("the home page explains the modes in HTML, without a homicide sample", () => {
+  const html = read("index.html");
+  assert.match(html, /id="homeGuide"/);
+  assert.match(html, /What ranki\.gg is/);
+  assert.match(html, /Rank it/);
+  assert.match(html, /Tier it/);
+  assert.match(html, /Top 1/);
+  assert.match(html, /Name it/);
+  assert.match(html, /Multiple choice/);
+  assert.match(html, /Guess the number/);
+  assert.match(html, /href="learn\/index\.html"/);
+  assert.match(html, /href="sources\.html"/);
+  assert.match(html, /rel="canonical" href="https:\/\/ranki\.gg\/"/);
+  assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
+  assert.match(read("sw.js"), /"\/learn\/index\.html"/);
+  assert.match(read("sw.js"), /"\/sources\.html"/);
+  assert.match(read("sw.js"), /ranki-shell-v36/);
+});
