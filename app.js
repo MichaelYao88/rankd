@@ -1795,8 +1795,11 @@ function inAdsenseSafeWindow(dateKey) {
 //   rank, Top 1, Top 5 = 5
 // Each part scores accuracy out of 100. The package score is the weighted
 // average of those accuracies, also out of 100. Guess the number accuracy uses
-// ratio = bigger/smaller and round(100 * max(0, 1 - ln(ratio) / ln(3))): 100
-// when the guess matches, 0 once it is 3× off. There is no half-point score.
+// ratio = bigger/smaller and round(100 * max(0, 1 - ln(ratio) / ln(factor))):
+// 100 when the guess matches, 0 once the miss reaches that stat's factor.
+// factor is the series interquartile ratio, clamped to 1.15–3, so a wide stat
+// is still 0 at 3× and a tight one (life expectancy) is 0 much sooner.
+// There is no half-point score.
 // The scheduled puzzle is the one that moves the streak. On a quiz day that is
 // the last question of that quiz. Fillers and the closer never move it.
 // The first finish of each part is the one that counts.
@@ -1812,6 +1815,8 @@ const FILLER_LATE_FROM = "2027-02-01";
 // sandboxed and is not linked from the public pages.
 const SHOWCASE_KEY = "2026-11-14";
 const SHOWCASE_STATS = ["number-tea", "number-life"];
+// Hold those two stats out of the filler draw for the 30 days before the
+// showcase, so the preview day can still show one card from each.
 const BUNDLE_TARGET = 12;
 const BUNDLE_CEILING = 14;
 const BUNDLE_MAX_PARTS = 16;
@@ -1921,13 +1926,20 @@ function fillerHash(day, id) {
   for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x7FEB352D);
   return (h ^ (h >>> 16)) >>> 0;
 }
+function showcaseReserved(dateKey) {
+  if (!dateKey || dateKey >= SHOWCASE_KEY) return false;
+  const gap = Math.round((Date.parse(SHOWCASE_KEY + "T00:00:00Z") - Date.parse(dateKey + "T00:00:00Z")) / 864e5);
+  return gap > 0 && gap <= FILLER_GAP;
+}
 function fillerPool(dateKey) {
   const safe = inAdsenseSafeWindow(dateKey);
+  const holdShowcase = showcaseReserved(dateKey);
   const out = [];
   const seen = new Set();
   const push = p => {
     if (!p || !p.id || seen.has(p.id)) return;
     if (safe && p.sensitive) return;
+    if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return;
     const when = scheduledDateOf(p);
     if (!when || when < FILLER_LATE_FROM) return;
     seen.add(p.id);
@@ -1985,17 +1997,18 @@ function bundlePoints(p) {
   if (p.type === "name") return 1;
   return 5;
 }
-function numberAccuracyFromRatio(ratio) {
+function numberAccuracyFromRatio(ratio, factor) {
   const r = Number(ratio);
+  const tol = Number(factor) > 1 ? Number(factor) : 3;
   if (!Number.isFinite(r) || r < 1) return 0;
-  const drop = Math.log(r) / Math.log(3);
+  const drop = Math.log(r) / Math.log(tol);
   return Math.max(0, Math.min(100, Math.round(100 * (1 - drop))));
 }
 function partAccuracy(p, res) {
   if (!p || !res || !res.done) return 0;
   if (p.type === "number") {
     if (Number.isFinite(Number(res.accuracy))) return Math.max(0, Math.min(100, Math.round(Number(res.accuracy))));
-    return numberAccuracyFromRatio(res.ratio);
+    return numberAccuracyFromRatio(res.ratio, p.scoreFactor);
   }
   const card = resultCard(p, res);
   if (card && Number.isFinite(card.accuracy)) return card.accuracy;
@@ -2746,7 +2759,7 @@ function renderNumber(saved) {
   const fresh = !(saved && saved.type === "number" && saved.done);
   const g = state.number = fresh || !window.RankdNumber ? (window.RankdNumber ? window.RankdNumber.blank() : { type: "number", done: false, phase: "ask" }) : saved;
   const ask = $("#numberAsk");
-  if (ask) ask.textContent = p.question || "";
+  if (ask) { ask.textContent = ""; ask.classList.add("hidden"); }
   const reveal = $("#numberReveal");
   const form = $("#numberForm");
   if (g.done) {
@@ -2755,7 +2768,7 @@ function renderNumber(saved) {
     const who = p.ask || {};
     const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value || "");
     const verdict = $("#numberVerdict");
-    if (verdict) verdict.textContent = `${who.emoji || ""} ${who.name || "The answer"} is ${rate}${p.unit ? " " + p.unit : ""}.`;
+    if (verdict) verdict.textContent = window.RankdNumber && RankdNumber.reveal ? RankdNumber.reveal(p) : `${who.emoji || ""} ${who.name || "The answer"} is ${rate}${p.unit ? " " + p.unit : ""}.`;
     const fact = $("#numberFact");
     if (fact) fact.innerHTML = quizInfoHtml(p);
     return finishSurface(g);
@@ -4321,9 +4334,10 @@ function showResult(res, opts) {
     const who = p.ask || {};
     const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value ?? "");
     const acc = partAccuracy(p, res);
+    const reveal = window.RankdNumber && RankdNumber.reveal ? RankdNumber.reveal(p) : `${who.emoji || ""} ${who.name || ""} is ${rate}${p.unit ? " " + p.unit : ""}.`;
     $("#scoreBig").textContent = String(acc);
     $("#scoreTitle").textContent = acc >= 100 ? "Right on it." : acc >= 60 ? "In the neighborhood." : "Way off.";
-    $("#answerBox").innerHTML = `<p class="num-reveal">${esc(who.emoji || "")} ${esc(who.name || "")} is <b>${esc(rate)}</b>${p.unit ? " " + esc(p.unit) : ""}.</p><p class="quiz-fact">${quizInfoHtml(p)}</p>`;
+    $("#answerBox").innerHTML = `<p class="num-reveal">${esc(reveal)}</p><p class="quiz-fact">${quizInfoHtml(p)}</p>`;
     $("#answerBox").classList.remove("hidden");
   } else if (res.type === "name") {
     const max = CONFIG.rankMaxTries;
@@ -6138,7 +6152,7 @@ function howModal() {
    <p><b>📊 Tier it:</b> drop each country onto a labeled tier (several can share a tier). Lock it in: right tiers turn 🟩 green and lock, wrong ones turn 🟥 red. ${CONFIG.rankMaxTries} tries. After you finish, the real % stays on each chip.</p>
    <p><b>✏️ Name it:</b> type any country that passes both rules (a letter or word rule, plus a stat). Aliases such as USA and Korea count. A guess that isn't a country, or one you already tried, doesn't use a try. Any valid country wins. ${CONFIG.rankMaxTries} tries. Each miss says which rule it broke. At the end, every valid answer is shown.</p>
    <p><b>💡 Quiz:</b> tap a country to highlight it, then Lock it in. One fact appears, once. No second try.</p>
-   <p><b>🔢 Guess the number:</b> one country shows its real value. Type your guess for another and lock it in. Accuracy is 100 when the guess matches and falls to 0 when it is about 3× off. The 2 is only that part's weight in the day.</p>
+   <p><b>🔢 Guess the number:</b> one place shows its real value. Type your guess for another and lock it in. Accuracy is 100 when the guess matches. It falls to 0 at 3× off for a wide stat, and sooner when the stat's values sit in a narrow band, such as life expectancy. The 2 is only that part's weight in the day.</p>
    <p>Each missed Top 5 lock reveals one hint about the highest-ranked slot you still have wrong, getting more specific each time. A correct slot doesn't spend a hint. When the answer is revealed, the card you left out shows its real rank.</p>
    <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!. So does a Name it loss where every guess was wrong.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
