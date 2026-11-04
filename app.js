@@ -1767,26 +1767,26 @@ function inAdsenseSafeWindow(dateKey) {
   return !!cut && String(dateKey) <= cut;
 }
 // Daily bundle. The scheduled puzzle is always the last part and the only one that
-// moves the streak. Earlier parts are other scheduled puzzles, chosen so the day's
-// point budget lands near BUNDLE_TARGET:
-//   quiz  = 1 per question
-//   tier  = one per tier
+// moves the streak. Earlier parts are fillers chosen so the day lands near
+// BUNDLE_TARGET:
+//   one quiz question = 1
+//   tier = one per tier
 //   match = one per pair
-//   name  = 1
+//   name = 1
 //   rank, Top 1, Top 5 = 5
-// Part 1 is the existing short puzzle (Top 1, Name it, Tier it, Match it, or a
-// part-1 ranker): deterministic, not that day's main, not repeated inside
-// BONUS_GAP days, a different theme when one is free, and never sensitive on or
-// before CONFIG.adsenseSafeThrough. Further parts use the same pool. They are added
-// only while the running total stays at or under BUNDLE_CEILING and the day is still
-// under the target, and there are at most BUNDLE_MAX_PARTS parts. The short list is
-// only about 30 puzzles, so a 14-day gap cannot also fill every day to 12 points.
-// When a fresh puzzle is not available, the one that has been quiet the longest is
-// used again. A part that would push a non-empty day over the ceiling is left for
-// another day. The first finish of each part is the one that counts.
+// Fillers are single questions from the quiz days, plus Top 1s and other puzzles
+// whose own play date is on or after FILLER_LATE_FROM (February 2027). That is
+// what backfills October–December 2026. A filler is deterministic for the date.
+// The same puzzle id is not used again inside FILLER_GAP days, and it is not used
+// within that many days of the day it is the main puzzle. A sensitive filler is
+// never placed on or before CONFIG.adsenseSafeThrough. At most BUNDLE_MAX_PARTS
+// parts, and a part is not added when it would push the day over BUNDLE_CEILING.
+// The first finish of each part is the one that counts.
 const BONUS_TYPES = ["top1", "name", "tier", "match"];
 const BONUS_TYPE_SET = new Set(BONUS_TYPES);
-const BONUS_GAP = 14;
+const BONUS_GAP = 30;
+const FILLER_GAP = 30;
+const FILLER_LATE_FROM = "2027-02-01";
 const BUNDLE_TARGET = 12;
 const BUNDLE_CEILING = 14;
 const BUNDLE_MAX_PARTS = 4;
@@ -1868,50 +1868,74 @@ let bonusMemo = [];
 let bonusMemoList = null;
 let bonusMemoCut = null;
 let bonusMemoExtras = null;
-function bonusForDayNumber(n) {
-  n = Math.round(n);
-  if (!Number.isFinite(n) || n < 0 || !PUZZLES.length) return null;
-  const cut = CONFIG.adsenseSafeThrough || "";
-  const extras = window.RANKD_PART1 || null;
-  if (bonusMemoList !== PUZZLES || bonusMemoCut !== cut || bonusMemoExtras !== extras) {
-    bonusMemo = [];
-    partsMemo = [];
-    bonusMemoList = PUZZLES;
-    bonusMemoCut = cut;
-    bonusMemoExtras = extras;
+function scheduledDateOf(p) {
+  if (!p) return "";
+  if (p.parentId) {
+    const parent = PUZZLES.find(x => x.id === p.parentId);
+    return scheduledDateOf(parent);
   }
-  if (n < bonusMemo.length) return bonusMemo[n];
-  for (let i = bonusMemo.length; i <= n; i++) {
-    const dateKey = keyFromDay(i);
-    const main = puzzleOnDay(i);
-    const banned = new Set();
-    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) {
-      if (bonusMemo[i - k]) banned.add(bonusMemo[i - k].id);
-      for (const prev of (partsMemo[i - k] || [])) if (prev && prev.id) banned.add(prev.id);
+  const i = PUZZLES.findIndex(x => x.id === p.id);
+  return i < 0 ? "" : keyFromDay(i);
+}
+function quizCard(parent, q) {
+  const opt = (q.options || [])[0] || {};
+  return {
+    type: "quiz", id: parent.id + "#" + q.id, fillerOnly: true, parentId: parent.id,
+    order: parent.order, sensitive: !!parent.sensitive,
+    emoji: opt.emoji || parent.emoji || "💡", headline: q.prompt || q.ask || parent.headline,
+    question: q.ask || "", stat: parent.stat || "", unit: parent.unit || "",
+    source: q.source || parent.source || "", sourceUrl: q.sourceUrl || parent.sourceUrl || "",
+    fact: q.fact || "", art: parent.art || "sun", support: parent.support || "",
+    questions: [q],
+  };
+}
+function fillerHash(day, id) {
+  let h = Math.imul(day + 1, 0x9E3779B1);
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 0x7FEB352D);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+function fillerPool(dateKey) {
+  const safe = inAdsenseSafeWindow(dateKey);
+  const out = [];
+  const seen = new Set();
+  const push = p => {
+    if (!p || !p.id || seen.has(p.id)) return;
+    if (safe && p.sensitive) return;
+    const when = scheduledDateOf(p);
+    if (!when || when < FILLER_LATE_FROM) return;
+    seen.add(p.id);
+    out.push(p);
+  };
+  for (const p of PUZZLES) {
+    if (p.type === "quiz" && Array.isArray(p.questions)) {
+      for (const q of p.questions) push(quizCard(p, q));
+      continue;
     }
-    const open = ban => bonusPool(dateKey, main, ban);
-    let pool = open(banned).filter(p => !sameTheme(p, main));
-    if (!pool.length) pool = open(banned);
-    if (!pool.length) pool = open(new Set()).filter(p => !sameTheme(p, main));
-    if (!pool.length) pool = open(new Set());
-    const fresh = pool.filter(p => !banned.has(p.id));
-    if (fresh.length) pool = fresh;
-    else if (pool.length) {
-      const lastUsed = id => {
-        for (let k = 1; k <= i; k++) {
-          const day = i - k;
-          if (bonusMemo[day] && bonusMemo[day].id === id) return day;
-          if ((partsMemo[day] || []).some(p => p && p.id === id)) return day;
-        }
-        return -1;
-      };
-      pool = pool.slice().sort((a, b) => lastUsed(a.id) - lastUsed(b.id) || (a.id < b.id ? -1 : 1)).slice(0, 1);
-    }
-    bonusMemo[i] = pickBonus(pool, i);
+    if (p.type === "rank" || p.type === "top1" || p.type === "tier" || p.type === "match" || p.type === "name") push(p);
   }
-  return bonusMemo[n];
+  return out;
+}
+function fillerBlocked(i, p) {
+  const id = p.id;
+  const parent = p.parentId || "";
+  for (let k = 1; k <= FILLER_GAP && i - k >= 0; k++) {
+    for (const prev of (partsMemo[i - k] || [])) if (prev && prev.id === id) return true;
+    const main = puzzleOnDay(i - k);
+    if (main && (main.id === id || (parent && main.id === parent))) return true;
+  }
+  for (let k = 0; k <= FILLER_GAP; k++) {
+    const main = puzzleOnDay(i + k);
+    if (main && (main.id === id || (parent && main.id === parent))) return true;
+  }
+  return false;
 }
 let partsMemo = [];
+let partsMemoList = null;
+let partsMemoCut = null;
+function bonusForDayNumber(n) {
+  const fillers = dayFillers(n);
+  return fillers.length ? fillers[0] : null;
+}
 function bundlePoints(p) {
   if (!p) return 0;
   if (p.type === "quiz") return (p.questions || []).length;
@@ -1941,44 +1965,29 @@ function partScore(p, res) {
 function dayFillers(n) {
   n = Math.round(n);
   if (!Number.isFinite(n) || n < 0) return [];
+  const cut = CONFIG.adsenseSafeThrough || "";
+  if (partsMemoList !== PUZZLES || partsMemoCut !== cut) {
+    partsMemo = [];
+    partsMemoList = PUZZLES;
+    partsMemoCut = cut;
+  }
   if (n < partsMemo.length && partsMemo[n]) return partsMemo[n];
-  for (let i = 0; i <= n; i++) {
-    if (partsMemo[i]) continue;
+  for (let i = partsMemo.length; i <= n; i++) {
     const main = puzzleOnDay(i);
-    const first = bonusForDayNumber(i);
-    const fillers = [];
-    if (first) fillers.push(first);
-    let sum = bundlePoints(main) + bundlePoints(first);
-    const banned = new Set();
-    if (main) banned.add(main.id);
-    for (const p of fillers) banned.add(p.id);
-    for (let k = 1; k <= BONUS_GAP && i - k >= 0; k++) {
-      for (const p of (partsMemo[i - k] || [])) if (p && p.id) banned.add(p.id);
-    }
     const dateKey = keyFromDay(i);
+    const fillers = [];
+    let sum = bundlePoints(main);
     while (fillers.length < BUNDLE_MAX_PARTS - 1 && sum < BUNDLE_TARGET) {
-      const room = p => sum + bundlePoints(p) <= BUNDLE_CEILING;
-      let pool = bonusPool(dateKey, main, banned).filter(p => room(p) && !sameTheme(p, main));
-      if (!pool.length) pool = bonusPool(dateKey, main, banned).filter(room);
-      if (!pool.length) {
-        const held = new Set([main && main.id]);
-        for (const p of fillers) held.add(p.id);
-        const open = bonusPool(dateKey, main, held).filter(room);
-        const lastUsed = id => {
-          for (let k = 1; k <= i; k++) {
-            const day = i - k;
-            if ((partsMemo[day] || []).some(p => p && p.id === id)) return day;
-          }
-          return -1;
-        };
-        open.sort((a, b) => lastUsed(a.id) - lastUsed(b.id) || bundlePoints(b) - bundlePoints(a) || (a.id < b.id ? -1 : 1));
-        pool = open.length ? [open[0]] : [];
-      }
+      const pool = fillerPool(dateKey).filter(p => {
+        if (main && (p.id === main.id || p.parentId === main.id)) return false;
+        if (fillers.some(f => f.id === p.id)) return false;
+        if (fillerBlocked(i, p)) return false;
+        return sum + bundlePoints(p) <= BUNDLE_CEILING;
+      });
       if (!pool.length) break;
-      pool.sort((a, b) => bundlePoints(b) - bundlePoints(a) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      pool.sort((a, b) => bundlePoints(b) - bundlePoints(a) || fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
       const pick = pool[0];
       fillers.push(pick);
-      banned.add(pick.id);
       sum += bundlePoints(pick);
     }
     partsMemo[i] = fillers;
@@ -1990,9 +1999,15 @@ function dayParts(n) {
   const main = puzzleOnDay(n);
   return main ? fillers.concat([main]) : fillers.slice();
 }
+function pileBehind(partCount, index) {
+  const n = Math.max(0, partCount || 0);
+  const here = Math.max(0, Math.min(n - 1, index || 0));
+  return Math.max(0, n - here - 1);
+}
 window.RankdBonus = {
-  forDay: bonusForDayNumber, gap: BONUS_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
+  forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
+  lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf,
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
@@ -3829,11 +3844,12 @@ function paintBundlePile() {
   pile.classList.toggle("is-reduce", motionReduce());
   if (!show) { pile.innerHTML = ""; return; }
   const here = state.partIndex || 0;
-  pile.innerHTML = parts.map((p, k) => {
-    if (k < here) return "";
-    const back = k - here;
-    const rot = (back - 1) * 2.4;
-    return `<span class="bundle-card${k === here ? " is-top" : ""}" style="--rot:${rot}deg;--back:${back}" title="${esc(p.headline || p.question || "")}"></span>`;
+  const behind = parts.filter((_, k) => k > here);
+  if (!behind.length) { pile.classList.add("hidden"); pile.innerHTML = ""; return; }
+  pile.innerHTML = behind.map((p, i) => {
+    const rot = (i - (behind.length - 1) / 2) * 2.4;
+    const back = behind.length - i;
+    return `<span class="bundle-card" style="--rot:${rot}deg;--back:${back}" title="${esc(p.headline || p.question || "")}"></span>`;
   }).join("");
 }
 function showPartStrip(res) {
@@ -3877,7 +3893,7 @@ function showPartStrip(res) {
 function paintDayTotal(res) {
   const box = $("#dayScore");
   if (!box) return;
-  const parts = (state.bundleParts && state.bundleParts.length > 1) ? state.bundleParts : [];
+  const parts = (state.bundleParts && state.bundleParts.length > 1 && !morePartsRemain()) ? state.bundleParts : [];
   if (!parts.length || (state.mode !== "daily" && state.mode !== "archive" && state.mode !== "preview")) {
     box.classList.add("hidden");
     box.innerHTML = "";
@@ -3937,10 +3953,6 @@ function paintDayTotal(res) {
   }).catch(() => {});
 }
 function showResult(res, opts) {
-  if (morePartsRemain()) {
-    showPartStrip(res);
-    return;
-  }
   if (opts && opts.sound) Snd.success(res);
   const p = state.puzzle;
   if (res) state.liveResult = res;
@@ -5380,7 +5392,8 @@ function paintBonus(res) {
   if (morePartsRemain()) {
     line.textContent = "";
     line.classList.add("hidden");
-    btn.classList.add("hidden");
+    btn.textContent = "Next";
+    btn.classList.remove("hidden");
     return;
   }
   const bits = [];
@@ -5825,7 +5838,7 @@ if ($("#suggest")) $("#suggest").addEventListener("mousedown", e => {
 if ($("#crossPromoDismiss")) $("#crossPromoDismiss").onclick = dismissCrossPromo;
 if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCrossPromo);
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
-if ($("#bonusBtn")) $("#bonusBtn").onclick = () => playMain();
+if ($("#bonusBtn")) $("#bonusBtn").onclick = () => advancePart();
 if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
 if ($("#partNext")) $("#partNext").onclick = () => advancePart();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();

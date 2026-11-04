@@ -86,17 +86,52 @@ test("a day bundles scheduled puzzles to about 12 points", () => {
   assert.ok(totals.filter(total => total < 10).length <= 3, "short days");
 });
 
-test("the part strip, the pile, and reduced motion are on the page", () => {
+test("the pile matches the blue card and shrinks with the parts left", () => {
   const html = read("index.html");
   const css = read("styles.css");
   const app = read("app.js");
-  assert.match(html, /id="partStrip"/);
-  assert.match(html, /id="partNext"/);
+  const bonus = bootStudio().RankdBonus;
+  assert.match(html, /id="communityBody"/);
+  assert.match(html, /id="bonusBtn"/);
   assert.match(html, /id="bundlePile"/);
   assert.match(html, /id="dayScore"/);
   assert.match(css, /prefers-reduced-motion:reduce/);
-  assert.match(css, /\.bundle-pile\.is-straight/);
-  assert.match(app, /motionReduce\(\)/);
+  assert.match(css, /\.bundle-card\{[^}]*background:var\(--brand\)/);
+  assert.match(app, /k > here/);
   assert.match(app, /BUNDLE_TARGET = 12/);
-  assert.match(read("sw.js"), /ranki-shell-v31/);
+  assert.equal(bonus.pileBehind(4, 0), 3);
+  assert.equal(bonus.pileBehind(4, 1), 2);
+  assert.equal(bonus.pileBehind(4, 3), 0);
+  assert.match(read("sw.js"), /ranki-shell-v32/);
+});
+
+test("the next 90 bundles stay near 12 points and do not repeat a filler inside the gap", () => {
+  const bonus = bootStudio().RankdBonus;
+  const seen = [];
+  let minGap = bonus.gap;
+  const totals = [];
+  for (let n = 0; n < 90; n++) {
+    const parts = bonus.parts(n);
+    const date = keyFrom(n);
+    assert.ok(parts.length >= 2 && parts.length <= 4, date + " parts " + parts.length);
+    const total = parts.reduce((sum, p) => sum + bonus.points(p), 0);
+    totals.push(total);
+    assert.ok(total >= 11 && total <= bonus.ceiling, date + " points " + total);
+    const main = parts[parts.length - 1];
+    assert.equal(bonus.scheduledDate(main), date, main.id);
+    for (const filler of parts.slice(0, -1)) {
+      if (date <= "2026-12-31") assert.ok(bonus.scheduledDate(filler) >= bonus.lateFrom, filler.id + " on " + date);
+      if (date <= "2026-11-03") assert.equal(!!filler.sensitive, false, filler.id);
+      for (let k = 1; k <= bonus.gap && n - k >= 0; k++) {
+        const again = seen[n - k].some(id => id === filler.id);
+        if (again) minGap = Math.min(minGap, k - 1);
+        assert.equal(again, false, filler.id + " repeated after " + k + " on " + date);
+      }
+      assert.equal(filler.id === main.id, false, filler.id);
+    }
+    seen.push(parts.slice(0, -1).map(p => p.id));
+  }
+  const avg = totals.reduce((a, b) => a + b, 0) / totals.length;
+  assert.ok(avg >= 12 && avg <= 14, "avg " + avg);
+  assert.ok(minGap >= 30, "repeat window " + minGap);
 });
