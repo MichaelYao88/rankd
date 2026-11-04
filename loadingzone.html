@@ -28,6 +28,7 @@
   <h1>Loading Zone</h1>
   <nav class="tabs" role="tablist">
     <button role="tab" id="tabPreview" aria-selected="true">Preview</button>
+    <button role="tab" id="tabCards" aria-selected="false">Cards</button>
     <button role="tab" id="tabData" aria-selected="false">Datasets</button>
   </nav>
 </header>
@@ -44,6 +45,19 @@
     <p class="lz-empty hidden" id="dayEmpty" role="status"></p>
     <ol class="days" id="days"></ol>
   </section>
+  <section id="cardView" class="hidden">
+    <p class="note" id="cardNote"></p>
+    <div class="lz-tools">
+      <div class="card-filters" id="cardFilters" role="group" aria-label="Card type"></div>
+      <div class="lz-search">
+        <input id="cardSearch" type="search" placeholder="Search titles…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="search" aria-label="Search cards" aria-controls="cards">
+        <button type="button" id="cardSearchClear" class="lz-search-clear" aria-label="Clear search" hidden>×</button>
+      </div>
+      <p class="lz-count" id="cardCount" aria-live="polite"></p>
+    </div>
+    <p class="lz-empty hidden" id="cardEmpty" role="status"></p>
+    <ol class="days" id="cards"></ol>
+  </section>
   <section id="dataView" class="hidden">
     <p class="note" id="dsNote"></p>
     <ul class="sets" id="sets"></ul>
@@ -55,6 +69,10 @@
 <script src="puzzle-search.js"></script>
 <script src="name-puzzles.js"></script>
 <script src="part1-puzzles.js"></script>
+<script src="invent-quiz.js"></script>
+<script src="number-stats.js"></script>
+<script src="number-puzzles.js"></script>
+<script src="number-guess.js"></script>
 <script src="app.js"></script>
 <script src="studio.js"></script>
 </body>

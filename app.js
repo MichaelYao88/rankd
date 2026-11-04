@@ -364,6 +364,18 @@ function resultCard(p, result) {
       tip,
     };
   }
+  if (type === "number") {
+    const accuracy = partAccuracy(p, result);
+    return {
+      tries: 1,
+      solved: accuracy >= 100,
+      firstCorrect: accuracy >= 100 ? 1 : 0,
+      firstOf: 1,
+      accuracy: accuracy,
+      kind: "number",
+      tip: "100 when the guess matches. It falls to 0 when the guess is about 3× off.",
+    };
+  }
   const attempts = result.attempts || [];
   if (!attempts.length || result.tries == null) return null;
   const distances = [];
@@ -1793,6 +1805,13 @@ const BONUS_TYPE_SET = new Set(BONUS_TYPES);
 const BONUS_GAP = 30;
 const FILLER_GAP = 30;
 const FILLER_LATE_FROM = "2027-02-01";
+// One near AdSense-safe day shows two Guess the number cards with different
+// non-sensitive stats. The pair and the closer are still chosen from the
+// filler pool, so the 30-day repeat rule still applies. Preview it from
+// Loading Zone, or open index.html?preview=2026-11-14. That preview is
+// sandboxed and is not linked from the public pages.
+const SHOWCASE_KEY = "2026-11-14";
+const SHOWCASE_STATS = ["number-tea", "number-life"];
 const BUNDLE_TARGET = 12;
 const BUNDLE_CEILING = 14;
 const BUNDLE_MAX_PARTS = 16;
@@ -2045,10 +2064,27 @@ function takeCloser(i, dateKey, head, fillers, sum) {
   if (sum + CLOSER_WEIGHT > BUNDLE_CEILING) return null;
   if (head.length + fillers.length + 1 > BUNDLE_MAX_PARTS) return null;
   const used = freshUsed(head.concat(fillers));
-  const pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  let pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  if (dateKey === SHOWCASE_KEY) pool = pool.filter(p => !p.sensitive);
   if (!pool.length) return null;
   pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
   return Object.assign({}, pool[0], { role: "closer" });
+}
+function takeShowcaseNumbers(i, dateKey, head, sum, cap) {
+  if (dateKey !== SHOWCASE_KEY) return [];
+  const used = freshUsed(head);
+  const picked = [];
+  let next = sum;
+  for (const stat of SHOWCASE_STATS) {
+    const pool = fillerPool(dateKey).filter(p => p.type === "number" && !p.sensitive && p.parentId === stat && fillerFits(i, p, used, next, cap));
+    if (!pool.length) continue;
+    pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
+    const card = Object.assign({}, pool[0], { role: "filler" });
+    picked.push(card);
+    rememberUsed(used, card);
+    next += bundlePoints(card);
+  }
+  return picked;
 }
 function buildDayParts(i) {
   const main = puzzleOnDay(i);
@@ -2058,13 +2094,35 @@ function buildDayParts(i) {
   const reserve = headSum + CLOSER_WEIGHT <= BUNDLE_CEILING ? CLOSER_WEIGHT : 0;
   const cap = BUNDLE_CEILING - reserve;
   const goal = Math.min(cap, reserve ? BUNDLE_TARGET - reserve : BUNDLE_TARGET);
-  let packed = takeFillers(i, dateKey, head, headSum, cap, Math.max(goal, headSum), false);
-  let closer = reserve ? takeCloser(i, dateKey, head, packed.fillers, packed.sum) : null;
+  const showcase = takeShowcaseNumbers(i, dateKey, head, headSum, cap);
+  const base = head.concat(showcase);
+  const baseSum = headSum + showcase.reduce((sum, p) => sum + bundlePoints(p), 0);
+  let packed = takeFillers(i, dateKey, base, baseSum, cap, Math.max(goal, baseSum), false);
+  packed = { fillers: showcase.concat(packed.fillers), sum: packed.sum };
+  let closer = reserve ? takeCloser(i, dateKey, head.concat(packed.fillers), [], packed.sum) : null;
   if (!closer) {
     const more = takeFillers(i, dateKey, head.concat(packed.fillers), packed.sum, BUNDLE_CEILING, BUNDLE_TARGET, true);
     packed = { fillers: packed.fillers.concat(more.fillers), sum: more.sum };
   }
   return head.concat(packed.fillers, closer ? [closer] : []);
+}
+function cardCatalog() {
+  const out = [];
+  const seen = new Set();
+  const push = p => { if (!p || !p.id || seen.has(p.id)) return; seen.add(p.id); out.push(p); };
+  for (const p of PUZZLES) {
+    if (!p || !p.id) continue;
+    if (p.type === "quiz" && Array.isArray(p.questions)) {
+      for (const q of p.questions) push(quizCard(p, q));
+      continue;
+    }
+    if (p.type === "rank" || p.type === "tier" || p.type === "top1" || p.type === "top5" || p.type === "name" || p.type === "match") push(p);
+  }
+  for (const p of part1Extras()) if (p && p.type === "rank") push(p);
+  if (window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) for (const card of window.RankdNumber.cards(set)) push(card);
+  }
+  return out;
 }
 function dayParts(n) {
   n = Math.round(n);
@@ -2088,6 +2146,7 @@ window.RankdBonus = {
   forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
   lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
+  showcase: SHOWCASE_KEY, catalog: cardCatalog,
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
@@ -4019,9 +4078,9 @@ function syncResultChrome() {
     if (bundled && morePartsRemain()) btn.textContent = "Next part →";
     else if (bundled && !state.scoreShown) btn.textContent = "See your score";
     else btn.textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
-    btn.classList.add("is-float");
+    btn.classList.remove("is-float");
   }
-  document.body.classList.add("has-float-next");
+  document.body.classList.remove("has-float-next");
   if (friend) friend.classList.toggle("hidden", bundled && !seeingScore);
 }
 function insightPlaces(signed, pct) {
@@ -4130,51 +4189,6 @@ function crowdInsightLines(p, data, countryCode) {
   lines.sort((a, b) => b.mag - a.mag);
   return lines.slice(0, 2).map(line => line.text);
 }
-function showPartStrip(res) {
-  const p = state.puzzle;
-  hidePlayBoards();
-  const quiz = $("#quizGame"); if (quiz) quiz.classList.add("hidden");
-  const number = $("#numberGame"); if (number) number.classList.add("hidden");
-  $("#result").classList.add("hidden");
-  const strip = $("#partStrip");
-  if (!strip) return;
-  const mine = partScore(p, res);
-  const line = $("#partStripLine");
-  if (line) line.textContent = `You ${fmtPoints(mine.score)}/${fmtPoints(mine.max)}`;
-  const insight = $("#partStripInsight");
-  if (insight) insight.innerHTML = "";
-  const fact = $("#partStripFact");
-  if (fact) fact.textContent = (p && p.fact) || "";
-  const crowd = $("#partStripCrowd");
-  if (crowd) crowd.textContent = "Crowd…";
-  const bars = $("#partStripBars");
-  if (bars) bars.innerHTML = "";
-  const next = $("#partNext");
-  if (next) next.textContent = morePartsRemain() ? "Next part →" : "See your score";
-  strip.classList.remove("hidden");
-  const pile = $("#bundlePile");
-  if (pile && !motionReduce()) pile.classList.add("is-straight");
-  showFab(false);
-  syncPlaying();
-  Promise.all([
-    CommunityStats.fetch(p && p.id, state.dateKey).catch(() => null),
-    ViewerGeo.country().catch(() => null),
-  ]).then(([data, code]) => {
-    if (!data || state.puzzle !== p) return;
-    fillCommunitySeed(data, p);
-    const theirs = crowdPoints(p, data);
-    if (crowd) crowd.textContent = theirs == null ? "Crowd still filling in" : `Crowd ${fmtPoints(theirs)}/${fmtPoints(mine.max)}`;
-    const lines = crowdInsightLines(p, data, code);
-    if (insight) insight.innerHTML = lines.map(text => `<p class="insight-line">${esc(text)}</p>`).join("");
-    const world = communityBars(data.firstGuessWorld || data.firstGuess);
-    const yours = new Set(yourAnswerNames(p, res));
-    if (bars) bars.innerHTML = world.slice(0, 4).map(bar => {
-      const name = bar.name || bar.label || "";
-      const hit = yours.has(name) ? " is-you" : "";
-      return `<div class="part-bar${hit}">${communityCrow(name, bar.pct, bar.emoji || communityEmojiOf(p, name))}</div>`;
-    }).join("");
-  }).catch(() => { if (crowd && state.puzzle === p) crowd.textContent = "Crowd still filling in"; });
-}
 function paintDayTotal(res) {
   const box = $("#dayScore");
   if (!box) return;
@@ -4219,6 +4233,11 @@ function paintDayTotal(res) {
   });
   const seed = window.RankdSeed;
   const podium = $("#dayPodium");
+  if (podium && typeof renderPlatforms === "function") {
+    podium.innerHTML = "";
+    const seeded = renderPlatforms(Math.max(1, Math.min(99, score)), parts.map(p => p.id).join("|") + "|" + score);
+    if (seeded) podium.appendChild(seeded);
+  }
   if (!podium || !seed || typeof renderPlatforms !== "function") return;
   Promise.all(parts.map(p => CommunityStats.fetch(p.id, state.dateKey).catch(() => null))).then(list => {
     let crowdWeight = 0, crowdSum = 0, known = 0;
@@ -4319,10 +4338,14 @@ function showResult(res, opts) {
   $("#fact").innerHTML = p.fact ? `<b>Facts:</b> ${esc(p.fact)}` : p.caveat ? `⚠️ ${esc(p.caveat)}` : ""; $("#fact").classList.toggle("hidden", quizRepeatsFact || numberRepeatsFact || (!p.fact && !p.caveat));
   const sup = $("#support"); if (p.support) { sup.innerHTML = `💙 Struggling, or worried about someone? Free, confidential support is available in most countries: <a href="${esc(p.support)}" target="_blank" rel="noopener">${esc(p.support.replace(/^https?:\/\/(www\.)?/, "").replace(/\/$/, ""))} ↗</a>`; sup.classList.remove("hidden"); } else sup.classList.add("hidden");
   const quizRepeatsSource = res.type === "quiz" && (p.questions || []).some(q => q.sourceUrl && q.sourceUrl === p.sourceUrl);
-  if (quizRepeatsSource || res.type === "number") {
+  if (quizRepeatsSource) {
     const a = $("#sourceLink");
     if (a) { a.classList.add("hidden"); a.removeAttribute("href"); }
   } else paintSourceCard(p);
+  ["#quizFact", "#quizSource", "#numberFact", "#numberVerdict"].forEach(id => {
+    const node = $(id);
+    if (node) node.textContent = "";
+  });
   renderChallengeQr(res);
   syncResultChrome();
   renderYouVs(p, null, res);
@@ -4844,6 +4867,7 @@ function renderYouVs(p, data, res) {
     el.appendChild(pair2);
   }
   const castSeed = p.id + "|" + mine.tries + "|" + mine.accuracy + "|" + (mine.solved ? 1 : 0);
+  if (better == null && Number.isFinite(mine.accuracy)) better = Math.max(1, Math.min(99, Math.round(mine.accuracy)));
   const platforms = perfectFirst
     ? renderPlatforms(better == null ? 99 : better, castSeed, { winner: true })
     : (better == null ? null : renderPlatforms(better, castSeed));
@@ -5807,6 +5831,16 @@ function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was 
   bindChallenge(opts && opts.challengeToken, { k: "p", id: p.id });
   openPuzzle(p);
 }
+function goPreviewCard(id) {
+  const card = cardCatalog().find(p => p.id === id);
+  if (!card) { toast("That card isn't in the pool"); return goHome(); }
+  state.mode = "preview";
+  state.dateKey = todayKey();
+  state.bundleParts = [card];
+  state.partIndex = 0;
+  state.scoreShown = false;
+  openPuzzle(card);
+}
 function goPreview(key) {   // v12 Studio preview of any scheduled day, past or future (sandboxed storage)
   if (!validKey(key) || dayNumber(key) < 0) { toast("That day isn't scheduled"); return goToday(); }
   state.mode = "preview"; state.dateKey = key; openDay();
@@ -6162,7 +6196,6 @@ if ($("#crossPromoCta")) $("#crossPromoCta").addEventListener("click", dismissCr
 $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#bonusBtn")) $("#bonusBtn").onclick = () => advancePart();
 if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
-if ($("#partNext")) $("#partNext").onclick = () => onResultNext();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
@@ -6526,6 +6559,8 @@ applyTheme(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   dismissLongAd();
+  const cardParam = (() => { try { return new URLSearchParams(location.search).get("card") || ""; } catch (e) { return ""; } })();
+  if (PREVIEW && cardParam) return goPreviewCard(decodeURIComponent(cardParam));
   if (/^\d{4}-\d{2}-\d{2}$/.test(PREVIEW)) return goPreview(PREVIEW);
   const h = location.hash;
   const RC = window.RankdChallenge;

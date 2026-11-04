@@ -34,6 +34,9 @@ main{max-width:860px;margin:0 auto;padding:10px 12px 40px}
 .tag.sens{color:var(--sens);border-color:currentColor}
 .tag.mode-match{color:var(--brand);border-color:currentColor}
 .play{flex:none;text-decoration:none;font-weight:800;font-size:13.5px;color:#fff;background:var(--brand);border-radius:999px;padding:7px 13px}
+.card-filters{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}
+.card-filters button{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:13px;font-weight:700;padding:6px 10px;border-radius:999px;cursor:pointer}
+.card-filters button[aria-pressed=true]{background:var(--brand);color:#fff;border-color:var(--brand)}
 .set{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
 .set>button{all:unset;box-sizing:border-box;width:100%;display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer}
 .set>button:focus-visible{outline:2px solid var(--brand)}

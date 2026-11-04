@@ -14,18 +14,19 @@ function keyFrom(n) {
 }
 
 function classListFor(el) {
-  const classes = new Set(String(el.className || "").split(/\s+/).filter(Boolean));
-  const sync = () => { el.className = [...classes].join(" "); };
+  const read = () => new Set(String(el.className || "").split(/\s+/).filter(Boolean));
+  const write = set => { el.className = [...set].join(" "); };
   return {
-    add(...cs) { cs.forEach(c => classes.add(c)); sync(); },
-    remove(...cs) { cs.forEach(c => classes.delete(c)); sync(); },
+    add(...cs) { const classes = read(); cs.forEach(c => classes.add(c)); write(classes); },
+    remove(...cs) { const classes = read(); cs.forEach(c => classes.delete(c)); write(classes); },
     toggle(c, force) {
+      const classes = read();
       const on = force === undefined ? !classes.has(c) : !!force;
       if (on) classes.add(c); else classes.delete(c);
-      sync();
+      write(classes);
       return on;
     },
-    contains: c => classes.has(c),
+    contains: c => read().has(c),
   };
 }
 function makeEl(tag) {
@@ -154,6 +155,33 @@ function finishOf(p) {
   return { type: p.type || "rank", done: true, solved: true, won: true, tries: 1, attempts: [{ marks, order: [0], assign: [0] }], marks };
 }
 
+function hasClass(el, name) {
+  if (!el) return false;
+  if (String(el.className || "").split(/\s+/).includes(name)) return true;
+  for (const kid of el.children || []) if (hasClass(kid, name)) return true;
+  return false;
+}
+
+test("result sections sit below the card, and the next button is not floating", () => {
+  const html = read("index.html");
+  const css = read("styles.css");
+  const play = html.slice(html.indexOf('id="playView"'), html.indexOf('id="archiveView"'));
+  const heroEnd = play.indexOf("</article>");
+  const resultAt = play.indexOf('id="result"');
+  assert.ok(heroEnd > 0 && resultAt > heroEnd, "result follows the card");
+  const hero = play.slice(0, heroEnd);
+  for (const id of ["fact", "sourceLink", "youVs", "communityBody", "scoreBig", "nextBtn", "dayScore", "partStrip", "challengeQr", "challengeFriendBtn"]) {
+    assert.equal(hero.includes('id="' + id + '"'), false, id + " is inside the card");
+  }
+  const result = play.slice(resultAt);
+  const next = result.indexOf('id="nextBtn"');
+  const qr = result.indexOf('id="challengeQr"');
+  assert.ok(next >= 0 && qr > next, "next button is in flow before the QR");
+  assert.match(css, /#nextBtn\{[^}]*position:static/);
+  assert.match(css, /#nextBtn\{[^}]*width:100%/);
+  assert.doesNotMatch(css, /#nextBtn\.is-float\{[^}]*position:\s*fixed/);
+});
+
 test("finishing part 1 continues the bundle, and a reload resumes the rest", () => {
   const days = [0, 1, 4];
   const { api, bonus, documentQuery } = bootGame();
@@ -184,6 +212,8 @@ test("finishing part 1 continues the bundle, and a reload resumes the rest", () 
       const res = finishOf(parts[i]);
       assert.equal(api.commitFinish(res), true, date + " commit " + i);
       api.showResult(res);
+      assert.ok(hasClass(documentQuery("#youVs"), "player-figure"), date + " figures part " + (i + 1));
+      assert.ok(hasClass(documentQuery("#youVs"), "platforms"), date + " podium part " + (i + 1));
       const bonusLine = documentQuery("#bonusLine").textContent || "";
       const score = documentQuery("#dayScore").innerHTML || "";
       assert.doesNotMatch(bonusLine, /skipped/, date + " bonus line part " + (i + 1) + " " + bonusLine);
@@ -200,6 +230,8 @@ test("finishing part 1 continues the bundle, and a reload resumes the rest", () 
         assert.match(card, /Today's score/, date);
         assert.match(card, /\/100/, date);
         assert.doesNotMatch(card, /skipped/, date + " final " + card);
+        assert.ok(hasClass(documentQuery("#dayPodium"), "player-figure"), date + " final figures");
+        assert.equal(documentQuery("#challengeFriendBtn").classList.contains("hidden"), false, date);
         assert.equal(documentQuery("#nextBtn").textContent, "More puzzles →", date);
       }
     }
