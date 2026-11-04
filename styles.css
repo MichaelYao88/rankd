@@ -338,6 +338,9 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .community .badge{font-size:11px;letter-spacing:.04em;text-transform:uppercase;opacity:.85;white-space:nowrap}
 .crow .cb i{width:0;transition:width .45s ease}
 .share-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:18px;scroll-margin-bottom:18px}
+.share-actions{display:flex;flex-direction:column;align-items:stretch;gap:10px}
+.card-next{display:block;position:static;width:100%;box-sizing:border-box;margin:16px 0 0;padding:18px 16px;border:0;border-radius:16px;background:#fff;color:var(--brand);font-size:18px;font-weight:800;letter-spacing:-.02em;cursor:pointer}
+.part-next,#nextBtn,#cardNext{position:static;top:auto;right:auto;bottom:auto;left:auto}
 .bonus-line{margin:0;text-align:center;font-size:14px;font-weight:700;letter-spacing:-.01em;white-space:pre-line}
 #heroNo.is-part{display:inline-block;padding:6px 12px;border-radius:999px;background:#fff;color:var(--brand);letter-spacing:.04em;text-transform:uppercase;font-size:13px;box-shadow:0 8px 18px -12px rgba(0,0,0,.45)}
 #playView.bundle-in .hero{animation:bundle-in .35s ease}
@@ -353,7 +356,6 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .part-fact{margin:8px 0;font-size:15px;line-height:1.4}
 .insight-lines{display:flex;flex-direction:column;gap:6px;margin:8px 0}
 .insight-line{margin:0;font-size:15px;line-height:1.35;font-weight:650}
-#result .actions{display:block;margin-top:18px}
 .part-next,#nextBtn{display:block;position:static;width:100%;box-sizing:border-box;margin:0;padding:18px 16px;border:0;border-radius:16px;background:var(--brand);color:#fff;font-size:18px;font-weight:800;letter-spacing:-.02em;box-shadow:var(--shadow-soft);cursor:pointer}
 .number-field{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px auto 4px;max-width:300px}
 #numberInput{width:100%;height:76px;text-align:center;font-size:40px;font-weight:800;letter-spacing:-.04em;border:0;border-radius:20px;background:#fff;color:var(--brand);outline:none;padding:0 12px}

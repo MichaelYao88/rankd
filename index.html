@@ -423,6 +423,7 @@
           </div>
         </form>
       </section>
+      <button class="card-next hidden" id="cardNext" type="button">Next part →</button>
     </article>
     <div class="under-card"><button class="link-btn" id="shareChallengeTop">Share today's puzzle ↗</button><button class="link-btn hidden" id="skipPart" type="button">Skip this part</button></div>
 
@@ -467,7 +468,10 @@
         <p class="bonus-line hidden" id="bonusLine"></p>
         <button class="pill-btn secondary hidden" id="bonusBtn" type="button">Bonus round</button>
         <button class="pill-btn primary" id="challengeFriendBtn" type="button">Challenge a friend</button>
-        <button class="pill-btn secondary" id="sharePuzzleBtn" type="button">Share this puzzle</button>
+        <div class="share-actions">
+          <button class="pill-btn secondary" id="sharePuzzleBtn" type="button">Share this puzzle</button>
+          <button class="pill-btn part-next" id="nextBtn" type="button">More puzzles →</button>
+        </div>
       </div>
       <!-- Sister-game card. app.js shows it only on an eligible daily result; hidden the rest of the time. -->
       <aside class="crosspromo hidden" id="crossPromo" aria-label="Like ranki.gg?">
@@ -478,7 +482,6 @@
           <button type="button" class="crosspromo-dismiss" id="crossPromoDismiss">Not now</button>
         </div>
       </aside>
-      <div class="actions"><button class="pill-btn part-next" id="nextBtn" type="button">More puzzles →</button></div>
       <div class="challenge-qr hidden" id="challengeQr">
         <div class="challenge-qr-code" id="challengeQrCode" role="img" aria-label="QR code to take this challenge"></div>
         <p class="challenge-qr-caption">Scan to take my challenge</p>

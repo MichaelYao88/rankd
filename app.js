@@ -2625,6 +2625,7 @@ function openPuzzle(p, opts) {
   state.puzzle = p; state.busy = false;
   if (state.sortable) { state.sortable.destroy(); state.sortable = null; }
   showView("play"); renderHero(); $("#result").classList.add("hidden"); showFab(false);
+  const cardNext = $("#cardNext"); if (cardNext) cardNext.classList.add("hidden");
   const strip = $("#partStrip"); if (strip) strip.classList.add("hidden");
   const crossEl = $("#crossPromo"); if (crossEl) crossEl.classList.add("hidden");
   const g = p.type === "top1"; $("#rankGame").classList.toggle("hidden", p.type !== "rank"); $("#matchGame").classList.toggle("hidden", p.type !== "match"); $("#tierGame").classList.toggle("hidden", p.type !== "tier"); $("#nameGame").classList.toggle("hidden", p.type !== "name"); $("#quizGame").classList.toggle("hidden", p.type !== "quiz"); $("#numberGame").classList.toggle("hidden", p.type !== "number"); $("#hero").classList.toggle("is-match", p.type === "match"); $("#hero").classList.toggle("is-tier", p.type === "tier"); $("#hero").classList.toggle("is-top1", p.type === "top1"); $("#hero").classList.toggle("is-top5", false); $("#hero").classList.toggle("is-name", p.type === "name"); $("#hero").classList.toggle("is-quiz", p.type === "quiz"); $("#hero").classList.toggle("is-number", p.type === "number"); $("#guessGame").classList.toggle("hidden", !g); $("#guessExtra").classList.toggle("hidden", true);
@@ -4069,19 +4070,29 @@ function finishSurface(res, opts) {
 function bundleHasParts() {
   return dayOffersBonus() && currentParts().length > 1;
 }
-function syncResultChrome() {
-  const btn = $("#nextBtn");
-  const friend = $("#challengeFriendBtn");
+function resultNextLabel() {
   const bundled = bundleHasParts();
-  const seeingScore = !bundled || !!state.scoreShown;
-  if (btn) {
-    if (bundled && morePartsRemain()) btn.textContent = "Next part →";
-    else if (bundled && !state.scoreShown) btn.textContent = "See your score";
-    else btn.textContent = state.mode === "preview" ? "Back to Loading Zone →" : state.mode === "practice" ? "🎲 New random puzzle →" : state.mode === "all" ? "Next puzzle →" : state.mode === "archive" ? "Back to archive →" : "More puzzles →";
-    btn.classList.remove("is-float");
-  }
-  document.body.classList.remove("has-float-next");
-  if (friend) friend.classList.toggle("hidden", bundled && !seeingScore);
+  if (bundled && morePartsRemain()) return "Next part →";
+  if (bundled && !state.scoreShown) return "See your score";
+  if (state.mode === "preview") return "Back to Loading Zone →";
+  if (state.mode === "practice") return "🎲 New random puzzle →";
+  if (state.mode === "all") return "Next puzzle →";
+  if (state.mode === "archive") return "Back to archive →";
+  return "More puzzles →";
+}
+function syncResultChrome() {
+  const label = resultNextLabel();
+  ["#nextBtn", "#cardNext"].forEach(id => {
+    const btn = $(id);
+    if (!btn) return;
+    btn.textContent = label;
+    btn.classList.remove("is-float", "hidden");
+  });
+  document.body.classList.remove("has-float-next", "has-fab");
+  const fab = $("#fab");
+  if (fab) fab.classList.add("hidden");
+  const friend = $("#challengeFriendBtn");
+  if (friend) friend.classList.toggle("hidden", bundleHasParts() && !state.scoreShown);
 }
 function insightPlaces(signed, pct) {
   const weight = Math.max(0.35, Math.min(1, (Number(pct) || 50) / 100));
@@ -4357,7 +4368,7 @@ function showResult(res, opts) {
   maybeShowCrossPromo();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn", "#quizNext"].forEach(id => { const b = $(id); if (b && b.parentElement) b.parentElement.classList.add("hidden"); });
-  $("#result").classList.remove("hidden"); showFab(true); syncPlaying();
+  $("#result").classList.remove("hidden"); showFab(false); syncPlaying();
   setTabTitle("play", true);
 }
 function communityCrow(label, pct, emoji) {
@@ -5723,8 +5734,7 @@ function paintBonus(res) {
   if (morePartsRemain()) {
     line.textContent = "";
     line.classList.add("hidden");
-    btn.textContent = "Next";
-    btn.classList.remove("hidden");
+    btn.classList.add("hidden");
     return;
   }
   const bits = [];
@@ -6170,7 +6180,7 @@ async function handleFiles(files) {
 window.RankdLoadFiles = handleFiles; window.RankdArt = { svg: artSvg, keys: Object.keys(ART) };
 
 // ================================================================ wire up
-$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; if ($("#quizLock")) $("#quizLock").onclick = quizLock; if ($("#numberForm")) $("#numberForm").onsubmit = submitNumber; $("#nextBtn").onclick = onResultNext; $("#fab").onclick = fabGo;
+$("#submitBtn").onclick = submitRank; $("#matchSubmit").onclick = submitMatch; $("#tierSubmit").onclick = submitTier; if ($("#t5Submit")) $("#t5Submit").onclick = submitTop5; if ($("#quizNext")) $("#quizNext").onclick = quizAdvance; if ($("#quizLock")) $("#quizLock").onclick = quizLock; if ($("#numberForm")) $("#numberForm").onsubmit = submitNumber; $("#nextBtn").onclick = onResultNext; if ($("#cardNext")) $("#cardNext").onclick = onResultNext; $("#fab").onclick = fabGo;
 if ($("#guessForm")) $("#guessForm").addEventListener("submit", e => { e.preventDefault(); top1Commit(); });
 if ($("#guessInput")) {
   $("#guessInput").addEventListener("input", top1UpdateSuggest);
