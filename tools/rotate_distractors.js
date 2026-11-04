@@ -60,7 +60,7 @@ const EXTRA = {
   "rope-bridge": ["CHN"],
   windmill: ["CHN", "NLD", "ESP"],
   "chinese-checkers": ["USA"],
-  "hawaiian-pizza": ["USA", "ITA", "GRC"],
+  "hawaiian-pizza": ["ITA", "GRC"],
   "mobile-money": ["PHL", "GBR", "IND"],
   variolation: ["CHN", "IND", "GBR"],
   quarantine: ["ITA"],
@@ -75,11 +75,14 @@ const EXTRA = {
 };
 
 const POOL = ["MEX", "ARG", "CHL", "CAN", "NGA", "GHA", "ETH", "KEN", "ZAF", "IDN", "THA", "VNM", "PHL", "KOR", "POL", "ESP", "PRT", "IRL", "NZL", "SAU", "BRA", "JPN", "AUS", "NOR", "COL", "PER", "EGY", "MAR", "NLD", "CZE", "DNK", "CHN"];
-const PIN = { "haagen-dazs": "DNK", "chinese-checkers": "CHN" };
+const PIN = { "haagen-dazs": "DNK", "chinese-checkers": "CHN", "hawaiian-pizza": "USA" };
 for (const iso of POOL) if (!C[iso]) throw new Error("pool missing " + iso);
 
 function bannedFor(q) {
-  return new Set([...(NEIGHBORS[q.answer] || []), ...(EXTRA[q.id] || [])]);
+  const set = new Set([...(NEIGHBORS[q.answer] || []), ...(EXTRA[q.id] || [])]);
+  // Hawaiian pizza keeps the United States as a deliberate trap. It borders Canada.
+  if (q.id === "hawaiian-pizza") set.delete("USA");
+  return set;
 }
 
 function pickThree(q, counts, cardIndex) {
