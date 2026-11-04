@@ -93,6 +93,9 @@
     if (fmt === "years2") return roundTo(n, 2).toFixed(2) + " years";
     if (fmt === "rate") return roundTo(n, 1).toFixed(1) + " per 100k";
     if (fmt === "percent") return roundTo(n, 1).toFixed(1) + "%";
+    if (fmt === "kg") return roundTo(n, 1).toFixed(1) + " kg per person per year";
+    if (fmt === "usd") return "$" + Math.round(n).toLocaleString("en-US");
+    if (fmt === "gini") return roundTo(n, 1).toFixed(1);
     if (fmt === "label") {
       const labels = (puzzle.statRule && puzzle.statRule.labels) || {};
       const key = String(n);
