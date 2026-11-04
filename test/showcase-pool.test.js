@@ -69,6 +69,11 @@ test("the card pool matches every ranker, question, and number pair", () => {
   assert.match(read("loadingzone.html"), /id="cardView"/);
   assert.match(read("robots.txt"), /Disallow: \/loadingzone/);
   assert.doesNotMatch(read("index.html"), /preview=card/);
+  const showFab = read("app.js").split("function showFab")[1].split("function next")[0];
+  assert.match(showFab, /mode === "preview" \? "Back to Loading Zone/);
+  assert.equal(showFab.split("Back to Loading Zone").length, 2);
+  assert.match(read("styles.css"), /\.fab\{[^}]*position:static/);
+  assert.doesNotMatch(read("styles.css"), /\.fab\{[^}]*position:\s*fixed/);
 });
 
 test("2026-11-14 is an AdSense-safe showcase with two Guess the number stats", () => {
