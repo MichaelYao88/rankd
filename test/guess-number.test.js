@@ -74,14 +74,16 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
   assert.equal(NumberGuess.score(0, truth).accuracy, 0);
   assert.equal(NumberGuess.score("", truth).accuracy, 0);
   assert.ok(NumberGuess.score(truth * 1.25, truth).accuracy > NumberGuess.score(truth * 2, truth).accuracy);
+  assert.equal(NumberGuess.score(truth * 1.16, truth, 1.16).accuracy, 0);
+  assert.ok(NumberGuess.score(truth * 1.16, truth, 1.16).accuracy < NumberGuess.score(truth * 1.16, truth, 3).accuracy);
   const sets = NumberGuess.sets();
   const stats = (() => {
     const box = { window: {} };
     vm.runInNewContext(read("number-stats.js"), box);
     return box.window.RANKD_NUMBER_STATS;
   })();
-  assert.equal(sets.filter(s => s.sensitive).map(s => s.id).join(","), "number-femicide");
-  assert.ok(sets.length >= 6);
+  assert.equal([...sets.filter(s => s.sensitive).map(s => s.id)].sort().join(","), "number-femicide,number-prison,number-trump");
+  assert.ok(sets.length >= 12);
   const homicide = Object.fromEntries(practice.datasets.find(d => d.id === "unodc-homicide-female").rows.map(r => [r[0], r]));
   for (const set of sets) {
     const floor = set.id === "number-femicide" ? 20 : 15;
@@ -106,10 +108,33 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
       seen.add(id);
       const card = NumberGuess.card(set, pair);
       assert.equal(card.sensitive, !!set.sensitive);
+      assert.equal(card.scoreFactor, set.scoreFactor);
+      assert.ok(card.scoreFactor >= 1.15 && card.scoreFactor <= 3, set.id);
       assert.equal(card.fillerDate, "2027-05-06");
       assert.match(card.question, new RegExp(pair.known.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.match(card.question, new RegExp(pair.ask.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.equal(card.question.includes(pair.known.emoji), true, set.id);
+      assert.equal(card.question.includes(pair.ask.emoji), true, set.id);
+      const reveal = NumberGuess.reveal(card);
+      assert.match(reveal, new RegExp(pair.ask.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+      assert.equal(reveal.includes(pair.ask.emoji), true, set.id);
     }
   }
+  const tea = sets.find(s => s.id === "number-tea");
+  const uk = tea.pairs.find(p => p.known.iso3 === "GBR" && p.ask.iso3 === "TUR");
+  assert.equal(NumberGuess.card(tea, uk).question, "🇬🇧 The United Kingdom has a tea supply of 1.23 kg per person per year. What is 🇹🇷 Turkey's?");
+  assert.equal(NumberGuess.reveal(NumberGuess.card(tea, uk)), "🇹🇷 Turkey's tea supply is 19.98 kg per person per year.");
+  const life = sets.find(s => s.id === "number-life");
+  assert.equal(life.scoreFactor, NumberGuess.factorFromValues(stats.find(s => s.id === "number-life").rows.map(r => r[1])));
+  assert.ok(life.scoreFactor <= 1.2, life.scoreFactor);
+  const urban = sets.find(s => s.id === "number-urban");
+  assert.ok(urban.scoreFactor < 3 && urban.scoreFactor > life.scoreFactor, urban.scoreFactor);
+  const wide = sets.find(s => s.id === "number-tea");
+  assert.equal(wide.scoreFactor, 3);
+  const trump = sets.find(s => s.id === "number-trump");
+  assert.equal(trump.pairs.length >= 15, true);
+  assert.equal(trump.pairs.every(p => p.known.emoji === "🇺🇸" && p.ask.emoji === "🇺🇸"), true);
+  assert.equal(NumberGuess.score(71.6 * trump.scoreFactor, 71.6, trump.scoreFactor).accuracy, 0);
 });
 
 test("number cards fill the bundle after the AdSense window and score accuracy", () => {
@@ -230,6 +255,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v41/);
+  assert.match(read("sw.js"), /ranki-shell-v42/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });
