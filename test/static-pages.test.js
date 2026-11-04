@@ -101,5 +101,5 @@ test("the home page explains the modes in HTML, without a homicide sample", () =
   assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
   assert.match(read("sw.js"), /"\/learn\/index\.html"/);
   assert.match(read("sw.js"), /"\/sources\.html"/);
-  assert.match(read("sw.js"), /ranki-shell-v38/);
+  assert.match(read("sw.js"), /ranki-shell-v39/);
 });

@@ -188,11 +188,11 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const app = read("app.js");
   assert.match(html, /id="quizLock"/);
   assert.match(html, /id="numberGame"/);
-  assert.match(html, /Next part →/);
-  assert.match(html, /Deeper dive/);
+  assert.match(app, /Next part →/);
+  assert.match(app, /Deeper dive/);
   assert.match(app, /See your score/);
   assert.match(app, /higher than it really is/);
-  assert.match(read("styles.css"), /\.part-next\{/);
+  assert.match(read("styles.css"), /\.part-next,#nextBtn\{[^}]*width:100%/);
   const win = boot();
   const puzzle = {
     type: "rank",
@@ -230,6 +230,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v38/);
+  assert.match(read("sw.js"), /ranki-shell-v39/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });
