@@ -1471,22 +1471,19 @@ function archiveListHeaderHtml(unlocked, lastDayNumber) {
   const shown = Math.min(unlocked, lastDayNumber + 1);
   return `Free: <b>${shown}</b> days unlocked (base ${freeN}). Watch an ad for the next ${archiveAdUnlockDays()} days. ${premiumUpsellHtml()}`;
 }
-// Home-page sample: the same three countries as the first-visit overlay
-// (puzzle homicide-women, UNODC via World Bank, per 100k women).
-// High → low: United States 2.55 (2023), India 2.37 (2022), South Korea 0.46 (2023).
-// The column label is 0.46 so it lines up.
-// Germany (0.82) and Jordan (0.7) stay in the full puzzle and are not on this card.
+// Home-page sample: three countries from the rice daily (FAO food balance via Our World in Data).
+// High → low: Bangladesh 250.6, Philippines 200.4, Japan 72.9. China and Italy stay on the full card.
 const HOME_DEMO = Object.freeze({
-  id: "homicide-women",
-  title: "Female homicide rate",
-  unit: "per 100k women",
-  year: "2023",
-  sourceName: "UNODC via World Bank",
-  sourceUrl: "https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5",
+  id: "rice",
+  title: "Rice per person",
+  unit: "kg/yr per capita",
+  year: "",
+  sourceName: "FAO via Our World in Data",
+  sourceUrl: "https://ourworldindata.org/explorers/global-food?Food=Rice&Metric=Food+available+for+consumption&Per+capita=true&Unit=Kilograms+per+year",
   items: Object.freeze([
-    Object.freeze({ name: "United States", emoji: "🇺🇸", value: 2.55, label: "2.55" }),
-    Object.freeze({ name: "India", emoji: "🇮🇳", value: 2.37, label: "2.37" }),
-    Object.freeze({ name: "South Korea", emoji: "🇰🇷", value: 0.46, label: "0.46" }),
+    Object.freeze({ name: "Bangladesh", emoji: "🇧🇩", value: 250.6, label: "250.6" }),
+    Object.freeze({ name: "Philippines", emoji: "🇵🇭", value: 200.4, label: "200.4" }),
+    Object.freeze({ name: "Japan", emoji: "🇯🇵", value: 72.9, label: "72.9" }),
   ]),
 });
 // Short names for the home card. A mode rename (for example Top 5 → Top 1) changes this map.
@@ -5343,8 +5340,8 @@ window.RankdFit = { sync: syncPlaying, layout: fitLayout };
 
 // ================================================================ v12.2 first-visit howto
 const HOWTO_KEY = "rankd.howto.seen.v1";
-// Female homicide rate sample — puzzle homicide-women, UNODC via World Bank,
-// female intentional homicides per 100k women. High → low: United States 2.55 (2023), India 2.37 (2022), South Korea 0.46 (2023).
+// Rice sample — puzzle rice, FAO food balances via Our World in Data.
+// High → low: Bangladesh 250.6, Philippines 200.4, Japan 72.9.
 const HOWTO_SUCCESS = "All green = perfect! Wrong cards turn red so you can fix them.";
 let howtoRun = 0, howtoTimers = [];
 function howtoSeen() { try { return localStorage.getItem(HOWTO_KEY) === "1"; } catch (e) { return true; } }

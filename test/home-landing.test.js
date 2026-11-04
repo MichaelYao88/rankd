@@ -50,23 +50,23 @@ const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "styles.css"), "utf8");
 const migration = fs.readFileSync(path.join(root, "supabase/migrations/20261026201500_puzzle_submissions.sql"), "utf8");
 
-test("the home sample is the female homicide trio from homicide-women", () => {
+test("the home sample is the rice trio from the rice daily", () => {
   const demo = shared.HOME_DEMO;
-  assert.equal(demo.id, "homicide-women");
-  assert.equal(demo.title, "Female homicide rate");
-  assert.equal(demo.year, "2023");
-  assert.equal(demo.sourceUrl, "https://data.worldbank.org/indicator/VC.IHR.PSRC.FE.P5");
+  assert.equal(demo.id, "rice");
+  assert.equal(demo.title, "Rice per person");
+  assert.equal(demo.sourceName, "FAO via Our World in Data");
+  assert.match(demo.sourceUrl, /Food=Rice/);
   assert.equal(JSON.stringify(demo.items.map(it => [it.name, it.value, it.label])), JSON.stringify([
-    ["United States", 2.55, "2.55"],
-    ["India", 2.37, "2.37"],
-    ["South Korea", 0.46, "0.46"],
+    ["Bangladesh", 250.6, "250.6"],
+    ["Philippines", 200.4, "200.4"],
+    ["Japan", 72.9, "72.9"],
   ]));
-  for (const name of ["United States", "India", "South Korea"]) assert.match(html, new RegExp(name));
-  assert.match(html, /2\.55/);
-  assert.match(html, /2\.37/);
-  assert.match(html, /0\.46/);
-  assert.match(html, /Female homicide rate/);
-  assert.match(html, /data\.worldbank\.org\/indicator\/VC\.IHR\.PSRC\.FE\.P5/);
+  for (const name of ["Bangladesh", "Philippines", "Japan"]) assert.match(html, new RegExp(name));
+  assert.match(html, /250\.6/);
+  assert.match(html, /200\.4/);
+  assert.match(html, /72\.9/);
+  assert.match(html, /Rice per person/);
+  assert.doesNotMatch(html, /Female homicide|homicide/i);
 });
 
 test("the landing page leads with today's puzzle, five steps, and a suggestion form", () => {
@@ -151,9 +151,9 @@ test("the landing sample starts in the same order as the in-game overlay", () =>
     const from = cardsAt >= 0 ? region.slice(cardsAt) : region;
     const end = from.indexOf("</ol>");
     const slice = end >= 0 ? from.slice(0, end) : from;
-    return [...slice.matchAll(/South Korea|United States|India/g)].map(m => m[0]);
+    return [...slice.matchAll(/Japan|Bangladesh|Philippines/g)].map(m => m[0]);
   };
-  const order = ["South Korea", "United States", "India"];
+  const order = ["Japan", "Bangladesh", "Philippines"];
   assert.deepEqual(namesIn('class="howto-cards"'), order);
   assert.deepEqual(namesIn('class="mini mini-step1"'), order);
 });
@@ -216,8 +216,8 @@ test("the results source card matches the how-to preview and sits above share", 
   assert.match(result, /id="sourceFav"/);
   assert.match(result, /Tap to see the data/);
   assert.match(html, /class="source-card"/);
-  assert.match(html, /Female homicide rate, 2023/);
-  assert.match(html, /data\.worldbank\.org/);
+  assert.match(html, /Rice per person, kg per year/);
+  assert.match(html, /ourworldindata\.org/);
   assert.match(css, /\.source-card/);
   assert.match(css, /source-fav-fallback/);
   assert.doesNotMatch(fs.readFileSync(path.join(root, "app.js"), "utf8"), /og:image|opengraph|microlink|unfurl/i);
