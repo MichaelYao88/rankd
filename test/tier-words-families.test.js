@@ -42,7 +42,7 @@ test("slang, period, and language-family tiers take the days after 2027-05-22", 
     assert.ok(dateOf(p.order) > "2026-11-03", id);
     assert.ok(p.fact && p.sourceUrl.startsWith("https://"), id);
     if (p.type !== "quiz") {
-      assert.ok(p.items.length >= 6 && p.items.length <= 9, id);
+      assert.ok(p.items.length >= 6 && p.items.length <= 10, id);
       for (const tier of p.tiers) assert.ok(words(tier.label).length <= 3, tier.label);
     }
     assert.equal(search.matches(p, p.items[0].name), true, id);
@@ -100,17 +100,24 @@ test("period euphemisms are berries, the reds, and the painters, with no aunt", 
   const p = byId("period-euphemism");
   assert.equal(p.type, "tier");
   assert.equal(p.question, "What picture is the euphemism?");
-  assert.equal(JSON.stringify(p.tiers.map(t => t.label)), JSON.stringify(["Berry week", "The reds", "Painters in"]));
+  assert.equal(JSON.stringify(p.tiers.map(t => t.label)), JSON.stringify(["Aunt's visiting", "Berry week", "The reds", "Painters in"]));
   const placed = Object.fromEntries(p.items.map(it => [it.iso3, p.tiers[it.tierIndex].label]));
+  assert.equal(placed.CHN, "Aunt's visiting");
+  assert.equal(placed.TWN, "Aunt's visiting");
+  assert.equal(placed.NLD, "Aunt's visiting");
+  assert.equal(placed.POL, "Aunt's visiting");
   assert.equal(placed.DEU, "Berry week");
   assert.equal(placed.SWE, "Berry week");
   assert.equal(placed.DNK, "The reds");
   assert.equal(placed.RUS, "The reds");
   assert.equal(placed.GBR, "Painters in");
   assert.equal(placed.AUS, "Painters in");
-  for (const iso of ["CHN", "NLD", "USA", "FRA", "BRA", "JPN", "VNM", "NOR", "ZAF"]) {
+  for (const iso of ["USA", "THA", "KOR", "FRA", "BRA", "JPN", "VNM", "NOR", "ZAF"]) {
     assert.equal(p.items.some(it => it.iso3 === iso), false, iso);
   }
+  assert.match(p.fact, /big aunt/);
+  assert.match(p.fact, /Aunt Rose/);
+  assert.match(p.fact, /Aunt Flo/);
   assert.match(p.fact, /strawberries/);
   assert.match(p.fact, /lingonberries/);
   assert.match(p.fact, /gazebo/);
