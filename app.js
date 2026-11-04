@@ -1281,8 +1281,8 @@ const Practice = {
       const named = RankdName.practiceFromSeed(seed);
       if (named) return named;
     }
-    if (!tries && window.RankdNumber && seed % 29 === 1 && !inAdsenseSafeWindow(todayKey())) {
-      const dealt = window.RankdNumber.practicePuzzle(seed);
+    if (!tries && window.RankdNumber && seed % 29 === 1) {
+      const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()));
       if (dealt) return dealt;
     }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
@@ -1928,8 +1928,13 @@ function fillerPool(dateKey) {
 function fillerBlocked(i, p) {
   const id = p.id;
   const parent = p.parentId || "";
+  const numberStat = p.type === "number" ? parent : "";
   for (let k = 1; k <= FILLER_GAP && i - k >= 0; k++) {
-    for (const prev of (partsMemo[i - k] || [])) if (prev && prev.id === id) return true;
+    for (const prev of (partsMemo[i - k] || [])) {
+      if (!prev) continue;
+      if (prev.id === id) return true;
+      if (numberStat && prev.type === "number" && prev.parentId === numberStat) return true;
+    }
     const main = puzzleOnDay(i - k);
     if (main && (main.id === id || (parent && main.id === parent))) return true;
   }
@@ -2001,6 +2006,7 @@ function dayFillers(n) {
       const pool = fillerPool(dateKey).filter(p => {
         if (main && (p.id === main.id || p.parentId === main.id)) return false;
         if (fillers.some(f => f.id === p.id)) return false;
+        if (p.type === "number" && fillers.some(f => f.type === "number" && f.parentId === p.parentId)) return false;
         if (fillerBlocked(i, p)) return false;
         return sum + bundlePoints(p) <= BUNDLE_CEILING;
       });
