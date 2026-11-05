@@ -82,8 +82,9 @@ test("bonus selection is deterministic, skips that day's main puzzle, and respec
     assert.ok(picked && picked.id, "day " + n);
     assert.equal(picked.id, repeat.id);
     assert.equal(again.RankdBonus.forDay(n).id, picked.id);
-    assert.equal(picked.id === mainOn(puzzles, n).id, false, "overlaps main on day " + n);
-    assert.ok(picked.type === "quiz" || bonus.types.includes(picked.type) || picked.type === "rank" || picked.part1Only, picked.type + " " + picked.id);
+    if (keyFrom(n) <= bonus.scheduleThrough) assert.equal(picked.id === mainOn(puzzles, n).id, false, "overlaps main on day " + n);
+    else assert.notEqual(bonus.parts(n).find(p => p.id === picked.id).role, "title", "bonus is the title on " + n);
+    assert.ok(picked.type === "quiz" || picked.type === "number" || bonus.types.includes(picked.type) || picked.type === "rank" || picked.part1Only, picked.type + " " + picked.id);
     if (keyFrom(n) <= CUTOFF) assert.equal(!!picked.sensitive, false, picked.id + " on " + keyFrom(n));
     ids.push(picked.id);
     againIds.push(picked.id);

@@ -200,7 +200,7 @@ test("number cards fill the bundle after the AdSense window and score accuracy",
       for (const prev of used) {
         if (n - prev.n > 30) continue;
         assert.notEqual(prev.id, filler.id, filler.id);
-        assert.notEqual(prev.parent, filler.parentId, filler.parentId + " on " + date);
+        if (date < bonus.reshuffleFrom) assert.notEqual(prev.parent, filler.parentId, filler.parentId + " on " + date);
       }
       used.push({ n, id: filler.id, parent: filler.parentId });
       statIds.add(filler.parentId);
@@ -256,6 +256,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v44/);
+  assert.match(read("sw.js"), /ranki-shell-v45/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });
