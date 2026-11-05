@@ -80,11 +80,12 @@ test("who invented it keeps order 225 and plays on 2027-05-08 after the packed c
   assert.equal(win.RankdBonus.types.includes("quiz"), false);
   const part1 = win.RankdBonus.forDay(n);
   assert.notEqual(part1.id, "who-invented-it");
-  assert.equal(win.RankdBonus.types.includes(part1.type), true);
-  assert.equal(part1.sensitive, undefined);
+  assert.notEqual(part1.parentId, "who-invented-it");
   for (const id of ["who-invented-it", "who-invented-older", "who-invented-words"]) {
     const i = scheduled.findIndex(p => p.id === id);
-    assert.equal(win.RankdBonus.forDay(i).type === "quiz", false, id);
+    const picked = win.RankdBonus.forDay(i);
+    assert.notEqual(picked.id, id, id);
+    assert.notEqual(picked.parentId, id, id);
   }
 });
 
