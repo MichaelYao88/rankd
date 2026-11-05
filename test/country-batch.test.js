@@ -155,12 +155,13 @@ test("name puzzles for divorce and tree names take the next free days", () => {
     ["name-tree-country", 165],
     ["name-named-for-her", 166],
   ]));
-  assert.equal(JSON.stringify(assigned.filter(([id]) => ["name-obesity-n", "name-potato-b", "name-gini-s", "name-suicide-l", "name-gdp-i"].includes(id))), JSON.stringify([
+  assert.equal(JSON.stringify(assigned.filter(([id]) => ["name-obesity-n", "name-potato-b", "name-suicide-l", "name-gdp-i", "name-happy-window", "name-height-c"].includes(id))), JSON.stringify([
     ["name-obesity-n", 247],
     ["name-potato-b", 249],
-    ["name-gini-s", 251],
     ["name-suicide-l", 253],
     ["name-gdp-i", 255],
+    ["name-happy-window", 256],
+    ["name-height-c", 258],
   ]));
   assert.equal(dateOf(164), "2027-03-18");
   assert.equal(dateOf(165), "2027-03-19");

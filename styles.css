@@ -1045,6 +1045,8 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 .m-target s{opacity:.7;font-weight:600;margin-left:3px}
 .m-clue.pop,.m-person.pop{animation:pop .45s ease}
 .m-clue.shake{animation:shake .45s ease}
+.m-clue,.m-person{touch-action:none}
+.m-clue.over,.m-person.over{outline:3px solid #fff}
 .m-ghost{position:fixed;z-index:80;pointer-events:none;margin:0;list-style:none;background:var(--brand);box-shadow:0 12px 30px rgba(0,0,0,.35);transform:rotate(1.5deg);opacity:.95}
 .locked .m-clue{cursor:default}
 #matchSubmit.ready{background:#fff;color:var(--brand)}

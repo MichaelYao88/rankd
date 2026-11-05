@@ -67,6 +67,7 @@
 
   function letterPass(name, rule) {
     if (!rule) return false;
+    if (rule.op === "all") return true;
     if (Array.isArray(rule.any)) return rule.any.some(part => letterPass(name, part));
     const n = fold(name);
     const text = fold(rule.text || "");
@@ -93,6 +94,8 @@
     if (fmt === "years2") return roundTo(n, 2).toFixed(2) + " years";
     if (fmt === "rate") return roundTo(n, 1).toFixed(1) + " per 100k";
     if (fmt === "percent") return roundTo(n, 1).toFixed(1) + "%";
+    if (fmt === "cm") return roundTo(n, 1).toFixed(1) + " cm";
+    if (fmt === "score") return roundTo(n, 2).toFixed(2);
     if (fmt === "kg") return roundTo(n, 1).toFixed(1) + " kg per person per year";
     if (fmt === "usd") return "$" + Math.round(n).toLocaleString("en-US");
     if (fmt === "gini") return roundTo(n, 1).toFixed(1);
@@ -226,8 +229,8 @@
       .slice(0, 8);
   }
 
-  /* status: empty | unknown | ambiguous | duplicate | wrong | correct.
-     counts is true only for wrong and correct. previous is a Set of iso3. */
+  /* status: empty | unknown | ambiguous | duplicate | nodata | wrong | correct.
+     counts is true only for wrong and correct. A real country with no row is nodata and does not use a try. previous is a Set of iso3. */
   function judge(puzzle, raw, previous) {
     const seen = previous || new Set();
     const found = resolveCountry(raw);
@@ -236,9 +239,10 @@
     if (found.status === "ambiguous") return { status: "ambiguous", counts: false, line: "Which country? Pick one from the list." };
     const c = found.country;
     if (seen.has(c.iso3)) return { status: "duplicate", counts: false, country: c, line: `Already guessed ${c.name}.` };
-    const letterOk = letterPass(c.name, puzzle.letter);
     const known = hasValue(puzzle, c.iso3);
-    const value = known ? Number(puzzle.values[c.iso3]) : null;
+    if (!known) return { status: "nodata", counts: false, country: c, letterOk: letterPass(c.name, puzzle.letter), statOk: false, value: null, line: `No data for ${c.name}.` };
+    const letterOk = letterPass(c.name, puzzle.letter);
+    const value = Number(puzzle.values[c.iso3]);
     const statOk = known && statPasses(puzzle, c.iso3, value);
     const head = `${c.emoji ? c.emoji + " " : ""}${c.name}`;
     const rule = puzzle.statRule || {};
@@ -534,6 +538,7 @@
         log.appendChild(li);
       }
       if (verdict.status === "unknown" && state.host.onToast) state.host.onToast("That's not a country.");
+      if (verdict.status === "nodata" && state.host.onToast) state.host.onToast(verdict.line);
       return;
     }
     const mark = verdict.status === "correct" ? "good" : "bad";

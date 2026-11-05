@@ -3074,7 +3074,7 @@ function paintMatch(marks) {
   const placed = g.cur.filter(x => x != null).length, max = CONFIG.rankMaxTries;
   $("#matchTries").innerHTML = Array.from({ length: max }, (_, n) => { const a = g.attempts[n]; return a ? `<i class="${a.marks.every(m => m === "good") ? "win" : "used"}"></i>` : "<i></i>"; }).join("")
     + `<span>${g.done ? (g.solved ? `Solved in ${g.tries}` : "Out of tries") : `${max - g.attempts.length} ${max - g.attempts.length === 1 ? "try" : "tries"} left`}</span>`;
-  $("#mHint").innerHTML = g.done ? "" : g.attempts.length ? `<b>${g.pinned.length} of ${p.people.length}</b> right. Green pairs are locked in. Move the red clues and try again.` : `Drag each clue onto a person (or tap a clue, then a person). ${placed}/${p.people.length} placed.`;
+  $("#mHint").innerHTML = g.done ? "" : g.attempts.length ? `<b>${g.pinned.length} of ${p.people.length}</b> right. Green pairs are locked in. Move the red clues and try again.` : `Drag a clue onto a country, or a country onto a clue. ${placed}/${p.people.length} placed.`;
   $("#matchSubmit").parentElement.classList.toggle("hidden", g.done);
   $("#matchSubmit").classList.toggle("ready", placed === p.people.length);
 }
@@ -3133,37 +3133,73 @@ function revealMatch(res, animate) {
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
   return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
     <p class="m-ans-clue">“${esc(x.clue)}”</p><p class="m-ans-fact">${esc(x.fact)}${x.sourceUrl ? ` <a href="${esc(x.sourceUrl)}" target="_blank" rel="noopener">${esc(x.sourceName || "Source")} ↗</a>` : ""}</p></div>`).join(""); };
-// drag a clue onto a person (pointer events: mouse, pen and touch); a short press without movement is a tap
+// Drag works both ways, on mouse and touch: a clue onto a country, or a country onto a clue.
+// A short press without movement is still a tap.
+function matchDrop(kind, from, onto) {
+  if (!onto) return false;
+  if (kind === "clue") {
+    if (!onto.classList || !onto.classList.contains("m-person") || onto.disabled) return false;
+    matchAssign(from, +onto.dataset.p);
+    return true;
+  }
+  if (!onto.classList || !onto.classList.contains("m-clue") || onto.classList.contains("pinned")) return false;
+  matchAssign(+onto.dataset.c, from);
+  return true;
+}
 (function matchDrag() {
   let d = null;
   const zone = () => $("#matchGame");
-  zone().addEventListener("pointerdown", e => {
-    const li = e.target.closest(".m-clue"); if (!li || state.match?.done || li.classList.contains("pinned") || e.button > 0) return;
-    d = { li, k: +li.dataset.c, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
+  const root = zone();
+  if (!root) return;
+  const clearOver = () => {
+    $$("#mPeople .m-person").forEach(b => b.classList.remove("over"));
+    $$("#mClues .m-clue").forEach(li => li.classList.remove("over"));
+  };
+  root.addEventListener("pointerdown", e => {
+    if (state.match?.done || e.button > 0) return;
+    const clue = e.target.closest(".m-clue");
+    const person = e.target.closest(".m-person");
+    if (clue && !clue.classList.contains("pinned")) {
+      d = { kind: "clue", el: clue, from: +clue.dataset.c, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
+      return;
+    }
+    if (person && !person.disabled) d = { kind: "person", el: person, from: +person.dataset.p, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
   });
   addEventListener("pointermove", e => {
     if (!d || e.pointerId !== d.id) return;
     if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
-    if (!d.moved) { d.moved = true; const r = d.li.getBoundingClientRect(), gh = d.li.cloneNode(true); gh.classList.add("m-ghost"); gh.style.width = r.width + "px";
-      gh.style.left = r.left + "px"; gh.style.top = r.top + "px"; document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top; d.li.classList.add("dragging"); }
+    if (!d.moved) {
+      d.moved = true;
+      const r = d.el.getBoundingClientRect(), gh = d.el.cloneNode(true);
+      gh.classList.add("m-ghost"); gh.style.width = r.width + "px";
+      gh.style.left = r.left + "px"; gh.style.top = r.top + "px";
+      document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top; d.el.classList.add("dragging");
+    }
     e.preventDefault();
     d.ghost.style.left = (e.clientX - d.ox) + "px"; d.ghost.style.top = (e.clientY - d.oy) + "px";
-    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".m-person");
-    $$("#mPeople .m-person").forEach(b => b.classList.toggle("over", b === over));
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    const sel = d.kind === "clue" ? ".m-person" : ".m-clue";
+    const over = hit && hit.closest ? hit.closest(sel) : null;
+    clearOver();
+    if (over) over.classList.add("over");
   }, { passive: false });
   const end = e => {
-    if (!d || e.pointerId !== d.id) return; const cur = d; d = null;
-    $$("#mPeople .m-person").forEach(b => b.classList.remove("over"));
-    if (!cur.moved) { matchTapClue(cur.k); return; }
-    cur.ghost.remove(); cur.li.classList.remove("dragging");
-    const over = e.type === "pointerup" ? document.elementFromPoint(e.clientX, e.clientY)?.closest(".m-person") : null;
-    if (over && !over.disabled) matchAssign(cur.k, +over.dataset.p);
+    if (!d || e.pointerId !== d.id) return;
+    const cur = d; d = null;
+    clearOver();
+    if (!cur.moved) { if (cur.kind === "clue") matchTapClue(cur.from); return; }
+    if (cur.ghost) cur.ghost.remove();
+    cur.el.classList.remove("dragging");
+    if (e.type !== "pointerup") return;
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    const sel = cur.kind === "clue" ? ".m-person" : ".m-clue";
+    matchDrop(cur.kind, cur.from, hit && hit.closest ? hit.closest(sel) : null);
   };
   addEventListener("pointerup", end); addEventListener("pointercancel", end);
   $("#mPeople").addEventListener("click", e => { const b = e.target.closest(".m-person"); if (b && !b.disabled) matchTapPerson(+b.dataset.p); });
   $("#mClues").addEventListener("keydown", e => { const li = e.target.closest(".m-clue"); if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); matchTapClue(+li.dataset.c); } });
 })();
-window.RankdMatch = { state: () => state.match, order: () => state.mOrder, assign: (k, i) => matchAssign(k, i) };
+window.RankdMatch = { state: () => state.match, order: () => state.mOrder, assign: (k, i) => matchAssign(k, i), drop: matchDrop };
 
 
 // ================================================================ TIER IT (v12.2)
