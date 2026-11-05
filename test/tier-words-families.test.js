@@ -103,15 +103,13 @@ test("period euphemisms are berries, the reds, and the painters, with no aunt", 
   assert.equal(JSON.stringify(p.tiers.map(t => t.label)), JSON.stringify(["Aunt's visiting", "Berry week", "The reds", "Painters in"]));
   const placed = Object.fromEntries(p.items.map(it => [it.iso3, p.tiers[it.tierIndex].label]));
   assert.equal(placed.CHN, "Aunt's visiting");
-  assert.equal(placed.TWN, "Aunt's visiting");
   assert.equal(placed.NLD, "Aunt's visiting");
-  assert.equal(placed.POL, "Aunt's visiting");
   assert.equal(placed.DEU, "Berry week");
   assert.equal(placed.SWE, "Berry week");
   assert.equal(placed.DNK, "The reds");
-  assert.equal(placed.RUS, "The reds");
   assert.equal(placed.GBR, "Painters in");
   assert.equal(placed.AUS, "Painters in");
+  for (const iso of ["POL", "TWN", "RUS"]) assert.equal(p.items.some(it => it.iso3 === iso), false, iso);
   for (const iso of ["USA", "THA", "KOR", "FRA", "BRA", "JPN", "VNM", "NOR", "ZAF"]) {
     assert.equal(p.items.some(it => it.iso3 === iso), false, iso);
   }
@@ -121,14 +119,17 @@ test("period euphemisms are berries, the reds, and the painters, with no aunt", 
   assert.match(p.fact, /strawberries/);
   assert.match(p.fact, /lingonberries/);
   assert.match(p.fact, /gazebo/);
-  assert.match(p.fact, /red army/);
   assert.match(p.fact, /painters/);
+  assert.match(p.fact, /Poland/);
   assert.match(p.source, /Erdbeerwoche/);
   assert.match(p.source, /lingonveckan/);
   assert.match(p.source, /kommunister i lysthuset/);
   assert.match(p.source, /painters in/);
   const counts = p.tiers.map((_, i) => p.items.filter(it => it.tierIndex === i).length);
-  assert.ok(counts.every(n => n >= 2));
+  assert.equal(counts[0], 2);
+  assert.equal(counts[1], 2);
+  assert.equal(counts[2], 1);
+  assert.equal(counts[3], 2);
 });
 
 test("language families keep the alphabet traps off the family name", () => {

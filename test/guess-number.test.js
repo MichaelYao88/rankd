@@ -82,11 +82,11 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
     vm.runInNewContext(read("number-stats.js"), box);
     return box.window.RANKD_NUMBER_STATS;
   })();
-  assert.equal([...sets.filter(s => s.sensitive).map(s => s.id)].sort().join(","), "number-femicide,number-prison,number-trump");
+  assert.equal([...sets.filter(s => s.sensitive).map(s => s.id)].sort().join(","), "number-femicide,number-prison");
   assert.ok(sets.length >= 12);
   const homicide = Object.fromEntries(practice.datasets.find(d => d.id === "unodc-homicide-female").rows.map(r => [r[0], r]));
   for (const set of sets) {
-    const floor = set.id === "number-femicide" ? 20 : 15;
+    const floor = set.id === "number-femicide" ? 3 : set.id === "number-pop2100" ? 2 : 15;
     assert.ok(set.pairs.length >= floor && set.pairs.length <= 24, set.id + " " + set.pairs.length);
     const series = stats.find(s => s.id === set.id);
     const seen = new Set();
@@ -122,8 +122,8 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
   }
   const tea = sets.find(s => s.id === "number-tea");
   const uk = tea.pairs.find(p => p.known.iso3 === "GBR" && p.ask.iso3 === "TUR");
-  assert.equal(NumberGuess.card(tea, uk).question, "🇬🇧 The United Kingdom has a tea supply of 1.23 kg per person per year. What is 🇹🇷 Turkey's?");
-  assert.equal(NumberGuess.reveal(NumberGuess.card(tea, uk)), "🇹🇷 Turkey's tea supply is 19.98 kg per person per year.");
+  assert.equal(NumberGuess.card(tea, uk).question, "🇬🇧 The United Kingdom has a tea consumption of 1.23 kg per person per year. What is 🇹🇷 Turkey's?");
+  assert.equal(NumberGuess.reveal(NumberGuess.card(tea, uk)), "🇹🇷 Turkey's tea consumption is 19.98 kg per person per year.");
   const life = sets.find(s => s.id === "number-life");
   assert.equal(life.scoreFactor, NumberGuess.factorFromValues(stats.find(s => s.id === "number-life").rows.map(r => r[1])));
   assert.ok(life.scoreFactor <= 1.2, life.scoreFactor);
@@ -131,10 +131,11 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
   assert.ok(urban.scoreFactor < 3 && urban.scoreFactor > life.scoreFactor, urban.scoreFactor);
   const wide = sets.find(s => s.id === "number-tea");
   assert.equal(wide.scoreFactor, 3);
-  const trump = sets.find(s => s.id === "number-trump");
-  assert.equal(trump.pairs.length >= 15, true);
-  assert.equal(trump.pairs.every(p => p.known.emoji === "🇺🇸" && p.ask.emoji === "🇺🇸"), true);
-  assert.equal(NumberGuess.score(71.6 * trump.scoreFactor, 71.6, trump.scoreFactor).accuracy, 0);
+  const fem = sets.find(s => s.id === "number-femicide");
+  assert.equal(fem.pairs.map(p => p.known.iso3 + "-" + p.ask.iso3).join(","), "SGP-ZAF,KOR-USA,USA-IND");
+  assert.equal(sets.some(s => s.id === "number-trump"), false);
+  const pop = sets.find(s => s.id === "number-pop2100");
+  assert.equal(pop.pairs.map(p => p.known.iso3 + "-" + p.ask.iso3).join(","), "CHN-NGA,IND-PAK");
 });
 
 test("number cards fill the bundle after the AdSense window and score accuracy", () => {
@@ -150,7 +151,7 @@ test("number cards fill the bundle after the AdSense window and score accuracy",
   const later = bonus.pool("2026-11-04");
   assert.ok(later.some(p => p.type === "number" && p.sensitive), "female homicide stays available after the window");
   assert.ok(later.some(p => p.type === "number" && !p.sensitive));
-  const puzzle = cards.find(c => c.ask.iso3 === "USA" && c.known.iso3 === "IND");
+  const puzzle = cards.find(c => c.ask.iso3 === "USA" && c.known.iso3 === "KOR");
   const close = win.RankdNumber.lock(win.RankdNumber.blank(), puzzle, 2.55);
   assert.equal(close.done, true);
   assert.equal(close.accuracy, 100);
@@ -199,7 +200,7 @@ test("number cards fill the bundle after the AdSense window and score accuracy",
       for (const prev of used) {
         if (n - prev.n > 30) continue;
         assert.notEqual(prev.id, filler.id, filler.id);
-        assert.notEqual(prev.parent, filler.parentId, filler.parentId + " on " + date);
+        if (date < bonus.reshuffleFrom) assert.notEqual(prev.parent, filler.parentId, filler.parentId + " on " + date);
       }
       used.push({ n, id: filler.id, parent: filler.parentId });
       statIds.add(filler.parentId);
@@ -255,6 +256,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   const tiny = win.RankdInsight.lines(puzzle, { seeded: true, standing: { n: 4 }, firstGuessWorld: { players: 1, bars: bars } }, "TW");
   assert.equal(tiny.length, 0);
   assert.match(read("styles.css"), /\.day-payoff\{/);
-  assert.match(read("sw.js"), /ranki-shell-v43/);
+  assert.match(read("sw.js"), /ranki-shell-v45/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

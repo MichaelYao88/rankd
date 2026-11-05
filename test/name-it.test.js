@@ -74,6 +74,16 @@ test("a guess that breaks both rules says so", () => {
   assert.match(small.line, /not over 40 million, and doesn't end in -stan or -land, and doesn't start with M/);
 });
 
+test("a country missing from the dataset does not use a try", () => {
+  const road = byId("name-road-between-u");
+  const missing = Name.catalog().find(c => !Object.prototype.hasOwnProperty.call(road.values, c.iso3));
+  assert.ok(missing, "need a country outside the road dataset");
+  const verdict = Name.judge(road, missing.name, new Set());
+  assert.equal(verdict.status, "nodata");
+  assert.equal(verdict.counts, false);
+  assert.equal(verdict.line, "No data for " + missing.name + ".");
+});
+
 test("duplicates and non-countries do not use a try", () => {
   const hdi = byId("name-hdi-s");
   const first = Name.judge(hdi, "United States", new Set());
@@ -109,9 +119,10 @@ test("stored answers are exactly the countries that pass both rules", () => {
     "name-named-for-her": 3,
     "name-obesity-n": 2,
     "name-potato-b": 4,
-    "name-gini-s": 7,
     "name-suicide-l": 2,
     "name-gdp-i": 4,
+    "name-happy-window": 4,
+    "name-height-c": 3,
   };
   for (const puzzle of puzzles) {
     assert.equal(puzzle.type, "name");
@@ -266,25 +277,25 @@ test("name puzzles take the open days after the ranks already on the sheet", () 
   const epoch = Date.UTC(2026, 9, 6);
   const dateOf = index => new Date(epoch + index * 864e5).toISOString().slice(0, 10);
   const kept = [
-    { id: "name-hdi-between-s", date: "2027-03-07", order: 153 },
-    { id: "name-age-between-c", date: "2027-03-08", order: 154 },
-    { id: "name-road-between-u", date: "2027-03-09", order: 155 },
-    { id: "ipsos-gender-identity-b", date: "2027-03-24", order: 171 },
-    { id: "top1-potatoes", date: "2027-03-25", order: 172 },
-    { id: "top1-tea", date: "2027-03-26", order: 173 },
-    { id: "top1-pop-2100", date: "2027-03-27", order: 175 },
-    { id: "top1-median-age", date: "2027-03-28", order: 176 },
-    { id: "top1-road-deaths", date: "2027-03-29", order: 177 },
-    { id: "hdi-quality", date: "2027-03-30", order: 178 },
-    { id: "pop-2100", date: "2027-03-31", order: 179 },
-    { id: "democracy-eiu-2024", date: "2027-04-01", order: 180 },
-    { id: "median-age-wpp", date: "2027-04-02", order: 181 },
-    { id: "road-deaths-2021", date: "2027-04-03", order: 182 },
-    { id: "wealth-share-top1", date: "2027-04-04", order: 187 },
-    { id: "match-meat-cuts", date: "2027-04-05", order: 188 },
-    { id: "cocaine-destination", date: "2027-04-06", order: 189 },
-    { id: "statista-vegetarian-vegan", date: "2027-04-07", order: 191 },
-    { id: "stretched-length", date: "2027-04-08", order: 192 },
+    { id: "name-hdi-between-s", date: "2027-03-05", order: 153 },
+    { id: "name-age-between-c", date: "2027-03-06", order: 154 },
+    { id: "name-road-between-u", date: "2027-03-07", order: 155 },
+    { id: "ipsos-gender-identity-b", date: "2027-03-22", order: 171 },
+    { id: "top1-potatoes", date: "2027-03-23", order: 172 },
+    { id: "top1-tea", date: "2027-03-24", order: 173 },
+    { id: "top1-pop-2100", date: "2027-03-25", order: 175 },
+    { id: "top1-median-age", date: "2027-03-26", order: 176 },
+    { id: "top1-road-deaths", date: "2027-03-27", order: 177 },
+    { id: "hdi-quality", date: "2027-03-28", order: 178 },
+    { id: "pop-2100", date: "2027-03-29", order: 179 },
+    { id: "democracy-eiu-2024", date: "2027-03-30", order: 180 },
+    { id: "median-age-wpp", date: "2027-03-31", order: 181 },
+    { id: "road-deaths-2021", date: "2027-04-01", order: 182 },
+    { id: "wealth-share-top1", date: "2027-04-02", order: 187 },
+    { id: "match-meat-cuts", date: "2027-04-03", order: 188 },
+    { id: "cocaine-destination", date: "2027-04-04", order: 189 },
+    { id: "statista-vegetarian-vegan", date: "2027-04-05", order: 191 },
+    { id: "stretched-length", date: "2027-04-06", order: 192 },
   ];
   for (const row of kept) {
     const idx = scheduled.findIndex(p => p.id === row.id);

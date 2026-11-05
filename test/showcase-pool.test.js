@@ -84,7 +84,7 @@ test("2026-11-14 is an AdSense-safe showcase with two Guess the number stats", (
   const n = shared.dayNumber(bonus.showcase);
   const parts = bonus.parts(n);
   const weight = parts.reduce((sum, p) => sum + bonus.points(p), 0);
-  assert.ok(weight >= bonus.target && weight <= bonus.ceiling, "weight " + weight);
+  assert.ok(weight >= bonus.floor && weight <= bonus.ceiling, "weight " + weight);
   assert.equal(parts.some(p => p.sensitive), false, parts.filter(p => p.sensitive).map(p => p.id).join(","));
   const numbers = parts.filter(p => p.type === "number");
   assert.equal(numbers.length, 2);

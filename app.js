@@ -1789,9 +1789,13 @@ function inAdsenseSafeWindow(dateKey) {
 }
 // Daily bundle. The scheduled puzzle is first. A multiple-choice day is one part
 // per question, each with its own card. Fillers sit in the middle. The day ends
-// on a different Rank it when one still fits: it must not repeat a puzzle inside
-// FILLER_GAP, and the day's weight must stay within BUNDLE_CEILING. If no such
-// ranker exists, the closer is left off and the middle fills toward the target.
+// on a Rank it when a fresh one still exists. Days before RESHUFFLE_FROM keep
+// the old 30-day filler gap and the old 12-point target, so a played day does
+// not change. From that date on, the bundle is built from the whole pool:
+// content first, then type, no repeat until the pool runs out, then the longest
+// gap, and a fresh card from a dataset before a repeat. The weight is at least
+// BUNDLE_FLOOR. Three rankers in one day is allowed. The title schedule stops
+// at SCHEDULE_THROUGH; puzzles that used to fall after that date fill these bundles.
 // Weights, not scores:
 //   one quiz question = 1
 //   Guess the number = 2
@@ -1823,9 +1827,16 @@ const SHOWCASE_KEY = "2026-11-14";
 const SHOWCASE_STATS = ["number-tea", "number-life"];
 // Hold those two stats out of the filler draw for the 30 days before the
 // showcase, so the preview day can still show one card from each.
-const BUNDLE_TARGET = 12;
-const BUNDLE_CEILING = 14;
+const LEGACY_TARGET = 12;
+const LEGACY_CEILING = 14;
+const BUNDLE_FLOOR = 11;
+const BUNDLE_TARGET = BUNDLE_FLOOR;
+const BUNDLE_CEILING = 21;
 const BUNDLE_MAX_PARTS = 16;
+// Played days stay on the old builder. 2026-11-05 is the first day rebuilt.
+const RESHUFFLE_FROM = "2026-11-05";
+// Title days run through this date. Later puzzles move into these bundles.
+const SCHEDULE_THROUGH = "2027-02-01";
 const CLOSER_WEIGHT = 5;
 const THEME_KEEP = new Set(["hdi", "co2", "tea", "gdp"]);
 const THEME_STOP = new Set("the and for with from that this rate rates per top name match daily item items world share index most year data group groups country countries people adult adults between above under higher lower rank tier".split(" "));
@@ -2080,10 +2091,10 @@ function takeFillers(i, dateKey, head, sum, cap, goal, allowRank) {
   return { fillers, sum };
 }
 function takeCloser(i, dateKey, head, fillers, sum) {
-  if (sum + CLOSER_WEIGHT > BUNDLE_CEILING) return null;
+  if (sum + CLOSER_WEIGHT > LEGACY_CEILING) return null;
   if (head.length + fillers.length + 1 > BUNDLE_MAX_PARTS) return null;
   const used = freshUsed(head.concat(fillers));
-  let pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, BUNDLE_CEILING));
+  let pool = fillerPool(dateKey).filter(p => p.type === "rank" && fillerFits(i, p, used, sum, LEGACY_CEILING));
   if (dateKey === SHOWCASE_KEY) pool = pool.filter(p => !p.sensitive);
   if (!pool.length) return null;
   pool.sort((a, b) => fillerHash(i, a.id) - fillerHash(i, b.id) || (a.id < b.id ? -1 : 1));
@@ -2105,14 +2116,14 @@ function takeShowcaseNumbers(i, dateKey, head, sum, cap) {
   }
   return picked;
 }
-function buildDayParts(i) {
+function buildDayPartsLegacy(i) {
   const main = puzzleOnDay(i);
   const dateKey = keyFromDay(i);
   const head = scheduledPieces(main);
   const headSum = head.reduce((sum, p) => sum + bundlePoints(p), 0);
-  const reserve = headSum + CLOSER_WEIGHT <= BUNDLE_CEILING ? CLOSER_WEIGHT : 0;
-  const cap = BUNDLE_CEILING - reserve;
-  const goal = Math.min(cap, reserve ? BUNDLE_TARGET - reserve : BUNDLE_TARGET);
+  const reserve = headSum + CLOSER_WEIGHT <= LEGACY_CEILING ? CLOSER_WEIGHT : 0;
+  const cap = LEGACY_CEILING - reserve;
+  const goal = Math.min(cap, reserve ? LEGACY_TARGET - reserve : LEGACY_TARGET);
   const showcase = takeShowcaseNumbers(i, dateKey, head, headSum, cap);
   const base = head.concat(showcase);
   const baseSum = headSum + showcase.reduce((sum, p) => sum + bundlePoints(p), 0);
@@ -2120,10 +2131,190 @@ function buildDayParts(i) {
   packed = { fillers: showcase.concat(packed.fillers), sum: packed.sum };
   let closer = reserve ? takeCloser(i, dateKey, head.concat(packed.fillers), [], packed.sum) : null;
   if (!closer) {
-    const more = takeFillers(i, dateKey, head.concat(packed.fillers), packed.sum, BUNDLE_CEILING, BUNDLE_TARGET, true);
+    const more = takeFillers(i, dateKey, head.concat(packed.fillers), packed.sum, LEGACY_CEILING, LEGACY_TARGET, true);
     packed = { fillers: packed.fillers.concat(more.fillers), sum: more.sum };
   }
   return head.concat(packed.fillers, closer ? [closer] : []);
+}
+function queueKey(id) {
+  let h = 2166136261;
+  for (let i = 0; i < String(id).length; i++) h = Math.imul(h ^ String(id).charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+let contentQueueMemo = null;
+let contentQueueList = null;
+function contentQueue() {
+  if (contentQueueMemo && contentQueueList === PUZZLES) return contentQueueMemo;
+  contentQueueList = PUZZLES;
+  contentQueueMemo = cardCatalog().slice().sort((a, b) => queueKey(a.id) - queueKey(b.id) || (a.id < b.id ? -1 : 1));
+  return contentQueueMemo;
+}
+function scheduleLastIndex() {
+  const n = dayNumber(SCHEDULE_THROUGH);
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+function reservedTitleIds(exceptDay) {
+  const ids = new Set();
+  const last = scheduleLastIndex();
+  for (let d = 0; d <= last; d++) {
+    if (d === exceptDay) continue;
+    for (const p of scheduledPieces(puzzleOnDay(d))) ids.add(p.id);
+  }
+  return ids;
+}
+function usageBefore(i) {
+  const used = new Set();
+  const last = new Map();
+  for (let d = 0; d < i; d++) {
+    for (const p of (partsMemo[d] || [])) {
+      if (!p || !p.id) continue;
+      used.add(p.id);
+      last.set(p.id, d);
+    }
+  }
+  return { used, last };
+}
+function cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe) {
+  if (!p || !p.id || blocked.has(p.id)) return false;
+  if ((inAdsenseSafeWindow(dateKey) || showcaseSafe) && p.sensitive) return false;
+  if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return false;
+  return true;
+}
+function countryBit(iso, value, year) {
+  const row = PR && PR.countries && PR.countries[iso];
+  if (!row) return null;
+  return { iso3: iso, name: row[0], emoji: row[1] || "", value: value, year: year == null ? "" : String(year) };
+}
+function freshNumberCard(blocked, dateKey, holdShowcase) {
+  if (!window.RankdNumber || !PR || !PR.countries) return null;
+  const stats = new Map((window.RANKD_NUMBER_STATS || []).map(s => [s.id, s]));
+  const sets = window.RankdNumber.sets().slice().sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+  for (const set of sets) {
+    if (inAdsenseSafeWindow(dateKey) && set.sensitive) continue;
+    if (holdShowcase && SHOWCASE_STATS.indexOf(set.id) >= 0) continue;
+    const stat = stats.get(set.id);
+    const ds = !stat && PR.datasets ? PR.datasets.find(d => d.id === (set.dataset || set.id)) : null;
+    const rows = stat && stat.rows ? stat.rows : ds && ds.rows;
+    if (!rows) continue;
+    const list = [];
+    for (const r of rows) {
+      const bit = countryBit(r[0], Number(r[1]), r[2] || set.year);
+      if (bit && Number.isFinite(bit.value)) list.push(bit);
+    }
+    list.sort((a, b) => a.iso3 < b.iso3 ? -1 : 1);
+    for (let k = 0; k < list.length - 1; k++) {
+      const known = list[k], ask = list[k + 1];
+      if (known.value === ask.value) continue;
+      const id = set.id + "#" + known.iso3 + "-" + ask.iso3;
+      if (blocked.has(id)) continue;
+      const fact = ask.name + " is " + ask.value + " and " + known.name + " is " + known.value + ". Both figures are " + (set.stat || "the same series") + ".";
+      const card = window.RankdNumber.card(set, { known: known, ask: ask, fact: fact });
+      card.synthesized = true;
+      return card;
+    }
+  }
+  return null;
+}
+function longestGapCard(i, dateKey, lastUsed, hardBlocked, holdShowcase, showcaseSafe, wantRank) {
+  let best = null, bestGap = -1, bestKey = 0;
+  for (const card of contentQueue()) {
+    if (wantRank && card.type !== "rank") continue;
+    if (!cardOk(card, dateKey, hardBlocked, holdShowcase, showcaseSafe)) continue;
+    if (!lastUsed.has(card.id)) continue;
+    const gap = i - lastUsed.get(card.id);
+    const key = queueKey(card.id);
+    if (gap > bestGap || (gap === bestGap && (best == null || key < bestKey))) {
+      best = card;
+      bestGap = gap;
+      bestKey = key;
+    }
+  }
+  return best;
+}
+function buildDayPartsFresh(i) {
+  const dateKey = keyFromDay(i);
+  const lastSchedule = scheduleLastIndex();
+  const holdShowcase = showcaseReserved(dateKey);
+  const showcaseSafe = dateKey === SHOWCASE_KEY;
+  const head = i <= lastSchedule ? scheduledPieces(puzzleOnDay(i)).map(p => Object.assign({}, p)) : [];
+  const prior = usageBefore(i);
+  const reserved = reservedTitleIds(i);
+  const blocked = new Set(prior.used);
+  for (const id of reserved) blocked.add(id);
+  for (const p of head) blocked.add(p.id);
+  const hardBlocked = () => {
+    const ids = new Set(reserved);
+    for (const p of parts) ids.add(p.id);
+    for (const p of head) ids.add(p.id);
+    if (closerCard) ids.add(closerCard.id);
+    return ids;
+  };
+  const numberParents = new Set();
+  const take = (card, role) => {
+    const copy = Object.assign({}, card, { role: role });
+    if (!copy.scheduleId && role === "title") copy.scheduleId = copy.id;
+    blocked.add(copy.id);
+    if (copy.type === "number" && copy.parentId) numberParents.add(copy.parentId);
+    if (prior.last) prior.last.set(copy.id, i);
+    return copy;
+  };
+  const parts = head.slice();
+  if (dateKey === SHOWCASE_KEY) {
+    for (const stat of SHOWCASE_STATS) {
+      const card = contentQueue().find(p => p.type === "number" && p.parentId === stat && cardOk(p, dateKey, blocked, false, true));
+      if (card) parts.push(take(card, "filler"));
+    }
+  }
+  const closerCard = contentQueue().find(p => p.type === "rank" && cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe));
+  if (closerCard) blocked.add(closerCard.id);
+  const closerWeight = closerCard ? bundlePoints(closerCard) : 0;
+  const sumOf = list => list.reduce((sum, p) => sum + bundlePoints(p), 0);
+  const roomFor = () => parts.length + (closerCard ? 1 : 0) < BUNDLE_MAX_PARTS;
+  const pullNext = (allowSameStat) => {
+    for (const card of contentQueue()) {
+      if (card.type === "rank") continue;
+      if (!cardOk(card, dateKey, blocked, holdShowcase, showcaseSafe)) continue;
+      if (card.type === "number" && !allowSameStat && numberParents.has(card.parentId)) continue;
+      return card;
+    }
+    return null;
+  };
+  while (roomFor() && sumOf(parts) + closerWeight < BUNDLE_FLOOR) {
+    const card = pullNext(false) || pullNext(true);
+    if (!card) break;
+    parts.push(take(card, parts.length ? "filler" : "title"));
+  }
+  while (roomFor() && sumOf(parts) + closerWeight < BUNDLE_FLOOR) {
+    const card = freshNumberCard(blocked, dateKey, holdShowcase);
+    if (!card) break;
+    if (card.type === "number" && numberParents.has(card.parentId) && sumOf(parts) + closerWeight >= BUNDLE_FLOOR) break;
+    parts.push(take(card, parts.length ? "filler" : "title"));
+  }
+  while (roomFor() && sumOf(parts) + closerWeight < BUNDLE_FLOOR) {
+    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    if (!card) break;
+    parts.push(take(card, parts.length ? "filler" : "title"));
+  }
+  if (!parts.length) {
+    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    if (card) parts.push(take(card, "title"));
+  }
+  if (!parts.some(p => p.role !== "title") && roomFor()) {
+    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    if (card) parts.push(take(card, "filler"));
+  }
+  // A fresh ranker closes the day. If none is left, the closer is left off
+  // rather than repeating one, and another fresh type fills the points.
+  if (closerCard && parts.length < BUNDLE_MAX_PARTS) {
+    parts.push(Object.assign({}, closerCard, { role: "closer" }));
+  } else if (sumOf(parts) < BUNDLE_FLOOR && parts.length < BUNDLE_MAX_PARTS) {
+    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, true);
+    if (card) parts.push(take(card, "closer"));
+  }
+  return parts;
+}
+function buildDayParts(i) {
+  return keyFromDay(i) < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
 }
 function cardCatalog() {
   const out = [];
@@ -2164,6 +2355,7 @@ function pileBehind(partCount, index) {
 window.RankdBonus = {
   forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
+  floor: BUNDLE_FLOOR, reshuffleFrom: RESHUFFLE_FROM, scheduleThrough: SCHEDULE_THROUGH,
   lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
   showcase: SHOWCASE_KEY, catalog: cardCatalog,
 };
@@ -3074,7 +3266,7 @@ function paintMatch(marks) {
   const placed = g.cur.filter(x => x != null).length, max = CONFIG.rankMaxTries;
   $("#matchTries").innerHTML = Array.from({ length: max }, (_, n) => { const a = g.attempts[n]; return a ? `<i class="${a.marks.every(m => m === "good") ? "win" : "used"}"></i>` : "<i></i>"; }).join("")
     + `<span>${g.done ? (g.solved ? `Solved in ${g.tries}` : "Out of tries") : `${max - g.attempts.length} ${max - g.attempts.length === 1 ? "try" : "tries"} left`}</span>`;
-  $("#mHint").innerHTML = g.done ? "" : g.attempts.length ? `<b>${g.pinned.length} of ${p.people.length}</b> right. Green pairs are locked in. Move the red clues and try again.` : `Drag each clue onto a person (or tap a clue, then a person). ${placed}/${p.people.length} placed.`;
+  $("#mHint").innerHTML = g.done ? "" : g.attempts.length ? `<b>${g.pinned.length} of ${p.people.length}</b> right. Green pairs are locked in. Move the red clues and try again.` : `Drag a clue onto a country, or a country onto a clue. ${placed}/${p.people.length} placed.`;
   $("#matchSubmit").parentElement.classList.toggle("hidden", g.done);
   $("#matchSubmit").classList.toggle("ready", placed === p.people.length);
 }
@@ -3133,37 +3325,73 @@ function revealMatch(res, animate) {
 const matchAnswers = (p, res) => { const last = res.attempts[res.attempts.length - 1];
   return `<h3>The matches</h3>${p.fact ? `<p class="m-note">${esc(p.fact)}</p>` : ""}` + p.people.map((x, k) => `<div class="m-ans ${last.marks[k] === "good" ? "ok" : "no"}"><div class="m-ans-h"><span class="m-flag">${flagHtml(x)}</span><b>${esc(x.name)}</b>${x.country && x.country !== x.name ? `<small>${esc(x.country)}</small>` : ""}<span class="m-ans-mark">${last.marks[k] === "good" ? "✓" : "✗"}</span></div>
     <p class="m-ans-clue">“${esc(x.clue)}”</p><p class="m-ans-fact">${esc(x.fact)}${x.sourceUrl ? ` <a href="${esc(x.sourceUrl)}" target="_blank" rel="noopener">${esc(x.sourceName || "Source")} ↗</a>` : ""}</p></div>`).join(""); };
-// drag a clue onto a person (pointer events: mouse, pen and touch); a short press without movement is a tap
+// Drag works both ways, on mouse and touch: a clue onto a country, or a country onto a clue.
+// A short press without movement is still a tap.
+function matchDrop(kind, from, onto) {
+  if (!onto) return false;
+  if (kind === "clue") {
+    if (!onto.classList || !onto.classList.contains("m-person") || onto.disabled) return false;
+    matchAssign(from, +onto.dataset.p);
+    return true;
+  }
+  if (!onto.classList || !onto.classList.contains("m-clue") || onto.classList.contains("pinned")) return false;
+  matchAssign(+onto.dataset.c, from);
+  return true;
+}
 (function matchDrag() {
   let d = null;
   const zone = () => $("#matchGame");
-  zone().addEventListener("pointerdown", e => {
-    const li = e.target.closest(".m-clue"); if (!li || state.match?.done || li.classList.contains("pinned") || e.button > 0) return;
-    d = { li, k: +li.dataset.c, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
+  const root = zone();
+  if (!root) return;
+  const clearOver = () => {
+    $$("#mPeople .m-person").forEach(b => b.classList.remove("over"));
+    $$("#mClues .m-clue").forEach(li => li.classList.remove("over"));
+  };
+  root.addEventListener("pointerdown", e => {
+    if (state.match?.done || e.button > 0) return;
+    const clue = e.target.closest(".m-clue");
+    const person = e.target.closest(".m-person");
+    if (clue && !clue.classList.contains("pinned")) {
+      d = { kind: "clue", el: clue, from: +clue.dataset.c, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
+      return;
+    }
+    if (person && !person.disabled) d = { kind: "person", el: person, from: +person.dataset.p, x: e.clientX, y: e.clientY, id: e.pointerId, moved: false, ghost: null };
   });
   addEventListener("pointermove", e => {
     if (!d || e.pointerId !== d.id) return;
     if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
-    if (!d.moved) { d.moved = true; const r = d.li.getBoundingClientRect(), gh = d.li.cloneNode(true); gh.classList.add("m-ghost"); gh.style.width = r.width + "px";
-      gh.style.left = r.left + "px"; gh.style.top = r.top + "px"; document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top; d.li.classList.add("dragging"); }
+    if (!d.moved) {
+      d.moved = true;
+      const r = d.el.getBoundingClientRect(), gh = d.el.cloneNode(true);
+      gh.classList.add("m-ghost"); gh.style.width = r.width + "px";
+      gh.style.left = r.left + "px"; gh.style.top = r.top + "px";
+      document.body.appendChild(gh); d.ghost = gh; d.ox = e.clientX - r.left; d.oy = e.clientY - r.top; d.el.classList.add("dragging");
+    }
     e.preventDefault();
     d.ghost.style.left = (e.clientX - d.ox) + "px"; d.ghost.style.top = (e.clientY - d.oy) + "px";
-    const over = document.elementFromPoint(e.clientX, e.clientY)?.closest(".m-person");
-    $$("#mPeople .m-person").forEach(b => b.classList.toggle("over", b === over));
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    const sel = d.kind === "clue" ? ".m-person" : ".m-clue";
+    const over = hit && hit.closest ? hit.closest(sel) : null;
+    clearOver();
+    if (over) over.classList.add("over");
   }, { passive: false });
   const end = e => {
-    if (!d || e.pointerId !== d.id) return; const cur = d; d = null;
-    $$("#mPeople .m-person").forEach(b => b.classList.remove("over"));
-    if (!cur.moved) { matchTapClue(cur.k); return; }
-    cur.ghost.remove(); cur.li.classList.remove("dragging");
-    const over = e.type === "pointerup" ? document.elementFromPoint(e.clientX, e.clientY)?.closest(".m-person") : null;
-    if (over && !over.disabled) matchAssign(cur.k, +over.dataset.p);
+    if (!d || e.pointerId !== d.id) return;
+    const cur = d; d = null;
+    clearOver();
+    if (!cur.moved) { if (cur.kind === "clue") matchTapClue(cur.from); return; }
+    if (cur.ghost) cur.ghost.remove();
+    cur.el.classList.remove("dragging");
+    if (e.type !== "pointerup") return;
+    const hit = document.elementFromPoint(e.clientX, e.clientY);
+    const sel = cur.kind === "clue" ? ".m-person" : ".m-clue";
+    matchDrop(cur.kind, cur.from, hit && hit.closest ? hit.closest(sel) : null);
   };
   addEventListener("pointerup", end); addEventListener("pointercancel", end);
   $("#mPeople").addEventListener("click", e => { const b = e.target.closest(".m-person"); if (b && !b.disabled) matchTapPerson(+b.dataset.p); });
   $("#mClues").addEventListener("keydown", e => { const li = e.target.closest(".m-clue"); if (li && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); matchTapClue(+li.dataset.c); } });
 })();
-window.RankdMatch = { state: () => state.match, order: () => state.mOrder, assign: (k, i) => matchAssign(k, i) };
+window.RankdMatch = { state: () => state.match, order: () => state.mOrder, assign: (k, i) => matchAssign(k, i), drop: matchDrop };
 
 
 // ================================================================ TIER IT (v12.2)

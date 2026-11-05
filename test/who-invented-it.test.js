@@ -70,21 +70,22 @@ test("who invented it keeps order 225 and plays on 2027-05-08 after the packed c
   for (const p of [quiz, older, words]) {
     assert.equal(p.type, "quiz");
     assert.equal(p.sensitive, undefined);
-    assert.equal(p.questions.length, 11);
+    assert.equal(p.questions.length, p.id === "who-invented-older" ? 10 : 11);
     assert.equal(p.questions.filter(q => /fish-sauce|grass-rope/i.test(q.prompt + " " + q.ask)).length, 0);
   }
   const win = bootStudio();
   const scheduled = win.RankdShared.puzzles;
   const n = scheduled.findIndex(p => p.id === "who-invented-it");
-  assert.equal(win.RankdShared.keyFromDay(n), "2027-05-08");
+  assert.equal(win.RankdShared.keyFromDay(n), "2027-05-06");
   assert.equal(win.RankdBonus.types.includes("quiz"), false);
   const part1 = win.RankdBonus.forDay(n);
   assert.notEqual(part1.id, "who-invented-it");
-  assert.equal(win.RankdBonus.types.includes(part1.type), true);
-  assert.equal(part1.sensitive, undefined);
+  assert.notEqual(part1.parentId, "who-invented-it");
   for (const id of ["who-invented-it", "who-invented-older", "who-invented-words"]) {
     const i = scheduled.findIndex(p => p.id === id);
-    assert.equal(win.RankdBonus.forDay(i).type === "quiz", false, id);
+    const picked = win.RankdBonus.forDay(i);
+    assert.notEqual(picked.id, id, id);
+    assert.notEqual(picked.parentId, id, id);
   }
 });
 
@@ -114,11 +115,8 @@ test("each card has one sourced answer and three other countries", () => {
   }
   const older = puzzles.find(p => p.id === "who-invented-older");
   const words = puzzles.find(p => p.id === "who-invented-words");
-  assert.equal(older.questions.find(q => q.id === "rope-bridge").answer, "PER");
-  assert.match(older.questions.find(q => q.id === "rope-bridge").ask, /rope suspension bridge every year/);
-  assert.doesNotMatch(older.questions.find(q => q.id === "rope-bridge").ask, /Andes|grass-rope/);
-  assert.match(older.questions.find(q => q.id === "rope-bridge").fact, /China/);
-  assert.match(older.questions.find(q => q.id === "rope-bridge").fact, /chain/);
+  assert.equal(older.questions.some(q => q.id === "rope-bridge"), false);
+  assert.doesNotMatch(older.fact, /Andes/);
   const fork = older.questions.find(q => q.id === "fork");
   assert.equal(fork.answer, "CHN");
   assert.match(fork.ask, /fork first/);
@@ -159,7 +157,7 @@ test("each card has one sourced answer and three other countries", () => {
   assert.match(bluetooth.fact, /1994/);
   assert.match(bluetooth.fact, /Lund/);
   for (const day of [quiz, older, words]) {
-    assert.equal(day.questions.length, 11, day.id);
+    assert.equal(day.questions.length, day.id === "who-invented-older" ? 10 : 11, day.id);
     for (const q of day.questions) {
       assert.doesNotMatch(q.ask, / and the /i, q.id);
       assert.doesNotMatch(q.ask + " " + q.prompt, /Abbasid|Khwarizmi|Nashtifan|Benz|Ericsson|Andes|Patent-Motorwagen/i, q.id);
@@ -170,6 +168,7 @@ test("each card has one sourced answer and three other countries", () => {
   const blueOpts = quiz.questions.find(q => q.id === "bluetooth").options.map(o => o.iso3);
   for (const iso of ["NOR", "DNK", "FIN"]) assert.equal(blueOpts.includes(iso), false, iso);
   assert.equal(words.questions.find(q => q.id === "russian-roulette").answer, "USA");
+  assert.equal(words.questions.find(q => q.id === "russian-roulette").ask, "Where is Russian roulette from?");
   assert.match(words.questions.find(q => q.id === "russian-roulette").fact, /Collier's/);
   assert.match(words.questions.find(q => q.id === "russian-roulette").fact, /Switzerland/);
   assert.equal(words.questions.find(q => q.id === "chicken-tikka").answer, "GBR");
