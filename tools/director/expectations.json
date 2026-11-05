@@ -1,5 +1,5 @@
 {
-  "note": "Expectations are stereotypes and conventional guesses written so the director can score them. They are not facts and they are not shown to players.",
+  "note": "Two lenses, written so the director can score them. Conventional is the stereotyped or nationalist guess for that stat. Paternalistic expects Western and white-majority countries to lead on progressive, safe, healthy, educated, or gender-equal outcomes, and expects Global South, Muslim-majority, and African countries to lag. They are not facts and they are not shown to players.",
   "popular": ["United States", "United Kingdom", "France", "Japan", "Germany", "China", "Australia"],
   "groups": {
     "muslim-majority": {
@@ -16,37 +16,49 @@
       "higherIs": "top",
       "label": "Life satisfaction, Cantril ladder",
       "expectHigh": ["Finland", "Denmark", "Norway", "Switzerland", "Netherlands", "Sweden", "Iceland"],
-      "expectLow": ["Afghanistan", "India", "Iraq", "Nigeria", "Pakistan", "Egypt", "Ukraine"]
+      "expectLow": ["Afghanistan", "India", "Iraq", "Nigeria", "Pakistan", "Egypt", "Ukraine"],
+      "paternalisticHigh": ["Sweden", "Norway", "Netherlands", "Denmark", "Canada", "Australia", "United States"],
+      "paternalisticLow": ["Afghanistan", "Nigeria", "Pakistan", "Egypt", "Bangladesh", "Ethiopia", "Iraq"]
     },
     "wb-youth-unemp-2024": {
       "higherIs": "top",
       "label": "Youth unemployment, ages 15-24 in the labor force",
       "expectHigh": ["South Africa", "Spain", "Greece", "Italy", "France", "Nigeria", "India"],
-      "expectLow": ["Japan", "Germany", "United States", "China", "Thailand", "Vietnam", "Switzerland"]
+      "expectLow": ["Japan", "Germany", "United States", "China", "Thailand", "Vietnam", "Switzerland"],
+      "paternalisticHigh": ["Nigeria", "South Africa", "Egypt", "Pakistan", "India", "Morocco", "Kenya"],
+      "paternalisticLow": ["Germany", "United States", "United Kingdom", "France", "Sweden", "Netherlands", "Australia"]
     },
     "wiki-meat-supply-2020": {
       "higherIs": "top",
       "label": "Meat supply per person, used as a proxy for consumption",
       "expectHigh": ["United States", "Argentina", "Australia", "Brazil", "Germany", "France", "Spain"],
-      "expectLow": ["India", "Japan", "Thailand", "China", "Indonesia", "Egypt", "Pakistan"]
+      "expectLow": ["India", "Japan", "Thailand", "China", "Indonesia", "Egypt", "Pakistan"],
+      "paternalisticHigh": ["United States", "Australia", "Germany", "France", "United Kingdom", "Canada", "Denmark"],
+      "paternalisticLow": ["India", "Nigeria", "Pakistan", "Bangladesh", "Ethiopia", "Indonesia", "Egypt"]
     },
     "ncd-height-women-1996": {
       "higherIs": "top",
       "label": "Mean height of women born in 1996, NCD-RisC",
       "expectHigh": ["Netherlands", "Denmark", "Latvia", "Estonia", "Sweden", "Norway", "Germany"],
-      "expectLow": ["India", "Indonesia", "Philippines", "Vietnam", "Peru", "Mexico", "Japan"]
+      "expectLow": ["India", "Indonesia", "Philippines", "Vietnam", "Peru", "Mexico", "Japan"],
+      "paternalisticHigh": ["Netherlands", "Denmark", "Sweden", "Germany", "United States", "Australia", "United Kingdom"],
+      "paternalisticLow": ["India", "Nigeria", "Ethiopia", "Pakistan", "Bangladesh", "Indonesia", "Egypt"]
     },
     "top1-pop-2100": {
       "higherIs": "top",
       "label": "Population in 2100, UN medium variant",
       "expectHigh": ["India", "China", "Nigeria", "United States", "Pakistan", "Indonesia", "Brazil"],
-      "expectLow": ["Japan", "South Korea", "Germany", "Italy", "Spain", "Poland", "Ukraine"]
+      "expectLow": ["Japan", "South Korea", "Germany", "Italy", "Spain", "Poland", "Ukraine"],
+      "paternalisticHigh": ["Nigeria", "Ethiopia", "Pakistan", "Egypt", "Tanzania", "Bangladesh", "India"],
+      "paternalisticLow": ["Germany", "Italy", "Japan", "Spain", "United States", "United Kingdom", "South Korea"]
     },
     "isaps-procedures-per-capita": {
       "higherIs": "top",
       "label": "Aesthetic procedures per 1,000 people, ISAPS 2023",
       "expectHigh": ["South Korea", "Brazil", "United States", "Argentina", "Turkey", "Iran", "Mexico"],
-      "expectLow": ["United Kingdom", "Germany", "France", "Japan", "India", "China", "Australia"]
+      "expectLow": ["United Kingdom", "Germany", "France", "Japan", "India", "China", "Australia"],
+      "paternalisticHigh": ["United States", "Germany", "France", "United Kingdom", "Italy", "Spain", "Australia"],
+      "paternalisticLow": ["India", "Bangladesh", "South Africa", "Thailand", "Indonesia", "Pakistan", "Nigeria"]
     }
   }
 }
