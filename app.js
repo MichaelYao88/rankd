@@ -947,6 +947,19 @@ const Snd = {
     this.env(659.25, t + 0.12, 0.24, "triangle", 0.046);
     this.env(1318.5, t + 0.12, 0.18, "sine", 0.013);
   },
+  // Original espeak-ng clips. Nothing plays until a gesture has armed audio,
+  // and a saved mute (settings.sound === "off") skips every clip.
+  clip(file) {
+    if (!this.ready || !this.on()) return;
+    try {
+      const a = new Audio(file);
+      a.volume = 0.9;
+      const played = a.play();
+      if (played && played.catch) played.catch(() => {});
+    } catch (e) {}
+  },
+  yay() { this.clip("sounds/yay.ogg"); },
+  godlike() { this.clip("sounds/godlike.ogg"); },
 };
 const soundLabel = () => settings.sound === "off" ? "🔕 Sound off<small>Tap to turn sounds on</small>" : "🔔 Sound on<small>Tap to mute</small>";
 document.addEventListener("pointerdown", () => Snd.arm(), { capture: true });
@@ -1835,6 +1848,10 @@ const BUNDLE_CEILING = 21;
 const BUNDLE_MAX_PARTS = 16;
 // Played days stay on the old builder. 2026-11-05 is the first day rebuilt.
 const RESHUFFLE_FROM = "2026-11-05";
+// Taipei 10 Nov 2026 is the last day whose bundle is frozen. One of each
+// type starts the next day. Rank it and multiple choice may still repeat.
+const ONE_EACH_FROM = "2026-11-11";
+const REPEAT_TYPES = new Set(["rank", "quiz"]);
 // Title days run through this date. Later puzzles move into these bundles.
 const SCHEDULE_THROUGH = "2027-02-01";
 const CLOSER_WEIGHT = 5;
@@ -1957,6 +1974,7 @@ function fillerPool(dateKey) {
     if (!p || !p.id || seen.has(p.id)) return;
     if (safe && p.sensitive) return;
     if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return;
+    if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return;
     const when = scheduledDateOf(p);
     if (!when || when < FILLER_LATE_FROM) return;
     seen.add(p.id);
@@ -2176,16 +2194,23 @@ function usageBefore(i) {
 }
 function cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe) {
   if (!p || !p.id || blocked.has(p.id)) return false;
+  if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return false;
   if ((inAdsenseSafeWindow(dateKey) || showcaseSafe) && p.sensitive) return false;
   if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return false;
   return true;
+}
+function typeFull(parts, card, dateKey) {
+  if (!card || !dateKey || dateKey < ONE_EACH_FROM) return false;
+  if (REPEAT_TYPES.has(card.type)) return false;
+  return (parts || []).some(p => p.type === card.type);
 }
 function countryBit(iso, value, year) {
   const row = PR && PR.countries && PR.countries[iso];
   if (!row) return null;
   return { iso3: iso, name: row[0], emoji: row[1] || "", value: value, year: year == null ? "" : String(year) };
 }
-function freshNumberCard(blocked, dateKey, holdShowcase) {
+function freshNumberCard(blocked, dateKey, holdShowcase, parts) {
+  if (typeFull(parts, { type: "number" }, dateKey)) return null;
   if (!window.RankdNumber || !PR || !PR.countries) return null;
   const stats = new Map((window.RANKD_NUMBER_STATS || []).map(s => [s.id, s]));
   const sets = window.RankdNumber.sets().slice().sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
@@ -2215,10 +2240,11 @@ function freshNumberCard(blocked, dateKey, holdShowcase) {
   }
   return null;
 }
-function longestGapCard(i, dateKey, lastUsed, hardBlocked, holdShowcase, showcaseSafe, wantRank) {
+function longestGapCard(i, dateKey, lastUsed, hardBlocked, holdShowcase, showcaseSafe, wantRank, parts) {
   let best = null, bestGap = -1, bestKey = 0;
   for (const card of contentQueue()) {
     if (wantRank && card.type !== "rank") continue;
+    if (typeFull(parts, card, dateKey)) continue;
     if (!cardOk(card, dateKey, hardBlocked, holdShowcase, showcaseSafe)) continue;
     if (!lastUsed.has(card.id)) continue;
     const gap = i - lastUsed.get(card.id);
@@ -2261,6 +2287,7 @@ function buildDayPartsFresh(i) {
   const parts = head.slice();
   if (dateKey === SHOWCASE_KEY) {
     for (const stat of SHOWCASE_STATS) {
+      if (typeFull(parts, { type: "number" }, dateKey)) break;
       const card = contentQueue().find(p => p.type === "number" && p.parentId === stat && cardOk(p, dateKey, blocked, false, true));
       if (card) parts.push(take(card, "filler"));
     }
@@ -2273,6 +2300,7 @@ function buildDayPartsFresh(i) {
   const pullNext = (allowSameStat) => {
     for (const card of contentQueue()) {
       if (card.type === "rank") continue;
+      if (typeFull(parts, card, dateKey)) continue;
       if (!cardOk(card, dateKey, blocked, holdShowcase, showcaseSafe)) continue;
       if (card.type === "number" && !allowSameStat && numberParents.has(card.parentId)) continue;
       return card;
@@ -2285,22 +2313,22 @@ function buildDayPartsFresh(i) {
     parts.push(take(card, parts.length ? "filler" : "title"));
   }
   while (roomFor() && sumOf(parts) + closerWeight < BUNDLE_FLOOR) {
-    const card = freshNumberCard(blocked, dateKey, holdShowcase);
+    const card = freshNumberCard(blocked, dateKey, holdShowcase, parts);
     if (!card) break;
     if (card.type === "number" && numberParents.has(card.parentId) && sumOf(parts) + closerWeight >= BUNDLE_FLOOR) break;
     parts.push(take(card, parts.length ? "filler" : "title"));
   }
   while (roomFor() && sumOf(parts) + closerWeight < BUNDLE_FLOOR) {
-    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false, parts);
     if (!card) break;
     parts.push(take(card, parts.length ? "filler" : "title"));
   }
   if (!parts.length) {
-    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase, parts) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false, parts);
     if (card) parts.push(take(card, "title"));
   }
   if (!parts.some(p => p.role !== "title") && roomFor()) {
-    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false);
+    const card = pullNext(true) || freshNumberCard(blocked, dateKey, holdShowcase, parts) || longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, false, parts);
     if (card) parts.push(take(card, "filler"));
   }
   // A fresh ranker closes the day. If none is left, the closer is left off
@@ -2308,7 +2336,7 @@ function buildDayPartsFresh(i) {
   if (closerCard && parts.length < BUNDLE_MAX_PARTS) {
     parts.push(Object.assign({}, closerCard, { role: "closer" }));
   } else if (sumOf(parts) < BUNDLE_FLOOR && parts.length < BUNDLE_MAX_PARTS) {
-    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, true);
+    const card = longestGapCard(i, dateKey, prior.last, hardBlocked(), holdShowcase, showcaseSafe, true, parts);
     if (card) parts.push(take(card, "closer"));
   }
   return parts;
@@ -2355,7 +2383,7 @@ function pileBehind(partCount, index) {
 window.RankdBonus = {
   forDay: bonusForDayNumber, gap: FILLER_GAP, types: BONUS_TYPES, sameTheme, line: bonusResultLine,
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
-  floor: BUNDLE_FLOOR, reshuffleFrom: RESHUFFLE_FROM, scheduleThrough: SCHEDULE_THROUGH,
+  floor: BUNDLE_FLOOR, reshuffleFrom: RESHUFFLE_FROM, scheduleThrough: SCHEDULE_THROUGH, oneEachFrom: ONE_EACH_FROM,
   lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
   showcase: SHOWCASE_KEY, catalog: cardCatalog,
 };
@@ -4523,14 +4551,21 @@ function paintDayTotal(res) {
   }).catch(() => {});
 }
 function showResult(res, opts) {
-  if (opts && opts.sound) Snd.success(res);
+  if (opts && opts.sound) {
+    const tier = winTier(res);
+    if (tier === "explosive") Snd.godlike();
+    else if (tier === "big") Snd.yay();
+    else Snd.success(res);
+  }
   const p = state.puzzle;
   const quizEl = $("#quizGame"); if (quizEl) quizEl.classList.add("hidden");
   const numberEl = $("#numberGame"); if (numberEl) numberEl.classList.add("hidden");
   const strip = $("#partStrip"); if (strip) strip.classList.add("hidden");
   if (res) state.liveResult = res;
   pendingResultScroll = !!(opts && opts.scroll);
-  $("#scoreBig").classList.remove("is-words");
+  $("#scoreBig").classList.remove("is-words", "is-score");
+  const numberLead = $("#numberLead");
+  if (numberLead) { numberLead.textContent = ""; numberLead.classList.add("hidden"); }
   if (res.type === "match") {
     const max = CONFIG.rankMaxTries, nn = p.people.length;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;
@@ -4569,10 +4604,12 @@ function showResult(res, opts) {
     const rate = window.RankdNumber ? window.RankdNumber.fmtRate(who.value) : String(who.value ?? "");
     const acc = partAccuracy(p, res);
     const reveal = window.RankdNumber && RankdNumber.reveal ? RankdNumber.reveal(p) : `${who.emoji || ""} ${who.name || ""} is ${rate}${p.unit ? " " + p.unit : ""}.`;
-    $("#scoreBig").textContent = String(acc);
+    if (numberLead) { numberLead.textContent = reveal; numberLead.classList.remove("hidden"); }
+    $("#scoreBig").textContent = acc + "/100";
+    $("#scoreBig").classList.add("is-score");
     $("#scoreTitle").textContent = acc >= 100 ? "Right on it." : acc >= 60 ? "In the neighborhood." : "Way off.";
-    $("#answerBox").innerHTML = `<p class="num-reveal">${esc(reveal)}</p><p class="quiz-fact">${quizInfoHtml(p)}</p>`;
-    $("#answerBox").classList.remove("hidden");
+    $("#answerBox").classList.add("hidden");
+    $("#answerBox").innerHTML = "";
   } else if (res.type === "name") {
     const max = CONFIG.rankMaxTries;
     $("#scoreBig").textContent = res.solved ? `${res.tries}/${max}` : `X/${max}`;

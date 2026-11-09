@@ -42,6 +42,7 @@ const surprises = [];
 const LENSES = [
   ["conventional", "Conventional", "expectHigh", "expectLow"],
   ["paternalistic", "Paternalistic", "paternalisticHigh", "paternalisticLow"],
+  ["lgbt", "LGBT perspective", "lgbtHigh", "lgbtLow"],
 ];
 
 for (const [id, spec] of Object.entries(expect.stats)) {
@@ -54,6 +55,7 @@ for (const [id, spec] of Object.entries(expect.stats)) {
   lines.push("Countries with a figure: " + data.n + ".", "");
   const blocks = [];
   for (const [lens, title, highKey, lowKey] of LENSES) {
+    if (!spec[highKey] && !spec[lowKey]) continue;
     blocks.push([title + ", expected high", spec[highKey] || [], "high", lens]);
     blocks.push([title + ", expected low", spec[lowKey] || [], "low", lens]);
   }

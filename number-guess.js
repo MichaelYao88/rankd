@@ -138,6 +138,7 @@
       dataset: set.dataset || set.id,
       known: known,
       ask: ask,
+      poolFrom: pair.poolFrom || set.poolFrom || "",
     };
   }
 
