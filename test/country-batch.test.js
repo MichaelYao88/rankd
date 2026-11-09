@@ -19,7 +19,13 @@ vm.runInNewContext(fs.readFileSync(path.join(root, "name-puzzles.js"), "utf8"), 
 const namePuzzles = nameBox.window.RANKD_NAME_PUZZLES;
 
 function helper(args) {
-  const out = execFileSync("python3", ["tools/country_attributes.py", ...args], { cwd: root, encoding: "utf8" });
+  // The helper prints emoji, which a Windows console encodes as cp1252 by
+  // default. Force UTF-8 so the JSON round-trips on every platform.
+  const out = execFileSync("python3", ["tools/country_attributes.py", ...args], {
+    cwd: root,
+    encoding: "utf8",
+    env: { ...process.env, PYTHONIOENCODING: "utf-8" },
+  });
   return JSON.parse(out);
 }
 

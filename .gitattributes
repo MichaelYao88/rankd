@@ -1,0 +1,14 @@
+# The site and its tests assume LF. Without this, a Windows checkout with
+# core.autocrlf=true rewrites app.js and the CSVs to CRLF and the test suite
+# fails on line-ending assertions.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.xlsx binary
+*.woff binary
+*.woff2 binary

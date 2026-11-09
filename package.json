@@ -1,0 +1,10 @@
+{
+  "name": "rankd",
+  "private": true,
+  "description": "ranki.gg, a daily game of surprising stats",
+  "scripts": {
+    "test": "node --test",
+    "serve": "python3 -m http.server 8000",
+    "director": "node tools/director/run.js"
+  }
+}
