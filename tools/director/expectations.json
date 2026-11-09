@@ -59,6 +59,46 @@
       "expectLow": ["United Kingdom", "Germany", "France", "Japan", "India", "China", "Australia"],
       "paternalisticHigh": ["United States", "Germany", "France", "United Kingdom", "Italy", "Spain", "Australia"],
       "paternalisticLow": ["India", "Bangladesh", "South Africa", "Thailand", "Indonesia", "Pakistan", "Nigeria"]
+    },
+    "equaldex-legal": {
+      "higherIs": "top",
+      "label": "Equaldex legal index for LGBT people",
+      "expectHigh": ["Netherlands", "Canada", "Spain", "Sweden", "Norway", "Germany", "Australia"],
+      "expectLow": ["Russia", "Saudi Arabia", "Iran", "Nigeria", "Uganda", "Afghanistan", "Pakistan"],
+      "paternalisticHigh": ["Netherlands", "Sweden", "Norway", "Canada", "Germany", "France", "United Kingdom"],
+      "paternalisticLow": ["Nigeria", "Uganda", "Saudi Arabia", "Iran", "Pakistan", "Afghanistan", "Egypt"],
+      "lgbtHigh": ["Netherlands", "Canada", "Spain", "Sweden", "Norway", "United States", "United Kingdom"],
+      "lgbtLow": ["Russia", "Saudi Arabia", "Iran", "Nigeria", "Uganda", "Afghanistan", "Pakistan"]
+    },
+    "equaldex-opinion": {
+      "higherIs": "top",
+      "label": "Equaldex public opinion index",
+      "expectHigh": ["Iceland", "Norway", "Sweden", "Netherlands", "Canada", "Spain", "Denmark"],
+      "expectLow": ["Russia", "Saudi Arabia", "Iran", "Nigeria", "Uganda", "Afghanistan", "Pakistan"],
+      "paternalisticHigh": ["Sweden", "Norway", "Netherlands", "Canada", "Australia", "Germany", "United States"],
+      "paternalisticLow": ["Nigeria", "Uganda", "Pakistan", "Saudi Arabia", "Iran", "Afghanistan", "Cape Verde"],
+      "lgbtHigh": ["Iceland", "Norway", "Sweden", "Netherlands", "Canada", "Spain", "United States"],
+      "lgbtLow": ["Russia", "Saudi Arabia", "Iran", "Nigeria", "Uganda", "Afghanistan", "Cape Verde"]
+    },
+    "ipsos-bisexual": {
+      "higherIs": "top",
+      "label": "Adults who identify as bisexual, Ipsos 2021",
+      "expectHigh": ["United States", "United Kingdom", "Netherlands", "Sweden", "Canada", "Germany", "Australia"],
+      "expectLow": ["Japan", "South Korea", "China", "Russia", "Turkey", "India", "Malaysia"],
+      "paternalisticHigh": ["Netherlands", "Sweden", "United States", "United Kingdom", "Canada", "Germany", "Australia"],
+      "paternalisticLow": ["India", "China", "Russia", "Turkey", "Malaysia", "Japan", "South Korea"],
+      "lgbtHigh": ["Netherlands", "United States", "United Kingdom", "Sweden", "Canada", "Germany", "Australia"],
+      "lgbtLow": ["India", "Japan", "South Korea", "China", "Turkey", "Russia", "Malaysia"]
+    },
+    "ipsos-gender-2023": {
+      "higherIs": "top",
+      "label": "Adults outside male or female, Ipsos 2023",
+      "expectHigh": ["United States", "United Kingdom", "Canada", "Sweden", "Netherlands", "Germany", "Australia"],
+      "expectLow": ["Thailand", "Japan", "Turkey", "Hungary", "Poland", "South Korea", "South Africa"],
+      "paternalisticHigh": ["Sweden", "Netherlands", "Canada", "Germany", "United States", "United Kingdom", "Australia"],
+      "paternalisticLow": ["Thailand", "Turkey", "Hungary", "Poland", "South Africa", "Japan", "South Korea"],
+      "lgbtHigh": ["United States", "United Kingdom", "Canada", "Sweden", "Netherlands", "Australia", "Germany"],
+      "lgbtLow": ["Thailand", "Japan", "Turkey", "Hungary", "Poland", "South Korea", "South Africa"]
     }
   }
 }

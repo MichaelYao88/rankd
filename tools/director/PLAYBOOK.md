@@ -8,6 +8,7 @@ Both lists are written before the ranks are read.
 
 1. **Conventional.** The stereotyped or nationalist guess for this particular stat: who that habit would put first, and who it would put last.
 2. **Paternalistic.** The guess that Western and white-majority countries are the most progressive, safe, healthy, educated, or gender-equal, and that Global South, Muslim-majority, and African countries lag on all of those. On a stat where a higher number is the better or richer outcome, this lens expects the West high and those regions low. On a stat where a higher number is the worse outcome, it expects those regions high and the West low. On population in 2100 it uses the same regions' fertility story: those regions highest, the West lowest.
+3. **LGBT perspective.** What LGBT people commonly believe about where countries rank on acceptance, legal status, and LGBT identification. It is stored only for stats that measure those things. It is not a claim about what is true, and it is not shown to players. Pew's acceptance-of-homosexuality question, Gallup's "good place to live for gay and lesbian people", and a Pride travel-safety index are not in this repo, so this lens is not scored on them.
 
 For each lens, each stat stores seven expected highs and seven expected lows. A third list is seven popular, much-discussed countries: the United States, the United Kingdom, France, Japan, Germany, China, and Australia. `POPULAR_COUNTRIES.tier1` in `app.js` is a different list and is not what this report prints.
 
