@@ -76,7 +76,7 @@ test("the card pool matches every ranker, question, and number pair", () => {
   assert.doesNotMatch(read("styles.css"), /\.fab\{[^}]*position:\s*fixed/);
 });
 
-test("2026-11-14 is an AdSense-safe showcase with two Guess the number stats", () => {
+test("2026-11-14 stays an AdSense-safe showcase with one Guess the number", () => {
   const win = boot();
   const bonus = win.RankdBonus;
   const shared = win.RankdShared;
@@ -87,11 +87,9 @@ test("2026-11-14 is an AdSense-safe showcase with two Guess the number stats", (
   assert.ok(weight >= bonus.floor && weight <= bonus.ceiling, "weight " + weight);
   assert.equal(parts.some(p => p.sensitive), false, parts.filter(p => p.sensitive).map(p => p.id).join(","));
   const numbers = parts.filter(p => p.type === "number");
-  assert.equal(numbers.length, 2);
-  assert.equal(new Set(numbers.map(p => p.parentId)).size, 2);
+  assert.equal(numbers.length, 1, "one Guess the number once the one-each rule is on");
   for (const card of numbers) assert.equal(card.sensitive, false, card.id);
-  assert.ok(numbers.some(p => p.parentId === "number-tea"));
-  assert.ok(numbers.some(p => p.parentId === "number-life"));
+  assert.ok(numbers.some(p => p.parentId === "number-tea" || p.parentId === "number-life"));
   assert.equal(parts[0].role, "title");
   assert.equal(parts[parts.length - 1].role, "closer");
   assert.equal(parts[parts.length - 1].type, "rank");

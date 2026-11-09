@@ -13,7 +13,8 @@
   posthog.register({ site: 'ranki' });
   }();
 </script>
-  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="48x48">
+  <link rel="icon" href="/favicon-192.png" type="image/png" sizes="192x192">
   <link rel="manifest" href="/manifest.webmanifest" type="application/manifest+json">
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" sizes="180x180">
   <meta name="mobile-web-app-capable" content="yes">
@@ -435,6 +436,7 @@
     <!-- RESULT (both types) -->
     <section class="result hidden" id="result">
       <div class="day-score hidden" id="dayScore"></div>
+      <p class="num-result-lead hidden" id="numberLead"></p>
       <div class="score-card">
         <div class="score-big" id="scoreBig"></div>
         <div>

@@ -28,6 +28,14 @@ test("sitemap, robots, and ads.txt stay crawlable", () => {
   assert.match(robots, /Allow: \//);
   assert.match(robots, /Sitemap: https:\/\/ranki\.gg\/sitemap\.xml/);
   assert.match(robots, /Disallow: \/studio\.html/);
+  assert.doesNotMatch(robots, /Disallow:\s*\/favicon/i);
+  const ico = fs.readFileSync(path.join(root, "favicon.ico"));
+  const png = fs.readFileSync(path.join(root, "favicon-192.png"));
+  assert.equal(ico.readUInt16LE(0), 0);
+  assert.equal(ico.readUInt16LE(2), 1);
+  assert.equal(png.slice(0, 8).toString("hex"), "89504e470d0a1a0a");
+  assert.equal(png.readUInt32BE(16), 192);
+  assert.equal(png.readUInt32BE(20), 192);
   assert.equal(read("ads.txt").trim(), "google.com, pub-5196178239625142, DIRECT, f08c47fec0942fa0");
   const sitemap = read("sitemap.xml");
   const locs = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(m => m[1]);
@@ -101,5 +109,5 @@ test("the home page explains the modes in HTML, without a homicide sample", () =
   assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
   assert.match(read("sw.js"), /"\/learn\/index\.html"/);
   assert.match(read("sw.js"), /"\/sources\.html"/);
-  assert.match(read("sw.js"), /ranki-shell-v45/);
+  assert.match(read("sw.js"), /ranki-shell-v46/);
 });
