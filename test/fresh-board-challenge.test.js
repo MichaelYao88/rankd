@@ -245,7 +245,7 @@ function bootGame() {
   app = app.replace(tail, `window.__api = {
     state, openPuzzle, commitFinish, shareChallengeFriend, buildChallengeShare, resultText,
     renderChallengeQr, finishedPlay, getResult, scoreForChallenge, showResult,
-    goToday, goDate, goAll, goPractice, goPreview, LS, load, puzzleForDay, PUZZLES, CommunityStats
+    goToday, goDate, goAll, goPractice, goPreview, LS, load, puzzleForDay, PUZZLES, CommunityStats, CONFIG
   };`);
   vm.runInContext(app, sandbox, { filename: "app.js" });
   const api = sandbox.__api;
@@ -541,6 +541,9 @@ test("challenge share, the result qr, and the first play", async () => {
 
   posts.length = 0;
   const allIdx = api.PUZZLES.findIndex(p => p.type === "tier");
+  // The public site has the All-puzzles list off (AdSense review). This block
+  // covers the internal mode, so turn the switch back on inside the sandbox.
+  api.CONFIG.SHOW_ALL_PUZZLES = true;
   api.goAll(allIdx);
   assert.equal(api.commitFinish(finishFor(api.state.puzzle, 1)), true);
   assert.equal(submits().length, 0);
@@ -563,4 +566,12 @@ test("challenge share, the result qr, and the first play", async () => {
   const text = await shareFinished(rank, "all", "2026-10-27");
   assert.ok(tokenOf(text));
   assert.equal(qrBox().classList.contains("hidden"), false);
+});
+
+test("the All-puzzles list is off for the AdSense review", () => {
+  const { api } = bootGame();
+  assert.equal(api.CONFIG.SHOW_ALL_PUZZLES, false);
+  api.goAll(0);
+  assert.notEqual(api.state.mode, "all");
+  assert.match(read("app.js"), /SHOW_ALL_PUZZLES: false/);
 });
