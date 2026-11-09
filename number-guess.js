@@ -89,7 +89,10 @@
     if (set.prompt === "share") {
       return known.emoji + " " + labeledPoss(known.name, true) + " richest 1% hold " + knownValue + "% of private wealth. What share does " + ask.emoji + " " + labeledPoss(ask.name, false) + " richest 1% hold?";
     }
-    return known.emoji + " " + withThe(known.name, true) + " has " + article(noun) + " " + noun + " of " + shown + ". What is " + ask.emoji + " " + labeledPoss(ask.name, false) + "?";
+    const knownVerb = known.group ? "have" : "has";
+    const askVerb = ask.group ? "have" : "is";
+    const askBit = ask.group ? ask.emoji + " " + ask.name + " " + askVerb : ask.emoji + " " + labeledPoss(ask.name, false);
+    return known.emoji + " " + withThe(known.name, true) + " " + knownVerb + " " + article(noun) + " " + noun + " of " + shown + ". What " + (ask.group ? "do " + askBit + "?" : "is " + askBit + "?");
   }
 
   function revealSentence(puzzle) {
@@ -104,6 +107,7 @@
     if (puzzle.prompt === "share") {
       return ask.emoji + " " + labeledPoss(ask.name, true) + " richest 1% hold " + value + "% of private wealth.";
     }
+    if (ask.group) return ask.emoji + " " + ask.name + " have " + article(noun) + " " + noun + " of " + shown + ".";
     return ask.emoji + " " + labeledPoss(ask.name, true) + " " + noun + " is " + shown + ".";
   }
 

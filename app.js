@@ -1566,7 +1566,7 @@ const TOP1_PHRASE = {
   "wb-alcohol": "Alcohol-Drinking", "top-wine": "Wine-Drinking",
   "fao-garlic": "Garlic-Eating", "wiki-meat-supply-2020": "Meat-Eating",
   "top-co2-consumption": "Carbon-Footprint",
-  "unodc-homicide": "Homicide", "unodc-homicide-female": "Female-Homicide",
+  "unodc-homicide": "Murder-Rate", "unodc-homicide-female": "Female-Murder",
   "wb-birth-rate": "Birth", "wb-teen-births": "Teen-Birth",
   "wpb-prison": "Incarceration", "who-road-deaths": "Deadliest-Roads",
   "wb-life-gap": "Life-Expectancy-Gap", "ihme-drug-deaths": "Drug-Death",

@@ -285,6 +285,7 @@ const built = [
     sourceUrl: "https://www.visualcapitalist.com/mapped-how-many-mcdonalds-each-country-has-per-person/",
   }, mcdRows, mcdPairs),
   buildSet({
+    // Retired values. The live number-testosterone series is the MrOS 65+ comparison.
     id: "number-testosterone", sensitive: false, emoji: "🧪", headline: "Serum Levels",
     stat: "Average male testosterone", noun: "average male testosterone level", unit: "ng/dL", unitSpoken: "ng/dL",
     year: "2000–2024", art: "chart", dataset: "tdc-male-testosterone",
