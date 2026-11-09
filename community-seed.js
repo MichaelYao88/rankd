@@ -121,7 +121,7 @@
   function bandCenter(accuracyTries) {
     if (accuracyTries <= 1) return 100;
     const [lo, hi] = seedBand(accuracyTries, false);
-    return Math.round((lo + hi) / 2 - 4);
+    return Math.round((lo + hi) / 2 - 6);
   }
   /* Top 1: the try count picks the band. Inside it, each wrong guess loses
      one point per rank away from #1, and the loss stops at the band floor.
@@ -171,9 +171,9 @@
     return bins.reduce((acc, c, b) => acc + c * (perfect ? 100 : (b === ACC_BINS - 1 ? 97 : b * 10 + 5)), 0);
   }
 
-  /* Completers in byTries, unfinished games in failed. Tries peak a little past
-     a typical clear, and accuracy sits a little under a clean game, with a wide
-     enough spread that a decent score does not beat the whole field. */
+  /* Completers in byTries, unfinished games in failed. The crowd peaks later
+     than a decent clear, about 12 points under the old seed, so a 3-try 70
+     usually lands in the top 30–40%. The spread stays wide. */
   function standingBlock(puzzleId, players, type, firstOf) {
     const n = Math.max(0, Math.round(Number(players) || 0));
     const rng = rngFor(String(puzzleId) + ":standing");
@@ -183,7 +183,7 @@
     const top1 = type === "top1";
     const of = type === "top5" ? 5 : (nameIt || top1) ? 1 : Math.max(2, Math.round(Number(firstOf) || 5));
     const tryKeys = [1, 2, 3, 4, 5];
-    const base = [10, 28, 28, 16, 8, 10];
+    const base = [6, 16, 24, 22, 16, 16];
     const counts = distribute(n, base.map(w => w * (0.84 + rng() * 0.32)));
     const failCount = counts[5];
     const solvedCounts = counts.slice(0, 5);
@@ -243,8 +243,8 @@
       const players = thin ? 1 + Math.floor(rng() * 2) : BOARD_SEED_PLAYS + Math.floor(rng() * 3);
       let avg;
       if (thin && i === 6) avg = 1.6;
-      else avg = 2.35 + rng() * 1.75;
-      if (!thin) avg = Math.max(2.2, Math.min(4.15, avg));
+      else avg = 2.85 + rng() * 1.55;
+      if (!thin) avg = Math.max(2.7, Math.min(4.35, avg));
       rows.push({
         code: pool[i],
         players,
@@ -390,21 +390,21 @@
       const solvedN = Object.values(block.byTries).reduce((a, h) => a + h.reduce((x, y) => x + y, 0), 0);
       const failedN = Object.values(block.failed).reduce((a, h) => a + h.reduce((x, y) => x + y, 0), 0);
       if (solvedN + failedN !== 900) throw new Error(id + " hist sum " + (solvedN + failedN));
-      if (failedN < 60 || failedN > 160) throw new Error(id + " fail share " + failedN);
+      if (failedN < 90 || failedN > 200) throw new Error(id + " fail share " + failedN);
       if (combineAccuracy([0], true) !== 100) throw new Error("perfect guess");
       if (combineAccuracy([2, 0], true) !== 97) throw new Error("distance 2");
       if (combineAccuracy([30, 0], true) !== 80) throw new Error("clamped");
       if (combineAccuracy([0, 0, 0], true) !== 79) throw new Error("zero wrong guesses");
       const unfinished = combineAccuracy([4, 8], false);
       if (!(unfinished < 20) || unfinished >= combineAccuracy([4, 0], true)) throw new Error("failure not below a finish");
-      if (block.avgTries < 2.8 || block.avgTries > 3.6) throw new Error(id + " tries " + block.avgTries);
-      if (block.avgAccuracy < 50 || block.avgAccuracy > 72) throw new Error(id + " acc " + block.avgAccuracy);
+      if (block.avgTries < 3.3 || block.avgTries > 4.0) throw new Error(id + " tries " + block.avgTries);
+      if (block.avgAccuracy < 48 || block.avgAccuracy > 62) throw new Error(id + " acc " + block.avgAccuracy);
       if (block.avgFirst < 1.2 || block.avgFirst > 3.2) throw new Error(id + " first " + block.avgFirst);
       const good = betterThan(block, 2, 90, true);
       const poor = betterThan(block, 5, 10, false);
       const perfect = betterThan(block, 1, 100, true);
       const lastTry = betterThan(block, 5, 30, true);
-      if (good < 68 || good > 86) throw new Error(id + " good " + good);
+      if (good < 78 || good > 94) throw new Error(id + " good " + good);
       if (poor > 25) throw new Error(id + " poor " + poor);
       if (perfect < 88 || perfect > 99) throw new Error(id + " perfect " + perfect);
       if (lastTry <= poor) throw new Error(id + " failure not at the bottom " + lastTry + " " + poor);
@@ -423,7 +423,7 @@
         if (shown[i].avgTries < shown[i - 1].avgTries) throw new Error(id + " not sorted by tries");
       }
       shown.forEach(r => {
-        if (r.avgTries < 2.1 || r.avgTries > 4.2) throw new Error(id + " tries " + r.avgTries);
+        if (r.avgTries < 2.6 || r.avgTries > 4.4) throw new Error(id + " tries " + r.avgTries);
       });
       const fastestThin = Math.min.apply(null, hidden.map(r => r.avgTries));
       if (!(fastestThin < shown[0].avgTries)) throw new Error(id + " thin country was not faster than the leader");

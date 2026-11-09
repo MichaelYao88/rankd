@@ -4686,6 +4686,56 @@ function showResult(res, opts) {
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn", "#quizNext"].forEach(id => { const b = $(id); if (b && b.parentElement) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(false); syncPlaying();
   setTabTitle("play", true);
+  maybeSpotlight(p);
+}
+const SPOTLIGHTS = {
+  garlic: {
+    emoji: "🧄",
+    headline: "The garlic is southern",
+    body: "Italy’s national garlic supply looks low because many northern kitchens use much less. The garlic-heavy food people meet abroad is mostly southern cooking. The Library of Congress says the vast majority of Italians who arrived in the US from the 1880s to 1920 were farmers and laborers from the poor south and Sicily, not the earlier northern artisans.",
+    source: "Library of Congress, The Great Arrival",
+    sourceUrl: "https://www.loc.gov/classroom-materials/immigration/italian/the-great-arrival/",
+  },
+  "number-garlic": null,
+};
+SPOTLIGHTS["number-garlic"] = SPOTLIGHTS.garlic;
+function spotlightFor(p) {
+  if (!p) return null;
+  if (p.spotlight && p.spotlight.headline) return p.spotlight;
+  return SPOTLIGHTS[p.id] || (p.parentId && SPOTLIGHTS[p.parentId]) || null;
+}
+function spotlightSeenMap() {
+  try { const v = JSON.parse(localStorage.getItem("rankd.spotlight.seen.v1")); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; }
+}
+function maybeSpotlight(p) {
+  const ov = $("#spotlight");
+  const card = spotlightFor(p);
+  if (!ov) return;
+  if (!card) { ov.classList.add("hidden"); return; }
+  const key = p.parentId || p.id;
+  if (spotlightSeenMap()[key]) { ov.classList.add("hidden"); return; }
+  $("#spotlightEmoji").textContent = card.emoji || "💡";
+  $("#spotlightTitle").textContent = card.headline || "";
+  $("#spotlightBody").textContent = card.body || "";
+  const link = $("#spotlightSource");
+  if (card.sourceUrl) {
+    link.href = card.sourceUrl;
+    link.textContent = card.source || "Source";
+    link.classList.remove("hidden");
+  } else link.classList.add("hidden");
+  ov.classList.remove("hidden");
+  ov.dataset.key = key;
+}
+function dismissSpotlight() {
+  const ov = $("#spotlight");
+  if (!ov) return;
+  const key = ov.dataset.key;
+  if (key) {
+    const seen = spotlightSeenMap();
+    seen[key] = 1;
+    try { localStorage.setItem("rankd.spotlight.seen.v1", JSON.stringify(seen)); } catch (e) {}
+  }
+  ov.classList.add("hidden");
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
@@ -6526,6 +6576,7 @@ if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChal
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
+if ($("#spotlightDismiss")) $("#spotlightDismiss").onclick = dismissSpotlight;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goHome(); };

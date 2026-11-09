@@ -497,7 +497,7 @@ function addSeeds() {
   for (const puzzle of PUZZLES) {
     if (doc.puzzles[puzzle.id]) continue;
     const standing = seed.standingBlock(puzzle.id, 910, "rank", puzzle.items.length);
-    if (standing.avgTries < 2.8 || standing.avgTries > 3.6) throw new Error(puzzle.id + " tries " + standing.avgTries);
+    if (standing.avgTries < 3.3 || standing.avgTries > 4.0) throw new Error(puzzle.id + " tries " + standing.avgTries);
     if (standing.avgAccuracy < 50 || standing.avgAccuracy > 72) throw new Error(puzzle.id + " acc " + standing.avgAccuracy);
     const per = {};
     puzzle.items.forEach((it, i) => { per[it.name] = 58 - i * 4; });
@@ -517,7 +517,7 @@ function addSeeds() {
   for (const puzzle of NAMES) {
     if (doc.puzzles[puzzle.id]) continue;
     const standing = seed.standingBlock(puzzle.id, 910, "name", 1);
-    if (standing.avgTries < 2.8 || standing.avgTries > 3.6) throw new Error(puzzle.id + " tries " + standing.avgTries);
+    if (standing.avgTries < 3.3 || standing.avgTries > 4.0) throw new Error(puzzle.id + " tries " + standing.avgTries);
     if (standing.avgAccuracy < 50 || standing.avgAccuracy > 72) throw new Error(puzzle.id + " acc " + standing.avgAccuracy);
     const pick = puzzle.countries.find(c => c.name === puzzle.seedPick);
     const bar = { name: puzzle.seedPick, pct: 100, emoji: pick.emoji };

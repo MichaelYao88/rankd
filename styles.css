@@ -1420,4 +1420,12 @@ a.mini-source:focus-visible{outline:2px solid var(--brand);outline-offset:3px;bo
 @media (display-mode: standalone), (display-mode: fullscreen){
   .pwa-install-wrap,.pwa-ios-hint,#mInstall,.pwa-result-install{display:none!important}
 }
+.spotlight{position:fixed;inset:0;z-index:80;display:grid;place-items:end center;padding:18px 14px 22px;background:rgba(21,24,33,.46)}
+.spotlight-card{width:min(420px,100%);background:var(--surface2);color:var(--ink);border-radius:22px;padding:18px 18px 16px;box-shadow:0 24px 60px -28px rgba(21,24,33,.7);text-align:left}
+.spotlight-kicker{margin:0;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--brand)}
+.spotlight-emoji{font-size:42px;line-height:1;margin:8px 0 4px}
+.spotlight-card h2{margin:0 0 8px;font-size:26px;line-height:1.15;letter-spacing:-.03em}
+.spotlight-body{margin:0 0 12px;font-size:16px;line-height:1.4}
+.spotlight-source{display:inline-block;margin:0 0 14px;font-size:14px;font-weight:700}
+.spotlight-card .pill-btn{width:100%}
 
