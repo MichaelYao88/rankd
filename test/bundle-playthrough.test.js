@@ -150,7 +150,7 @@ function finishOf(p) {
   const marks = ["good"];
   if (p.type === "quiz") return { type: "quiz", done: true, solved: true, tries: 1, hits: 1, marks, picks: [{ mark: "good" }] };
   if (p.type === "number") return { type: "number", done: true, solved: true, tries: 1, accuracy: 100, ratio: 1 };
-  if (p.type === "top1") return { type: "top1", done: true, solved: true, tries: 1, guesses: [{ rank: 1 }] };
+  if (p.type === "top1") return { type: "top1", done: true, solved: true, tries: 1, guesses: [] };
   if (p.type === "name") return { type: "name", done: true, solved: true, tries: 1, attempts: [{ marks }] };
   return { type: p.type || "rank", done: true, solved: true, won: true, tries: 1, attempts: [{ marks, order: [0], assign: [0] }], marks };
 }

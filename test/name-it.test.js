@@ -172,8 +172,8 @@ test("name accuracy follows try bands, not the top 5 miss count", () => {
   const block = seed.standingBlock("name-hdi-s", 900, "name", 1);
   assert.equal(block.firstOf, 1);
   assert.equal(block.kind, "name");
-  assert.ok(block.avgTries >= 2.8 && block.avgTries <= 3.6, block.avgTries);
-  assert.ok(block.avgAccuracy >= 50 && block.avgAccuracy <= 72, block.avgAccuracy);
+  assert.ok(block.avgTries >= 3.3 && block.avgTries <= 4.0, block.avgTries);
+  assert.ok(block.avgAccuracy >= 48 && block.avgAccuracy <= 62, block.avgAccuracy);
 });
 
 test("a range is exclusive, and a miss says too high, too low, or the letter", () => {

@@ -1,6 +1,7 @@
-/* Dailies for 2027-05-21 and 2027-05-22: age-adjusted male testosterone.
-   Source is the 85-country TestosteroneDecline.com compilation that World
-   Population Review cites (updated 25 Nov 2024), not the WPR page itself.
+/* Retired. The live rankers are male-testosterone and male-testosterone-b,
+   rebuilt from Orwoll et al., J Clin Endocrinol Metab 2010 (PMC3050097),
+   men aged 65+. Do not re-run this script: it would put the old
+   TestosteroneDecline.com compilation back.
    Idempotent. */
 "use strict";
 const fs = require("fs");

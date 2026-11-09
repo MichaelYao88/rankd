@@ -262,6 +262,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   assert.match(read("app.js"), /settings\.sound !== "off"/);
   assert.match(read("index.html"), /id="numberLead"/);
   assert.match(read("styles.css"), /\.num-result-lead\{[^}]*font-size:28px/);
-  assert.match(read("sw.js"), /ranki-shell-v47/);
+  assert.match(read("sw.js"), /ranki-shell-v51/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

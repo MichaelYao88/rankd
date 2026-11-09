@@ -583,6 +583,17 @@
 
 
 <!-- v12.2 first-visit Rank it howto (localStorage rankd.howto.seen.v1) -->
+<div id="spotlight" class="spotlight hidden" role="dialog" aria-modal="true" aria-labelledby="spotlightTitle">
+  <div class="spotlight-card">
+    <p class="spotlight-kicker">Did you know?</p>
+    <div class="spotlight-emoji" id="spotlightEmoji" aria-hidden="true">🧄</div>
+    <h2 id="spotlightTitle"></h2>
+    <p class="spotlight-body" id="spotlightBody"></p>
+    <a class="spotlight-source" id="spotlightSource" target="_blank" rel="noopener"></a>
+    <button type="button" class="pill-btn" id="spotlightDismiss">Got it</button>
+  </div>
+</div>
+
 <div id="howtoOverlay" class="howto-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="howtoTitle">
   <div class="howto-card">
     <p class="howto-kicker">How to play</p>

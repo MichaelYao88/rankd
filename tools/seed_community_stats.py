@@ -119,9 +119,9 @@ def check(doc: dict, puzzles_by_id: dict | None = None) -> list[str]:
                 errors.append(f"{pid}: first-guess average {af}/{width} is outside the seeded band")
         avg_tries = float(standing.get("avgTries") or 0)
         acc = float(standing.get("avgAccuracy") or 0)
-        if not 2.8 <= avg_tries <= 3.6:
+        if not 3.3 <= avg_tries <= 4.0:
             errors.append(f"{pid}: try average {avg_tries} is outside the seeded band")
-        if not 50 <= acc <= 72:
+        if not 48 <= acc <= 62:
             errors.append(f"{pid}: accuracy {acc} is outside the seeded band")
         if row.get("type") == "top5" and any(int(k) > 5 for k in (standing.get("byTries") or {})):
             errors.append(f"{pid}: top5 standing still uses the old guess scale")

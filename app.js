@@ -1233,6 +1233,8 @@ const AdSense = {
   banner() {
     // Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
     // Practice always; a short archive day only after .ad-on is committed.
+    // Guess the number and multiple choice never request a unit, even if a banner was on for the previous part.
+    if (typeof adFreeOnScreen === "function" && adFreeOnScreen()) return;
     if (this.bannerDone || this.mode === "placeholder" || this.mode === "waiting" || this.mode === "blocked") return;
     const box = $("#adTop");
     if (!box || !box.classList.contains("ad-on") || $("#playView").classList.contains("hidden")) return;
@@ -1240,6 +1242,7 @@ const AdSense = {
   },
   // v12.2: Practice bottom banner, requested the first time it is actually visible (AdSense can't size a hidden slot)
   bottom() {
+    if (typeof adFreeOnScreen === "function" && adFreeOnScreen()) return;
     if (this.bottomDone || this.mode === "placeholder" || this.mode === "waiting" || state.mode !== "practice") return;
     this.bottomDone = true; this.fill($("#adBottom"), CONFIG.ADSENSE_SLOTS.bottom);
   },
@@ -1566,7 +1569,7 @@ const TOP1_PHRASE = {
   "wb-alcohol": "Alcohol-Drinking", "top-wine": "Wine-Drinking",
   "fao-garlic": "Garlic-Eating", "wiki-meat-supply-2020": "Meat-Eating",
   "top-co2-consumption": "Carbon-Footprint",
-  "unodc-homicide": "Homicide", "unodc-homicide-female": "Female-Homicide",
+  "unodc-homicide": "Murder-Rate", "unodc-homicide-female": "Female-Murder",
   "wb-birth-rate": "Birth", "wb-teen-births": "Teen-Birth",
   "wpb-prison": "Incarceration", "who-road-deaths": "Deadliest-Roads",
   "wb-life-gap": "Life-Expectancy-Gap", "ihme-drug-deaths": "Drug-Death",
@@ -1975,6 +1978,7 @@ function fillerPool(dateKey) {
     if (safe && p.sensitive) return;
     if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return;
     if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return;
+    if (p.poolUntil && String(dateKey) > String(p.poolUntil)) return;
     const when = scheduledDateOf(p);
     if (!when || when < FILLER_LATE_FROM) return;
     seen.add(p.id);
@@ -1990,6 +1994,7 @@ function fillerPool(dateKey) {
   if (window.RankdNumber) {
     for (const set of window.RankdNumber.sets()) for (const card of window.RankdNumber.cards(set)) push(card);
   }
+  for (const card of archiveNumberCards()) push(card);
   return out;
 }
 function fillerBlocked(i, p) {
@@ -2164,7 +2169,7 @@ let contentQueueList = null;
 function contentQueue() {
   if (contentQueueMemo && contentQueueList === PUZZLES) return contentQueueMemo;
   contentQueueList = PUZZLES;
-  contentQueueMemo = cardCatalog().slice().sort((a, b) => queueKey(a.id) - queueKey(b.id) || (a.id < b.id ? -1 : 1));
+  contentQueueMemo = cardCatalog().concat(archiveNumberCards()).sort((a, b) => queueKey(a.id) - queueKey(b.id) || (a.id < b.id ? -1 : 1));
   return contentQueueMemo;
 }
 function scheduleLastIndex() {
@@ -2195,6 +2200,7 @@ function usageBefore(i) {
 function cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe) {
   if (!p || !p.id || blocked.has(p.id)) return false;
   if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return false;
+  if (p.poolUntil && String(dateKey) > String(p.poolUntil)) return false;
   if ((inAdsenseSafeWindow(dateKey) || showcaseSafe) && p.sensitive) return false;
   if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return false;
   return true;
@@ -2215,6 +2221,7 @@ function freshNumberCard(blocked, dateKey, holdShowcase, parts) {
   const stats = new Map((window.RANKD_NUMBER_STATS || []).map(s => [s.id, s]));
   const sets = window.RankdNumber.sets().slice().sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const set of sets) {
+    if (set.id === "number-testosterone" && set.poolFrom && String(dateKey) < String(set.poolFrom)) continue;
     if (inAdsenseSafeWindow(dateKey) && set.sensitive) continue;
     if (holdShowcase && SHOWCASE_STATS.indexOf(set.id) >= 0) continue;
     const stat = stats.get(set.id);
@@ -2342,7 +2349,34 @@ function buildDayPartsFresh(i) {
   return parts;
 }
 function buildDayParts(i) {
-  return keyFromDay(i) < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
+  const dateKey = keyFromDay(i);
+  const parts = dateKey < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
+  return pinPlayedRankers(dateKey, parts);
+}
+// Played days keep the ranker content they shipped with. The live puzzle is the
+// later MrOS board, so a closer that already used this id is swapped back.
+const PINNED_TESTOSTERONE_B = "{\"type\":\"rank\",\"id\":\"male-testosterone-b\",\"order\":229,\"emoji\":\"🧪\",\"headline\":\"Higher Still\",\"question\":\"Average male testosterone 🇮🇳🇬🇧\",\"stat\":\"Average male testosterone, age-adjusted\",\"unit\":\"ng/dL\",\"higherIs\":\"top\",\"valuesVisible\":false,\"source\":\"TestosteroneDecline.com, age-adjusted compilation of small, non-uniform studies (ranking table updated 25 Nov 2024). World Population Review cites this page. Often one city, measured in different labs and years, then shifted onto a US age curve.\",\"sourceUrl\":\"https://testosteronedecline.com/what-country-has-highest-testosterone/\",\"fact\":\"Cameroon and Ethiopia sit above the Netherlands, the highest European figure in this compilation, and India (487 ng/dL) sits above the United States (451). The compiler age-adjusted small studies, often one city, onto a US age curve. Note: the United Kingdom (521) is still above India. Labs, sample sizes and years differ.\",\"caveat\":\"Age-adjusted ng/dL from small, non-uniform studies, often one city, not one survey. Many countries have no usable study. French West Indies is not a country. Croatia (752 in 1987) and Armenia (556 in 1980) are left out because the compiler has no current figure. The printed table still shows the United States at 459; the 25 Nov 2024 note revises it to 451 (NHANES 2021-2023).\",\"art\":\"chart\",\"support\":\"\",\"dataset\":\"tdc-male-testosterone\",\"year\":\"2000–2024\",\"items\":[{\"name\":\"Cameroon\",\"emoji\":\"🇨🇲\",\"value\":731,\"year\":\"2000–2024\",\"gRank\":2,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"Ethiopia\",\"emoji\":\"🇪🇹\",\"value\":671,\"year\":\"2000–2024\",\"gRank\":5,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"Netherlands\",\"emoji\":\"🇳🇱\",\"value\":571,\"year\":\"2000–2024\",\"gRank\":11,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"United Kingdom\",\"emoji\":\"🇬🇧\",\"value\":521,\"year\":\"2000–2024\",\"gRank\":23,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"India\",\"emoji\":\"🇮🇳\",\"value\":487,\"year\":\"2000–2024\",\"gRank\":37,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"United States\",\"emoji\":\"🇺🇸\",\"value\":451,\"year\":\"2021–2023\",\"gRank\":48,\"gTotal\":85,\"gScope\":\"compiled countries\"}]}";
+const PINNED_RANKERS = {
+  "male-testosterone-b": null,
+};
+function pinPlayedRankers(dateKey, parts) {
+  if (!dateKey || dateKey > "2026-11-10") return parts;
+  if (!PINNED_RANKERS["male-testosterone-b"]) PINNED_RANKERS["male-testosterone-b"] = JSON.parse(PINNED_TESTOSTERONE_B);
+  return parts.map(part => {
+    const old = part && PINNED_RANKERS[part.id];
+    if (!old) return part;
+    const copy = Object.assign({}, old, { role: part.role });
+    if (part.scheduled) copy.scheduled = part.scheduled;
+    if (part.scheduleId) copy.scheduleId = part.scheduleId;
+    return copy;
+  });
+}
+function archiveNumberCards() {
+  const sets = window.RANKD_NUMBER_ARCHIVE || [];
+  if (!window.RankdNumber || !sets.length) return [];
+  const out = [];
+  for (const set of sets) for (const card of window.RankdNumber.cards(set)) out.push(card);
+  return out;
 }
 function cardCatalog() {
   const out = [];
@@ -4197,7 +4231,8 @@ window.RankdFx = Fx; window.RankdWinTier = r => winTier(r); window.RankdIsIdenti
 // ================================================================ after submit: interstitial (non-daily only)
 // v11: no interstitial after a celebrated win (Rank it solved in 1-2 tries, Top 5 all found with <= 2 misses).
 function afterSubmit(reveal, tier) {
-  const why = !Ads.allowed() ? "streamer" : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
+  const quiet = adFreeReason(state.puzzle);
+  const why = !Ads.allowed() ? "streamer" : quiet ? quiet : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: state.mode, tier: tier || null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) { reveal(); return; }
   showInterstitial(reveal);
@@ -4207,7 +4242,8 @@ function afterSubmit(reveal, tier) {
 function practiceNext() {
   if (state.busy) return;
   if (state.mode !== "practice" || !state.puzzle || isDone(activePlay())) return goPractice();
-  const why = !Ads.allowed() ? "streamer" : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
+  const quiet = adFreeReason(state.puzzle);
+  const why = !Ads.allowed() ? "streamer" : quiet ? quiet : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: "practice-skip", tier: null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) return goPractice();
   showInterstitial(() => goPractice(), true);
@@ -4655,6 +4691,56 @@ function showResult(res, opts) {
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn", "#quizNext"].forEach(id => { const b = $(id); if (b && b.parentElement) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(false); syncPlaying();
   setTabTitle("play", true);
+  maybeSpotlight(p);
+}
+const SPOTLIGHTS = {
+  garlic: {
+    emoji: "🧄",
+    headline: "The garlic is southern",
+    body: "Italy’s national garlic supply looks low because many northern kitchens use much less. The garlic-heavy food people meet abroad is mostly southern cooking. The Library of Congress says the vast majority of Italians who arrived in the US from the 1880s to 1920 were farmers and laborers from the poor south and Sicily, not the earlier northern artisans.",
+    source: "Library of Congress, The Great Arrival",
+    sourceUrl: "https://www.loc.gov/classroom-materials/immigration/italian/the-great-arrival/",
+  },
+  "number-garlic": null,
+};
+SPOTLIGHTS["number-garlic"] = SPOTLIGHTS.garlic;
+function spotlightFor(p) {
+  if (!p) return null;
+  if (p.spotlight && p.spotlight.headline) return p.spotlight;
+  return SPOTLIGHTS[p.id] || (p.parentId && SPOTLIGHTS[p.parentId]) || null;
+}
+function spotlightSeenMap() {
+  try { const v = JSON.parse(localStorage.getItem("rankd.spotlight.seen.v1")); return v && typeof v === "object" ? v : {}; } catch (e) { return {}; }
+}
+function maybeSpotlight(p) {
+  const ov = $("#spotlight");
+  const card = spotlightFor(p);
+  if (!ov) return;
+  if (!card) { ov.classList.add("hidden"); return; }
+  const key = p.parentId || p.id;
+  if (spotlightSeenMap()[key]) { ov.classList.add("hidden"); return; }
+  $("#spotlightEmoji").textContent = card.emoji || "💡";
+  $("#spotlightTitle").textContent = card.headline || "";
+  $("#spotlightBody").textContent = card.body || "";
+  const link = $("#spotlightSource");
+  if (card.sourceUrl) {
+    link.href = card.sourceUrl;
+    link.textContent = card.source || "Source";
+    link.classList.remove("hidden");
+  } else link.classList.add("hidden");
+  ov.classList.remove("hidden");
+  ov.dataset.key = key;
+}
+function dismissSpotlight() {
+  const ov = $("#spotlight");
+  if (!ov) return;
+  const key = ov.dataset.key;
+  if (key) {
+    const seen = spotlightSeenMap();
+    seen[key] = 1;
+    try { localStorage.setItem("rankd.spotlight.seen.v1", JSON.stringify(seen)); } catch (e) {}
+  }
+  ov.classList.add("hidden");
 }
 function communityCrow(label, pct, emoji) {
   const v = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
@@ -5869,7 +5955,19 @@ function archiveBannerKey() {
   const h = Math.round((vv ? vv.height : innerHeight) / 8) * 8;
   return [state.mode, state.dateKey, state.puzzle && state.puzzle.id, fitMQ.matches ? "m" : "d", h].join("|");
 }
+function adFreeReason(p) {
+  if (!p) return null;
+  if (p.type === "number") return "number";
+  if (p.type === "quiz") return "quiz";
+  return null;
+}
+function adFreeOnScreen() {
+  if (!adFreeReason(state.puzzle)) return false;
+  const play = $("#playView");
+  return !!(play && !play.classList.contains("hidden"));
+}
 function topBannerWanted() {
+  if (adFreeOnScreen()) return "off";
   if ($("#playView").classList.contains("hidden") || !Ads.allowed()) return "off";
   if (state.mode === "practice") return "practice";
   if (state.mode === "archive" && playRows(state.puzzle) < 6) return "archive";
@@ -5883,6 +5981,7 @@ function mirrorTopShell() {
   if (!show) shell.classList.remove("is-on");
 }
 function applyTopBanner() {
+  document.body.classList.toggle("no-part-ads", adFreeOnScreen());
   const box = $("#adTop"); if (!box) return "off";
   const want = topBannerWanted();
   let phase = "off";
@@ -6127,7 +6226,7 @@ function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was 
   openPuzzle(p);
 }
 function goPreviewCard(id) {
-  const card = cardCatalog().find(p => p.id === id);
+  const card = cardCatalog().find(p => p.id === id) || archiveNumberCards().find(p => p.id === id);
   if (!card) { toast("That card isn't in the pool"); return goHome(); }
   state.mode = "preview";
   state.dateKey = todayKey();
@@ -6495,6 +6594,7 @@ if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChal
 if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
+if ($("#spotlightDismiss")) $("#spotlightDismiss").onclick = dismissSpotlight;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
 $("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goHome(); };
