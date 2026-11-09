@@ -713,10 +713,10 @@ body.has-fab .share-row{scroll-margin-bottom:24px}
 /* v9: streamer mode hides every ad container */
 html.streamer .ad-slot{display:none!important}
 html.premium .ad-slot{display:none!important}   /* Premium: no ads */
-/* Guess the number: no banner, result ad, or between-part slot while that part is on screen. */
-body.no-number-ads #adTopShell,
-body.no-number-ads #adBottomShell,
-body.no-number-ads #interstitial{display:none!important}
+/* Guess the number and multiple choice: no banner, result ad, or between-part slot while that part is on screen. */
+body.no-part-ads #adTopShell,
+body.no-part-ads #adBottomShell,
+body.no-part-ads #interstitial{display:none!important}
 html.premium [data-premium-upsell]{display:none!important}   /* Premium: hide Remove ads / Go Premium upsells */
 html.streamer #interstitial,html.premium #interstitial{display:none!important}
 /* v9: Guess the top 5 values box on the LEFT (one dashed box, one value per row, aligned with the #1-#5 slots) */

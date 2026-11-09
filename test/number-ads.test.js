@@ -228,7 +228,7 @@ function bootGame() {
   const tail = "route();\nmaybeShowHowto();";
   assert.ok(app.includes(tail), "app.js still ends by routing");
   app = app.replace(tail, `window.__api = {
-    state, openPuzzle, showResult, afterSubmit, practiceNext, topBannerWanted, guessNumberOnScreen, goPractice
+    state, openPuzzle, showResult, afterSubmit, practiceNext, topBannerWanted, adFreeOnScreen, goPractice
   };`);
   vm.runInContext(app, sandbox, { filename: "app.js" });
   return { sandbox, api: sandbox.__api, q: documentQuery, body: document.body };
@@ -248,79 +248,96 @@ function rankCard(sandbox) {
   return card;
 }
 
-test("guess the number hides in-card, result, and between-part ads", () => {
+function quizCards(sandbox) {
+  const full = (sandbox.RANKD_PUZZLES || []).find(p => p.type === "quiz" && Array.isArray(p.questions) && p.questions.length > 1);
+  assert.ok(full, "a multiple-choice puzzle");
+  const q = full.questions[0];
+  const single = { ...full, id: full.id + "#" + (q.id || "q0"), parentId: full.id, questions: [q] };
+  assert.equal(single.questions.length, 1);
+  return { full, single };
+}
+
+test("guess the number and multiple choice hide in-card, result, and between-part ads", () => {
   const css = read("styles.css");
-  const rule = css.slice(css.indexOf("body.no-number-ads"));
-  assert.match(rule, /body\.no-number-ads #adTopShell,\s*body\.no-number-ads #adBottomShell,\s*body\.no-number-ads #interstitial\{display:none!important\}/);
+  const rule = css.slice(css.indexOf("body.no-part-ads"));
+  assert.match(rule, /body\.no-part-ads #adTopShell,\s*body\.no-part-ads #adBottomShell,\s*body\.no-part-ads #interstitial\{display:none!important\}/);
 
   const { sandbox, api, q, body } = bootGame();
   const number = numberCard(sandbox);
+  const { full: quiz, single } = quizCards(sandbox);
   const rank = rankCard(sandbox);
   const slot = id => q("#" + id);
   const interstitialHidden = () => slot("interstitial").classList.contains("hidden");
 
-  api.state.mode = "practice";
-  api.openPuzzle(number);
-  assert.equal(api.guessNumberOnScreen(), true);
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(slot("adTop").classList.contains("ad-on"), false);
-  assert.equal(slot("adTopShell").classList.contains("is-on"), false);
-  assert.equal(api.topBannerWanted(), "off");
-  assert.equal(slot("adBottom").querySelector(".ad-fill").innerHTML, "");
-  assert.equal(interstitialHidden(), true);
-  let revealed = false;
-  api.afterSubmit(() => { revealed = true; }, null);
-  assert.equal(revealed, true);
-  assert.equal(sandbox.RankdAds.last().reason, "number");
-  assert.equal(sandbox.RankdAds.last().show, false);
-  assert.equal(interstitialHidden(), true);
+  function assertQuiet(card, reason, result) {
+    api.state.mode = "practice";
+    api.openPuzzle(card);
+    assert.equal(api.adFreeOnScreen(), true, card.id);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(slot("adTop").classList.contains("ad-on"), false);
+    assert.equal(slot("adTopShell").classList.contains("is-on"), false);
+    assert.equal(api.topBannerWanted(), "off");
+    assert.equal(slot("adBottom").querySelector(".ad-fill").innerHTML, "");
+    assert.equal(interstitialHidden(), true);
+    let revealed = false;
+    api.afterSubmit(() => { revealed = true; }, null);
+    assert.equal(revealed, true);
+    assert.equal(sandbox.RankdAds.last().reason, reason);
+    assert.equal(sandbox.RankdAds.last().show, false);
+    assert.equal(interstitialHidden(), true);
 
-  api.showResult({ type: "number", done: true, accuracy: 40, guess: 1 });
-  assert.equal(api.guessNumberOnScreen(), true);
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(slot("adTop").classList.contains("ad-on"), false);
-  assert.equal(api.topBannerWanted(), "off");
-  assert.equal(interstitialHidden(), true);
+    api.showResult(result);
+    assert.equal(api.adFreeOnScreen(), true);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(slot("adTop").classList.contains("ad-on"), false);
+    assert.equal(api.topBannerWanted(), "off");
+    assert.equal(interstitialHidden(), true);
 
-  api.state.mode = "archive";
-  api.openPuzzle(number);
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(api.topBannerWanted(), "off");
-  assert.equal(slot("adTop").classList.contains("ad-on"), false);
-  api.showResult({ type: "number", done: true, accuracy: 80, guess: 2 });
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(slot("adTop").classList.contains("ad-on"), false);
+    api.state.mode = "archive";
+    api.openPuzzle(card);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(api.topBannerWanted(), "off");
+    assert.equal(slot("adTop").classList.contains("ad-on"), false);
+    api.showResult(result);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(slot("adTop").classList.contains("ad-on"), false);
 
-  api.state.mode = "preview";
-  api.openPuzzle(number);
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(api.topBannerWanted(), "off");
-  revealed = false;
-  api.afterSubmit(() => { revealed = true; }, "big");
-  assert.equal(revealed, true);
-  assert.equal(sandbox.RankdAds.last().reason, "number");
-  assert.equal(sandbox.RankdAds.last().mode, "preview");
-  assert.equal(interstitialHidden(), true);
+    api.state.mode = "preview";
+    api.openPuzzle(card);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(api.topBannerWanted(), "off");
+    revealed = false;
+    api.afterSubmit(() => { revealed = true; }, "big");
+    assert.equal(revealed, true);
+    assert.equal(sandbox.RankdAds.last().reason, reason);
+    assert.equal(sandbox.RankdAds.last().mode, "preview");
+    assert.equal(interstitialHidden(), true);
 
-  api.state.mode = "daily";
-  api.openPuzzle(number);
-  assert.equal(body.classList.contains("no-number-ads"), true);
-  assert.equal(api.topBannerWanted(), "off");
+    api.state.mode = "daily";
+    api.openPuzzle(card);
+    assert.equal(body.classList.contains("no-part-ads"), true);
+    assert.equal(api.topBannerWanted(), "off");
 
-  api.state.mode = "practice";
-  api.state.puzzle = number;
-  api.state.number = { type: "number", done: false };
-  slot("playView").classList.remove("hidden");
-  slot("interstitial").classList.add("hidden");
-  api.practiceNext();
-  const skip = sandbox.RankdAds.decisions.filter(d => d.mode === "practice-skip").pop();
-  assert.equal(skip.reason, "number");
-  assert.equal(skip.show, false);
+    api.state.mode = "practice";
+    api.state.puzzle = card;
+    if (card.type === "number") api.state.number = { type: "number", done: false };
+    if (card.type === "quiz") api.state.quiz = { type: "quiz", done: false, phase: "ask" };
+    slot("playView").classList.remove("hidden");
+    slot("interstitial").classList.add("hidden");
+    api.practiceNext();
+    const skip = sandbox.RankdAds.decisions.filter(d => d.mode === "practice-skip").pop();
+    assert.equal(skip.reason, reason);
+    assert.equal(skip.show, false);
+  }
+
+  assertQuiet(number, "number", { type: "number", done: true, accuracy: 40, guess: 1 });
+  assertQuiet(quiz, "quiz", { type: "quiz", done: true, solved: false, hits: 1, tries: 1, marks: ["good", "bad"], picks: [] });
+  assertQuiet(single, "quiz", { type: "quiz", done: true, solved: true, hits: 1, tries: 1, marks: ["good"], picks: [] });
 
   api.state.mode = "practice";
   api.openPuzzle(rank);
-  assert.equal(api.guessNumberOnScreen(), false);
-  assert.equal(body.classList.contains("no-number-ads"), false);
+  assert.equal(api.adFreeOnScreen(), false);
+  assert.equal(body.classList.contains("no-part-ads"), false);
   assert.equal(api.topBannerWanted(), "practice");
   assert.equal(slot("adTop").classList.contains("ad-on"), true);
   assert.equal(slot("adTopShell").classList.contains("is-on"), true);
@@ -332,13 +349,13 @@ test("guess the number hides in-card, result, and between-part ads", () => {
 
   api.state.mode = "archive";
   api.openPuzzle(rank);
-  assert.equal(body.classList.contains("no-number-ads"), false);
+  assert.equal(body.classList.contains("no-part-ads"), false);
   assert.equal(api.topBannerWanted(), "archive");
   assert.equal(slot("adTop").classList.contains("ad-on"), true);
 
   api.state.mode = "daily";
   api.openPuzzle(rank);
-  assert.equal(body.classList.contains("no-number-ads"), false);
+  assert.equal(body.classList.contains("no-part-ads"), false);
   slot("interstitial").classList.add("hidden");
   api.afterSubmit(() => {}, null);
   assert.equal(sandbox.RankdAds.last().reason, "daily");

@@ -1233,8 +1233,8 @@ const AdSense = {
   banner() {
     // Request the unit the first time #adTop is actually shown (AdSense can't size display:none).
     // Practice always; a short archive day only after .ad-on is committed.
-    // Guess the number never requests a unit, even if a banner was on for the previous part.
-    if (typeof guessNumberOnScreen === "function" && guessNumberOnScreen()) return;
+    // Guess the number and multiple choice never request a unit, even if a banner was on for the previous part.
+    if (typeof adFreeOnScreen === "function" && adFreeOnScreen()) return;
     if (this.bannerDone || this.mode === "placeholder" || this.mode === "waiting" || this.mode === "blocked") return;
     const box = $("#adTop");
     if (!box || !box.classList.contains("ad-on") || $("#playView").classList.contains("hidden")) return;
@@ -1242,7 +1242,7 @@ const AdSense = {
   },
   // v12.2: Practice bottom banner, requested the first time it is actually visible (AdSense can't size a hidden slot)
   bottom() {
-    if (typeof guessNumberOnScreen === "function" && guessNumberOnScreen()) return;
+    if (typeof adFreeOnScreen === "function" && adFreeOnScreen()) return;
     if (this.bottomDone || this.mode === "placeholder" || this.mode === "waiting" || state.mode !== "practice") return;
     this.bottomDone = true; this.fill($("#adBottom"), CONFIG.ADSENSE_SLOTS.bottom);
   },
@@ -4231,8 +4231,8 @@ window.RankdFx = Fx; window.RankdWinTier = r => winTier(r); window.RankdIsIdenti
 // ================================================================ after submit: interstitial (non-daily only)
 // v11: no interstitial after a celebrated win (Rank it solved in 1-2 tries, Top 5 all found with <= 2 misses).
 function afterSubmit(reveal, tier) {
-  const number = state.puzzle && state.puzzle.type === "number";
-  const why = !Ads.allowed() ? "streamer" : number ? "number" : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
+  const quiet = adFreeReason(state.puzzle);
+  const why = !Ads.allowed() ? "streamer" : quiet ? quiet : (isToday() && !CONFIG.interstitialOnDaily) ? "daily" : tier ? "win:" + tier : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: state.mode, tier: tier || null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) { reveal(); return; }
   showInterstitial(reveal);
@@ -4242,8 +4242,8 @@ function afterSubmit(reveal, tier) {
 function practiceNext() {
   if (state.busy) return;
   if (state.mode !== "practice" || !state.puzzle || isDone(activePlay())) return goPractice();
-  const number = state.puzzle && state.puzzle.type === "number";
-  const why = !Ads.allowed() ? "streamer" : number ? "number" : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
+  const quiet = adFreeReason(state.puzzle);
+  const why = !Ads.allowed() ? "streamer" : quiet ? quiet : !AdSense.interstitialOk() ? "noad:" + AdSense.mode : null;
   Ads.decisions.push({ puzzle: state.puzzle.id, mode: "practice-skip", tier: null, show: !why, reason: why || "shown", at: Date.now() });
   if (why) return goPractice();
   showInterstitial(() => goPractice(), true);
@@ -5955,14 +5955,19 @@ function archiveBannerKey() {
   const h = Math.round((vv ? vv.height : innerHeight) / 8) * 8;
   return [state.mode, state.dateKey, state.puzzle && state.puzzle.id, fitMQ.matches ? "m" : "d", h].join("|");
 }
-function guessNumberOnScreen() {
-  const p = state.puzzle;
-  if (!p || p.type !== "number") return false;
+function adFreeReason(p) {
+  if (!p) return null;
+  if (p.type === "number") return "number";
+  if (p.type === "quiz") return "quiz";
+  return null;
+}
+function adFreeOnScreen() {
+  if (!adFreeReason(state.puzzle)) return false;
   const play = $("#playView");
   return !!(play && !play.classList.contains("hidden"));
 }
 function topBannerWanted() {
-  if (guessNumberOnScreen()) return "off";
+  if (adFreeOnScreen()) return "off";
   if ($("#playView").classList.contains("hidden") || !Ads.allowed()) return "off";
   if (state.mode === "practice") return "practice";
   if (state.mode === "archive" && playRows(state.puzzle) < 6) return "archive";
@@ -5976,7 +5981,7 @@ function mirrorTopShell() {
   if (!show) shell.classList.remove("is-on");
 }
 function applyTopBanner() {
-  document.body.classList.toggle("no-number-ads", guessNumberOnScreen());
+  document.body.classList.toggle("no-part-ads", adFreeOnScreen());
   const box = $("#adTop"); if (!box) return "off";
   const want = topBannerWanted();
   let phase = "off";
