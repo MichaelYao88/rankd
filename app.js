@@ -1975,6 +1975,7 @@ function fillerPool(dateKey) {
     if (safe && p.sensitive) return;
     if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return;
     if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return;
+    if (p.poolUntil && String(dateKey) > String(p.poolUntil)) return;
     const when = scheduledDateOf(p);
     if (!when || when < FILLER_LATE_FROM) return;
     seen.add(p.id);
@@ -1990,6 +1991,7 @@ function fillerPool(dateKey) {
   if (window.RankdNumber) {
     for (const set of window.RankdNumber.sets()) for (const card of window.RankdNumber.cards(set)) push(card);
   }
+  for (const card of archiveNumberCards()) push(card);
   return out;
 }
 function fillerBlocked(i, p) {
@@ -2164,7 +2166,7 @@ let contentQueueList = null;
 function contentQueue() {
   if (contentQueueMemo && contentQueueList === PUZZLES) return contentQueueMemo;
   contentQueueList = PUZZLES;
-  contentQueueMemo = cardCatalog().slice().sort((a, b) => queueKey(a.id) - queueKey(b.id) || (a.id < b.id ? -1 : 1));
+  contentQueueMemo = cardCatalog().concat(archiveNumberCards()).sort((a, b) => queueKey(a.id) - queueKey(b.id) || (a.id < b.id ? -1 : 1));
   return contentQueueMemo;
 }
 function scheduleLastIndex() {
@@ -2195,6 +2197,7 @@ function usageBefore(i) {
 function cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe) {
   if (!p || !p.id || blocked.has(p.id)) return false;
   if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return false;
+  if (p.poolUntil && String(dateKey) > String(p.poolUntil)) return false;
   if ((inAdsenseSafeWindow(dateKey) || showcaseSafe) && p.sensitive) return false;
   if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return false;
   return true;
@@ -2215,6 +2218,7 @@ function freshNumberCard(blocked, dateKey, holdShowcase, parts) {
   const stats = new Map((window.RANKD_NUMBER_STATS || []).map(s => [s.id, s]));
   const sets = window.RankdNumber.sets().slice().sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
   for (const set of sets) {
+    if (set.id === "number-testosterone" && set.poolFrom && String(dateKey) < String(set.poolFrom)) continue;
     if (inAdsenseSafeWindow(dateKey) && set.sensitive) continue;
     if (holdShowcase && SHOWCASE_STATS.indexOf(set.id) >= 0) continue;
     const stat = stats.get(set.id);
@@ -2343,6 +2347,13 @@ function buildDayPartsFresh(i) {
 }
 function buildDayParts(i) {
   return keyFromDay(i) < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
+}
+function archiveNumberCards() {
+  const sets = window.RANKD_NUMBER_ARCHIVE || [];
+  if (!window.RankdNumber || !sets.length) return [];
+  const out = [];
+  for (const set of sets) for (const card of window.RankdNumber.cards(set)) out.push(card);
+  return out;
 }
 function cardCatalog() {
   const out = [];
@@ -6127,7 +6138,7 @@ function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was 
   openPuzzle(p);
 }
 function goPreviewCard(id) {
-  const card = cardCatalog().find(p => p.id === id);
+  const card = cardCatalog().find(p => p.id === id) || archiveNumberCards().find(p => p.id === id);
   if (!card) { toast("That card isn't in the pool"); return goHome(); }
   state.mode = "preview";
   state.dateKey = todayKey();

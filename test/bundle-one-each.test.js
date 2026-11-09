@@ -43,15 +43,28 @@ function boot() {
   return appBox.window;
 }
 
-test("days through 10 Nov 2026 keep the bundles that were already scheduled", () => {
+test("bundles through 2026-11-10 match the snapshot from 9389a98", () => {
   const win = boot();
   const again = boot();
+  const dates = Object.keys(frozen).sort();
+  assert.equal(dates[0], "2026-10-06");
+  assert.equal(dates[dates.length - 1], "2026-11-10");
   for (const [date, expect] of Object.entries(frozen)) {
     const n = win.RankdShared.dayNumber(date);
     const ids = win.RankdBonus.parts(n).map(p => p.id + "/" + p.role);
-    assert.equal([].map.call(ids, x => x).join("|"), expect.join("|"), date);
+    assert.equal(ids.join("|"), expect.join("|"), date);
     assert.equal(again.RankdBonus.parts(n).map(p => p.id + "/" + p.role).join("|"), ids.join("|"), date);
   }
+  const oct13 = win.RankdBonus.parts(win.RankdShared.dayNumber("2026-10-13")).find(p => p.id === "number-testosterone#JPN-DEU");
+  assert.equal(oct13.ask.iso3, "DEU");
+  assert.equal(oct13.ask.value, 434);
+  assert.equal(oct13.known.value, 502);
+  const past = win.RankdBonus.pool("2026-10-13").some(p => p.id === "number-testosterone#JPN-DEU");
+  const future = win.RankdBonus.pool("2026-11-11").some(p => p.id === "number-testosterone#JPN-DEU");
+  const futureNew = win.RankdBonus.pool("2026-11-11").some(p => p.id === "number-testosterone#HKG-ASN");
+  assert.equal(past, true);
+  assert.equal(future, false);
+  assert.equal(futureNew, true);
 });
 
 test("from 11 Nov each bundle has one of a type, except rank and multiple choice, and at least 11 points", () => {

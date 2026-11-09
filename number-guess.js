@@ -143,6 +143,8 @@
       known: known,
       ask: ask,
       poolFrom: pair.poolFrom || set.poolFrom || "",
+      poolUntil: pair.poolUntil || set.poolUntil || "",
+      archived: !!(pair.archived || set.archived),
     };
   }
 
