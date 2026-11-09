@@ -1974,6 +1974,7 @@ function fillerPool(dateKey) {
     if (!p || !p.id || seen.has(p.id)) return;
     if (safe && p.sensitive) return;
     if (holdShowcase && p.type === "number" && SHOWCASE_STATS.indexOf(p.parentId) >= 0) return;
+    if (p.poolFrom && String(dateKey) < String(p.poolFrom)) return;
     const when = scheduledDateOf(p);
     if (!when || when < FILLER_LATE_FROM) return;
     seen.add(p.id);

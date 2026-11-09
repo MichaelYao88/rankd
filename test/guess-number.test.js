@@ -82,11 +82,11 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
     vm.runInNewContext(read("number-stats.js"), box);
     return box.window.RANKD_NUMBER_STATS;
   })();
-  assert.equal([...sets.filter(s => s.sensitive).map(s => s.id)].sort().join(","), "number-femicide,number-prison");
+  assert.equal([...sets.filter(s => s.sensitive).map(s => s.id)].sort().join(","), "number-bisexual,number-femicide,number-prison");
   assert.ok(sets.length >= 12);
   const homicide = Object.fromEntries(practice.datasets.find(d => d.id === "unodc-homicide-female").rows.map(r => [r[0], r]));
   for (const set of sets) {
-    const floor = set.id === "number-femicide" ? 3 : set.id === "number-pop2100" ? 2 : 15;
+    const floor = set.id === "number-femicide" ? 3 : set.id === "number-pop2100" ? 2 : set.id === "number-bisexual" ? 1 : 15;
     assert.ok(set.pairs.length >= floor && set.pairs.length <= 24, set.id + " " + set.pairs.length);
     const series = stats.find(s => s.id === set.id);
     const seen = new Set();
@@ -135,7 +135,7 @@ test("guess the number accuracy is 100 at a match and 0 at 3x", () => {
   assert.equal(fem.pairs.map(p => p.known.iso3 + "-" + p.ask.iso3).join(","), "SGP-ZAF,KOR-USA,USA-IND");
   assert.equal(sets.some(s => s.id === "number-trump"), false);
   const pop = sets.find(s => s.id === "number-pop2100");
-  assert.equal(pop.pairs.map(p => p.known.iso3 + "-" + p.ask.iso3).join(","), "CHN-NGA,IND-PAK");
+  assert.equal(pop.pairs.map(p => p.known.iso3 + "-" + p.ask.iso3).join(","), "CHN-NGA,IND-PAK,CHN-IND");
 });
 
 test("number cards fill the bundle after the AdSense window and score accuracy", () => {
@@ -262,6 +262,6 @@ test("the crowd line uses a big enough sample and keeps the old breakdown behind
   assert.match(read("app.js"), /settings\.sound !== "off"/);
   assert.match(read("index.html"), /id="numberLead"/);
   assert.match(read("styles.css"), /\.num-result-lead\{[^}]*font-size:28px/);
-  assert.match(read("sw.js"), /ranki-shell-v46/);
+  assert.match(read("sw.js"), /ranki-shell-v47/);
   assert.match(read("sw.js"), /\/number-guess\.js/);
 });

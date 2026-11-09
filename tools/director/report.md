@@ -386,25 +386,377 @@ Countries with a figure: 23.
 | China | — | missing | — |
 | Australia | — | missing | — |
 
+## Equaldex legal index for LGBT people
+
+Countries with a figure: 171.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Netherlands | 90 | 18 of 171 | 0.10 |
+| Canada | 94 | 10 of 171 | 0.05 |
+| Spain | 100 | 3 of 171 | 0.01 |
+| Sweden | 89 | 21 of 171 | 0.12 |
+| Norway | 90 | 19 of 171 | 0.11 |
+| Germany | 99 | 5 of 171 | 0.02 |
+| Australia | 95 | 7 of 171 | 0.04 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Russia | 35 | 113 of 171 | 0.34 |
+| Saudi Arabia | 5 | 164 of 171 | 0.04 |
+| Iran | 9 | 151 of 171 | 0.12 |
+| Nigeria | 7 | 160 of 171 | 0.06 |
+| Uganda | 3 | 169 of 171 | 0.01 |
+| Afghanistan | 0 | 171 of 171 | 0.00 |
+| Pakistan | 36 | 109 of 171 | 0.36 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Netherlands | 90 | 18 of 171 | 0.10 |
+| Sweden | 89 | 21 of 171 | 0.12 |
+| Norway | 90 | 19 of 171 | 0.11 |
+| Canada | 94 | 10 of 171 | 0.05 |
+| Germany | 99 | 5 of 171 | 0.02 |
+| France | 90 | 17 of 171 | 0.09 |
+| United Kingdom | 74 | 41 of 171 | 0.24 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Nigeria | 7 | 160 of 171 | 0.06 |
+| Uganda | 3 | 169 of 171 | 0.01 |
+| Saudi Arabia | 5 | 164 of 171 | 0.04 |
+| Iran | 9 | 151 of 171 | 0.12 |
+| Pakistan | 36 | 109 of 171 | 0.36 |
+| Afghanistan | 0 | 171 of 171 | 0.00 |
+| Egypt | 4 | 165 of 171 | 0.04 |
+
+### LGBT perspective, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Netherlands | 90 | 18 of 171 | 0.10 |
+| Canada | 94 | 10 of 171 | 0.05 |
+| Spain | 100 | 3 of 171 | 0.01 |
+| Sweden | 89 | 21 of 171 | 0.12 |
+| Norway | 90 | 19 of 171 | 0.11 |
+| United States | 75 | 37 of 171 | 0.21 |
+| United Kingdom | 74 | 41 of 171 | 0.24 |
+
+### LGBT perspective, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Russia | 35 | 113 of 171 | 0.34 |
+| Saudi Arabia | 5 | 164 of 171 | 0.04 |
+| Iran | 9 | 151 of 171 | 0.12 |
+| Nigeria | 7 | 160 of 171 | 0.06 |
+| Uganda | 3 | 169 of 171 | 0.01 |
+| Afghanistan | 0 | 171 of 171 | 0.00 |
+| Pakistan | 36 | 109 of 171 | 0.36 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 75 | 37 of 171 | — |
+| United Kingdom | 74 | 41 of 171 | — |
+| France | 90 | 17 of 171 | — |
+| Japan | 57 | 68 of 171 | — |
+| Germany | 99 | 5 of 171 | — |
+| China | 47 | 90 of 171 | — |
+| Australia | 95 | 7 of 171 | — |
+
+## Equaldex public opinion index
+
+Countries with a figure: 171.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Iceland | 90 | 1 of 171 | 0.00 |
+| Norway | 87 | 2 of 171 | 0.01 |
+| Sweden | 65 | 18 of 171 | 0.10 |
+| Netherlands | 64 | 20 of 171 | 0.11 |
+| Canada | 61 | 25 of 171 | 0.14 |
+| Spain | 67 | 11 of 171 | 0.06 |
+| Denmark | 69 | 8 of 171 | 0.04 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Russia | 19 | 115 of 171 | 0.33 |
+| Saudi Arabia | 22 | 110 of 171 | 0.36 |
+| Iran | 3 | 169 of 171 | 0.01 |
+| Nigeria | 15 | 134 of 171 | 0.22 |
+| Uganda | 18 | 119 of 171 | 0.31 |
+| Afghanistan | 2 | 171 of 171 | 0.00 |
+| Pakistan | 31 | 96 of 171 | 0.44 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Sweden | 65 | 18 of 171 | 0.10 |
+| Norway | 87 | 2 of 171 | 0.01 |
+| Netherlands | 64 | 20 of 171 | 0.11 |
+| Canada | 61 | 25 of 171 | 0.14 |
+| Australia | 61 | 23 of 171 | 0.13 |
+| Germany | 60 | 29 of 171 | 0.16 |
+| United States | 56 | 38 of 171 | 0.22 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Nigeria | 15 | 134 of 171 | 0.22 |
+| Uganda | 18 | 119 of 171 | 0.31 |
+| Pakistan | 31 | 96 of 171 | 0.44 |
+| Saudi Arabia | 22 | 110 of 171 | 0.36 |
+| Iran | 3 | 169 of 171 | 0.01 |
+| Afghanistan | 2 | 171 of 171 | 0.00 |
+| Cape Verde | 80 | 3 of 171 | 0.99 |
+
+### LGBT perspective, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Iceland | 90 | 1 of 171 | 0.00 |
+| Norway | 87 | 2 of 171 | 0.01 |
+| Sweden | 65 | 18 of 171 | 0.10 |
+| Netherlands | 64 | 20 of 171 | 0.11 |
+| Canada | 61 | 25 of 171 | 0.14 |
+| Spain | 67 | 11 of 171 | 0.06 |
+| United States | 56 | 38 of 171 | 0.22 |
+
+### LGBT perspective, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Russia | 19 | 115 of 171 | 0.33 |
+| Saudi Arabia | 22 | 110 of 171 | 0.36 |
+| Iran | 3 | 169 of 171 | 0.01 |
+| Nigeria | 15 | 134 of 171 | 0.22 |
+| Uganda | 18 | 119 of 171 | 0.31 |
+| Afghanistan | 2 | 171 of 171 | 0.00 |
+| Cape Verde | 80 | 3 of 171 | 0.99 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 56 | 38 of 171 | — |
+| United Kingdom | 55 | 40 of 171 | — |
+| France | 58 | 34 of 171 | — |
+| Japan | 50 | 54 of 171 | — |
+| Germany | 60 | 29 of 171 | — |
+| China | 66 | 13 of 171 | — |
+| Australia | 61 | 23 of 171 | — |
+
+## Adults who identify as bisexual, Ipsos 2021
+
+Countries with a figure: 27.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 6 | 7 of 27 | 0.23 |
+| United Kingdom | 5 | 9 of 27 | 0.31 |
+| Netherlands | 2 | 23 of 27 | 0.85 |
+| Sweden | 3 | 20 of 27 | 0.73 |
+| Canada | 4 | 12 of 27 | 0.42 |
+| Germany | 6 | 5 of 27 | 0.15 |
+| Australia | 4 | 11 of 27 | 0.38 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Japan | 1 | 25 of 27 | 0.08 |
+| South Korea | 1 | 26 of 27 | 0.04 |
+| China | 2 | 21 of 27 | 0.23 |
+| Russia | 2 | 24 of 27 | 0.12 |
+| Turkey | 1 | 27 of 27 | 0.00 |
+| India | 9 | 1 of 27 | 1.00 |
+| Malaysia | 2 | 22 of 27 | 0.19 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Netherlands | 2 | 23 of 27 | 0.85 |
+| Sweden | 3 | 20 of 27 | 0.73 |
+| United States | 6 | 7 of 27 | 0.23 |
+| United Kingdom | 5 | 9 of 27 | 0.31 |
+| Canada | 4 | 12 of 27 | 0.42 |
+| Germany | 6 | 5 of 27 | 0.15 |
+| Australia | 4 | 11 of 27 | 0.38 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| India | 9 | 1 of 27 | 1.00 |
+| China | 2 | 21 of 27 | 0.23 |
+| Russia | 2 | 24 of 27 | 0.12 |
+| Turkey | 1 | 27 of 27 | 0.00 |
+| Malaysia | 2 | 22 of 27 | 0.19 |
+| Japan | 1 | 25 of 27 | 0.08 |
+| South Korea | 1 | 26 of 27 | 0.04 |
+
+### LGBT perspective, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Netherlands | 2 | 23 of 27 | 0.85 |
+| United States | 6 | 7 of 27 | 0.23 |
+| United Kingdom | 5 | 9 of 27 | 0.31 |
+| Sweden | 3 | 20 of 27 | 0.73 |
+| Canada | 4 | 12 of 27 | 0.42 |
+| Germany | 6 | 5 of 27 | 0.15 |
+| Australia | 4 | 11 of 27 | 0.38 |
+
+### LGBT perspective, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| India | 9 | 1 of 27 | 1.00 |
+| Japan | 1 | 25 of 27 | 0.08 |
+| South Korea | 1 | 26 of 27 | 0.04 |
+| China | 2 | 21 of 27 | 0.23 |
+| Turkey | 1 | 27 of 27 | 0.00 |
+| Russia | 2 | 24 of 27 | 0.12 |
+| Malaysia | 2 | 22 of 27 | 0.19 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 6 | 7 of 27 | — |
+| United Kingdom | 5 | 9 of 27 | — |
+| France | 3 | 16 of 27 | — |
+| Japan | 1 | 25 of 27 | — |
+| Germany | 6 | 5 of 27 | — |
+| China | 2 | 21 of 27 | — |
+| Australia | 4 | 11 of 27 | — |
+
+## Adults outside male or female, Ipsos 2023
+
+Countries with a figure: 30.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 2 | 26 of 30 | 0.86 |
+| United Kingdom | 2 | 25 of 30 | 0.83 |
+| Canada | 3 | 8 of 30 | 0.24 |
+| Sweden | 4 | 6 of 30 | 0.17 |
+| Netherlands | 2 | 19 of 30 | 0.62 |
+| Germany | 4 | 3 of 30 | 0.07 |
+| Australia | 2 | 15 of 30 | 0.48 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Thailand | 5 | 2 of 30 | 0.97 |
+| Japan | 3 | 11 of 30 | 0.66 |
+| Turkey | 2 | 24 of 30 | 0.21 |
+| Hungary | 1 | 28 of 30 | 0.07 |
+| Poland | 2 | 21 of 30 | 0.31 |
+| South Korea | 2 | 23 of 30 | 0.24 |
+| South Africa | 2 | 22 of 30 | 0.28 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Sweden | 4 | 6 of 30 | 0.17 |
+| Netherlands | 2 | 19 of 30 | 0.62 |
+| Canada | 3 | 8 of 30 | 0.24 |
+| Germany | 4 | 3 of 30 | 0.07 |
+| United States | 2 | 26 of 30 | 0.86 |
+| United Kingdom | 2 | 25 of 30 | 0.83 |
+| Australia | 2 | 15 of 30 | 0.48 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Thailand | 5 | 2 of 30 | 0.97 |
+| Turkey | 2 | 24 of 30 | 0.21 |
+| Hungary | 1 | 28 of 30 | 0.07 |
+| Poland | 2 | 21 of 30 | 0.31 |
+| South Africa | 2 | 22 of 30 | 0.28 |
+| Japan | 3 | 11 of 30 | 0.66 |
+| South Korea | 2 | 23 of 30 | 0.24 |
+
+### LGBT perspective, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 2 | 26 of 30 | 0.86 |
+| United Kingdom | 2 | 25 of 30 | 0.83 |
+| Canada | 3 | 8 of 30 | 0.24 |
+| Sweden | 4 | 6 of 30 | 0.17 |
+| Netherlands | 2 | 19 of 30 | 0.62 |
+| Australia | 2 | 15 of 30 | 0.48 |
+| Germany | 4 | 3 of 30 | 0.07 |
+
+### LGBT perspective, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Thailand | 5 | 2 of 30 | 0.97 |
+| Japan | 3 | 11 of 30 | 0.66 |
+| Turkey | 2 | 24 of 30 | 0.21 |
+| Hungary | 1 | 28 of 30 | 0.07 |
+| Poland | 2 | 21 of 30 | 0.31 |
+| South Korea | 2 | 23 of 30 | 0.24 |
+| South Africa | 2 | 22 of 30 | 0.28 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 2 | 26 of 30 | — |
+| United Kingdom | 2 | 25 of 30 | — |
+| France | 3 | 10 of 30 | — |
+| Japan | 3 | 11 of 30 | — |
+| Germany | 4 | 3 of 30 | — |
+| China | — | missing | — |
+| Australia | 2 | 15 of 30 | — |
+
 ## Highest surprises
 
 | Stat | Lens | Country | Expectation | Rank | Score |
 |---|---|---|---|---:|---:|
+| Adults who identify as bisexual, Ipsos 2021 | conventional | India | low | 1 of 27 | 1.00 |
+| Adults who identify as bisexual, Ipsos 2021 | paternalistic | India | low | 1 of 27 | 1.00 |
+| Adults who identify as bisexual, Ipsos 2021 | lgbt | India | low | 1 of 27 | 1.00 |
+| Equaldex public opinion index | paternalistic | Cape Verde | low | 3 of 171 | 0.99 |
+| Equaldex public opinion index | lgbt | Cape Verde | low | 3 of 171 | 0.99 |
 | Population in 2100, UN medium variant | paternalistic | United States | low | 6 of 205 | 0.98 |
+| Adults outside male or female, Ipsos 2023 | conventional | Thailand | low | 2 of 30 | 0.97 |
+| Adults outside male or female, Ipsos 2023 | paternalistic | Thailand | low | 2 of 30 | 0.97 |
+| Adults outside male or female, Ipsos 2023 | lgbt | Thailand | low | 2 of 30 | 0.97 |
 | Youth unemployment, ages 15-24 in the labor force | conventional | Nigeria | high | 162 of 187 | 0.87 |
 | Youth unemployment, ages 15-24 in the labor force | paternalistic | Nigeria | high | 162 of 187 | 0.87 |
+| Adults outside male or female, Ipsos 2023 | conventional | United States | high | 26 of 30 | 0.86 |
+| Adults outside male or female, Ipsos 2023 | paternalistic | United States | high | 26 of 30 | 0.86 |
+| Adults outside male or female, Ipsos 2023 | lgbt | United States | high | 26 of 30 | 0.86 |
 | Population in 2100, UN medium variant | conventional | Japan | low | 32 of 205 | 0.85 |
-| Population in 2100, UN medium variant | paternalistic | Japan | low | 32 of 205 | 0.85 |
-| Population in 2100, UN medium variant | paternalistic | United Kingdom | low | 34 of 205 | 0.84 |
-| Population in 2100, UN medium variant | conventional | Germany | low | 36 of 205 | 0.83 |
-| Population in 2100, UN medium variant | paternalistic | Germany | low | 36 of 205 | 0.83 |
-| Youth unemployment, ages 15-24 in the labor force | paternalistic | Sweden | low | 33 of 187 | 0.83 |
-| Aesthetic procedures per 1,000 people, ISAPS 2023 | conventional | Germany | low | 6 of 23 | 0.77 |
-| Aesthetic procedures per 1,000 people, ISAPS 2023 | paternalistic | United Kingdom | high | 18 of 23 | 0.77 |
-| Aesthetic procedures per 1,000 people, ISAPS 2023 | conventional | Iran | high | 17 of 23 | 0.73 |
-| Population in 2100, UN medium variant | conventional | Italy | low | 60 of 205 | 0.71 |
-| Population in 2100, UN medium variant | paternalistic | Italy | low | 60 of 205 | 0.71 |
-| Population in 2100, UN medium variant | conventional | Spain | low | 62 of 205 | 0.70 |
 
 ## Missing from the series
 
@@ -419,6 +771,7 @@ Countries with a figure: 23.
 - Japan is not in `isaps-procedures-per-capita` (popular).
 - China is not in `isaps-procedures-per-capita` (popular).
 - Australia is not in `isaps-procedures-per-capita` (popular).
+- China is not in `ipsos-gender-2023` (popular).
 
 ## Rank it
 
@@ -430,6 +783,10 @@ The highest scores become a Rank it board: the surprising countries, in real ord
 - **Mean height of women born in 1996, NCD-RisC:** United States 163.5, Japan 158.3, Egypt 157.3, Mexico 156.8, Nigeria 156.3, Ethiopia 155.7.
 - **Population in 2100, UN medium variant:** United States 421.28, Japan 76.85, United Kingdom 74.3, Germany 70.9, Italy 35.4, Spain 33.1.
 - **Aesthetic procedures per 1,000 people, ISAPS 2023:** Germany 14.9, France 12.89, Italy 12.85, Spain 10.82, Iran 4.45, United Kingdom 3.24.
+- **Equaldex legal index for LGBT people:** Sweden 89, United States 75, United Kingdom 74, Pakistan 36, Russia 35, Iran 9.
+- **Equaldex public opinion index:** Cape Verde 80, Pakistan 31, Saudi Arabia 22, Russia 19, Uganda 18, Nigeria 15.
+- **Adults who identify as bisexual, Ipsos 2021:** India 9, United States 6, United Kingdom 5, Canada 4, Sweden 3, Netherlands 2.
+- **Adults outside male or female, Ipsos 2023:** Thailand 5, Sweden 4, Japan 3, United States 2, Hungary 1.
 
 ## Guess the number
 
@@ -441,6 +798,10 @@ One published value is shown. The most surprising country is the one to guess.
 - Mean height of women born in 1996, NCD-RisC: show United States (163.5) and ask for Japan (158.3, conventional expected it low, rank 113 of 200).
 - Population in 2100, UN medium variant: show United Kingdom (74.3) and ask for United States (421.28, paternalistic expected it low, rank 6 of 205).
 - Aesthetic procedures per 1,000 people, ISAPS 2023: show United States (18.23) and ask for Germany (14.9, conventional expected it low, rank 6 of 23).
+- Equaldex legal index for LGBT people: show United States (75) and ask for Pakistan (36, conventional expected it low, rank 109 of 171).
+- Equaldex public opinion index: show United States (56) and ask for Cape Verde (80, paternalistic expected it low, rank 3 of 171).
+- Adults who identify as bisexual, Ipsos 2021: show United States (6) and ask for India (9, conventional expected it low, rank 1 of 27).
+- Adults outside male or female, Ipsos 2023: show United States (2) and ask for Thailand (5, conventional expected it low, rank 2 of 30).
 
 ## Name it
 
@@ -452,6 +813,10 @@ A window between two real values. It is kept when at least two countries sit str
 - Mean height of women born in 1996, NCD-RisC: strictly between United States (163.5) and United Kingdom (164.4), 3 countries.
 - Population in 2100, UN medium variant: strictly between France (68.5) and United Kingdom (74.3), 3 countries.
 - Aesthetic procedures per 1,000 people, ISAPS 2023: strictly between France (12.89) and United States (18.23), 5 countries.
+- Equaldex legal index for LGBT people: strictly between France (90) and Australia (95), 7 countries.
+- Equaldex public opinion index: strictly between Japan (50) and United Kingdom (55), 11 countries.
+- Adults who identify as bisexual, Ipsos 2021: strictly between Japan (1) and France (3), 4 countries.
+- Adults outside male or female, Ipsos 2023: strictly between United States (2) and Germany (4), 8 countries.
 
 ## Match it
 
