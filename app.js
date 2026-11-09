@@ -2346,7 +2346,27 @@ function buildDayPartsFresh(i) {
   return parts;
 }
 function buildDayParts(i) {
-  return keyFromDay(i) < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
+  const dateKey = keyFromDay(i);
+  const parts = dateKey < RESHUFFLE_FROM ? buildDayPartsLegacy(i) : buildDayPartsFresh(i);
+  return pinPlayedRankers(dateKey, parts);
+}
+// Played days keep the ranker content they shipped with. The live puzzle is the
+// later MrOS board, so a closer that already used this id is swapped back.
+const PINNED_TESTOSTERONE_B = "{\"type\":\"rank\",\"id\":\"male-testosterone-b\",\"order\":229,\"emoji\":\"🧪\",\"headline\":\"Higher Still\",\"question\":\"Average male testosterone 🇮🇳🇬🇧\",\"stat\":\"Average male testosterone, age-adjusted\",\"unit\":\"ng/dL\",\"higherIs\":\"top\",\"valuesVisible\":false,\"source\":\"TestosteroneDecline.com, age-adjusted compilation of small, non-uniform studies (ranking table updated 25 Nov 2024). World Population Review cites this page. Often one city, measured in different labs and years, then shifted onto a US age curve.\",\"sourceUrl\":\"https://testosteronedecline.com/what-country-has-highest-testosterone/\",\"fact\":\"Cameroon and Ethiopia sit above the Netherlands, the highest European figure in this compilation, and India (487 ng/dL) sits above the United States (451). The compiler age-adjusted small studies, often one city, onto a US age curve. Note: the United Kingdom (521) is still above India. Labs, sample sizes and years differ.\",\"caveat\":\"Age-adjusted ng/dL from small, non-uniform studies, often one city, not one survey. Many countries have no usable study. French West Indies is not a country. Croatia (752 in 1987) and Armenia (556 in 1980) are left out because the compiler has no current figure. The printed table still shows the United States at 459; the 25 Nov 2024 note revises it to 451 (NHANES 2021-2023).\",\"art\":\"chart\",\"support\":\"\",\"dataset\":\"tdc-male-testosterone\",\"year\":\"2000–2024\",\"items\":[{\"name\":\"Cameroon\",\"emoji\":\"🇨🇲\",\"value\":731,\"year\":\"2000–2024\",\"gRank\":2,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"Ethiopia\",\"emoji\":\"🇪🇹\",\"value\":671,\"year\":\"2000–2024\",\"gRank\":5,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"Netherlands\",\"emoji\":\"🇳🇱\",\"value\":571,\"year\":\"2000–2024\",\"gRank\":11,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"United Kingdom\",\"emoji\":\"🇬🇧\",\"value\":521,\"year\":\"2000–2024\",\"gRank\":23,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"India\",\"emoji\":\"🇮🇳\",\"value\":487,\"year\":\"2000–2024\",\"gRank\":37,\"gTotal\":85,\"gScope\":\"compiled countries\"},{\"name\":\"United States\",\"emoji\":\"🇺🇸\",\"value\":451,\"year\":\"2021–2023\",\"gRank\":48,\"gTotal\":85,\"gScope\":\"compiled countries\"}]}";
+const PINNED_RANKERS = {
+  "male-testosterone-b": null,
+};
+function pinPlayedRankers(dateKey, parts) {
+  if (!dateKey || dateKey > "2026-11-10") return parts;
+  if (!PINNED_RANKERS["male-testosterone-b"]) PINNED_RANKERS["male-testosterone-b"] = JSON.parse(PINNED_TESTOSTERONE_B);
+  return parts.map(part => {
+    const old = part && PINNED_RANKERS[part.id];
+    if (!old) return part;
+    const copy = Object.assign({}, old, { role: part.role });
+    if (part.scheduled) copy.scheduled = part.scheduled;
+    if (part.scheduleId) copy.scheduleId = part.scheduleId;
+    return copy;
+  });
 }
 function archiveNumberCards() {
   const sets = window.RANKD_NUMBER_ARCHIVE || [];
