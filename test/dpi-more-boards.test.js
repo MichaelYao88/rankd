@@ -58,7 +58,19 @@ test("more DPI boards keep the 2024 shares and stay out of earlier bundles", () 
   assert.equal(rows(byId("dpi-gap-ukraine")), JSON.stringify([
     ["Ukraine", 48], ["Turkey", 44], ["Italy", 37], ["Germany", 33], ["Denmark", 17], ["Vietnam", 12],
   ]));
-  const ids = ["dpi-feels-israel-vietnam", "dpi-feels-singapore-japan", "dpi-feels-above-nordics", "dpi-gap-ukraine"];
+  assert.equal(rows(byId("dpi-equal-rights-disagree")), JSON.stringify([
+    ["Greece", 47], ["France", 36], ["United States", 34], ["Saudi Arabia", 10], ["Vietnam", 6], ["China", 5],
+  ]));
+  assert.equal(rows(byId("dpi-inequality-threat")), JSON.stringify([
+    ["Greece", 82], ["Portugal", 80], ["United States", 66], ["China", 59], ["Vietnam", 59], ["Germany", 50],
+  ]));
+  const equal = w.RANKD_NUMBER_STATS.find(s => s.id === "dpi-equal-rights-disagree");
+  const threat = w.RANKD_NUMBER_STATS.find(s => s.id === "dpi-inequality-threat");
+  assert.equal(equal.rows.length, 53);
+  assert.equal(threat.rows.length, 53);
+  assert.equal(equal.rows.find(r => r[0] === "IRN")[1], 56);
+  assert.equal(threat.rows.find(r => r[0] === "SAU")[1], 44);
+  const ids = ["dpi-feels-israel-vietnam", "dpi-feels-singapore-japan", "dpi-feels-above-nordics", "dpi-gap-ukraine", "dpi-equal-rights-disagree", "dpi-inequality-threat"];
   for (const id of ids) {
     const p = byId(id);
     assert.equal(p.poolFrom, "2027-05-21");

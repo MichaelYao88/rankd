@@ -80,7 +80,7 @@ test("DPI 2024 stores every surveyed country and the two rankers follow the rele
   assert.equal(deficit.FRA, 38);
 
   const practice = w.RANKD_PRACTICE.datasets.filter(d => d.id.startsWith("dpi-"));
-  assert.equal(practice.length, 3);
+  assert.equal(practice.length, 5);
   for (const ds of practice) assert.equal(ds.rows.length, 53);
 
   const a = w.RANKD_PUZZLES.find(p => p.id === "dpi-country-democratic");
