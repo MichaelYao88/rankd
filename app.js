@@ -4702,8 +4702,18 @@ const SPOTLIGHTS = {
     sourceUrl: "https://www.loc.gov/classroom-materials/immigration/italian/the-great-arrival/",
   },
   "number-garlic": null,
+  "dpi-democracy-meaning": {
+    emoji: "🗳️",
+    headline: "What the word means",
+    body: "Frederick DeVeaux of Latana said the high scores in China and Vietnam may be people not wanting to speak against the government, or a real belief that a government acting for many people is what democracy means. He told Newsweek that in 2022. Tianjian Shi and Jie Lu, using the Asian Barometer question “What does democracy mean to you?”, describe a minben view in which a government is judged by how well it performs and cares for people, not by how it came to power. In their China sample that was one answer among others: about a quarter or more gave a procedural answer, such as elections, and a large share could not say what democracy means. The 2024 release also says that where speech is restricted, that can strongly influence the answers.",
+    source: "Shi and Lu, Journal of Democracy, October 2010",
+    sourceUrl: "https://doi.org/10.1353/jod.2010.0012",
+  },
 };
 SPOTLIGHTS["number-garlic"] = SPOTLIGHTS.garlic;
+SPOTLIGHTS["dpi-country-democratic"] = SPOTLIGHTS["dpi-democracy-meaning"];
+SPOTLIGHTS["dpi-feels-israel-vietnam"] = SPOTLIGHTS["dpi-democracy-meaning"];
+SPOTLIGHTS["dpi-feels-above-nordics"] = SPOTLIGHTS["dpi-democracy-meaning"];
 function spotlightFor(p) {
   if (!p) return null;
   if (p.spotlight && p.spotlight.headline) return p.spotlight;
