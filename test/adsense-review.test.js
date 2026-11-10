@@ -64,6 +64,28 @@ test("review mode swaps restricted slots and turning it off restores them", () =
       }
     }
   }
+  const dpiSeen = new Map();
+  for (let n = 0; ; n++) {
+    const date = on.RankdShared.keyFromDay(n);
+    if (date > "2027-06-01") break;
+    const raw = off.RankdBonus.parts(n);
+    const reviewed = on.RankdBonus.parts(n);
+    const ids = new Set();
+    for (let i = 0; i < reviewed.length; i++) {
+      const p = reviewed[i];
+      assert.equal(ids.has(p.id), false, date + " " + p.id);
+      ids.add(p.id);
+      if (String(p.id).indexOf("dpi-") === 0) {
+        assert.equal(dpiSeen.has(p.id), false, p.id + " on " + date);
+        dpiSeen.set(p.id, date);
+      }
+    }
+    if (date === "2026-10-28") {
+      const changed = reviewed.filter((p, i) => p.id !== raw[i].id);
+      assert.ok(changed.some(p => String(p.id).indexOf("dpi-") === 0), changed.map(p => p.id).join(","));
+    }
+  }
+  assert.ok(dpiSeen.size >= 6);
 });
 
 test("the published file set has no restricted terms", () => {

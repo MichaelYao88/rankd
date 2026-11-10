@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v57";
+var CACHE = "ranki-shell-v58";
 
 var PRECACHE = [
   "/",

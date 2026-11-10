@@ -102,10 +102,12 @@ test("About, Learn, Contact and Privacy sit in the header on every public page",
     const html = read(file);
     const header = html.slice(0, html.indexOf("<main"));
     assert.match(header, /class="site-links"/, file);
-    assert.match(header, />About</, file);
+    assert.match(header, />About<\/a>\s*<a [^>]*contact\.html[^>]*>Contact</, file);
     assert.match(header, />Learn</, file);
-    assert.match(header, />Contact</, file);
     assert.match(header, />Privacy</, file);
+    const foot = html.slice(html.lastIndexOf("<footer"));
+    assert.match(foot, />About<\/a>\s*<a [^>]*contact\.html[^>]*>Contact</, file);
+    assert.doesNotMatch(foot, /data-contact-link/, file);
   }
   const privacy = read("privacy.html");
   assert.match(privacy, /Google's consent message is turned on/);
@@ -130,5 +132,5 @@ test("the home page explains the modes in HTML, without a homicide sample", () =
   assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
   assert.match(read("sw.js"), /"\/learn\/index\.html"/);
   assert.match(read("sw.js"), /"\/sources\.html"/);
-  assert.match(read("sw.js"), /ranki-shell-v57/);
+  assert.match(read("sw.js"), /ranki-shell-v58/);
 });
