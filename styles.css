@@ -805,10 +805,8 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 /* ---------- v11: compact top bar (tabs + one gear) ---------- */
 .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;max-width:582px;margin:0 auto;padding:12px 16px 0}
 .topbar .tabs{margin:0;justify-content:flex-start;flex:1}
-.site-links{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;width:100%;font-size:13px;font-weight:700;line-height:1.2}
-.site-links a{color:var(--ink);text-decoration:none}
-.site-links a:hover{color:var(--brand)}
-.page-top .site-links{width:auto;flex:1;justify-content:flex-end;margin-right:8px}
+.topbar .site-links.tabs{flex:1 0 100%;width:100%}
+.page-top .site-links.tabs{margin:0;justify-content:flex-end;flex:1}
 .gear-btn{width:38px;height:38px;flex:none}
 .t5more{display:none;border:0;background:rgba(255,255,255,.16);color:inherit;border-radius:999px;padding:3px 9px;font-size:10.5px;font-weight:700;margin:0 6px;letter-spacing:.02em}
 .overlay.sheet{align-items:flex-end;padding:0}
@@ -824,12 +822,11 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 }
 @media (max-width:420px){
   .topbar{gap:4px;padding:6px 10px 0}
-  .topbar .tab{padding:6px 6px;letter-spacing:.04em;font-size:10px}
-  .site-links{gap:2px 8px;font-size:12px}
+  .tab{padding:6px 6px;letter-spacing:.04em;font-size:10px}
   .page-top{padding:10px 12px 0;gap:6px 8px}
   .page-top .hero-brand{font-size:17px}
   .page-top .play-link{font-size:12px;padding:7px 10px}
-  .page-top .site-links{order:3;width:100%;justify-content:flex-start;margin:0;font-size:12px}
+  .page-top .site-links.tabs{order:3;flex:1 0 100%;width:100%;justify-content:flex-start}
   .account-name{max-width:64px}
   .account-out{padding:4px 2px}
 }
@@ -1014,7 +1011,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
 .plist .pl-meta{font-size:11px;opacity:.6}
 .hero-new{flex:none;border:0;border-radius:999px;padding:3px 10px;font:inherit;font-size:12px;font-weight:700;background:rgba(255,255,255,.22);color:inherit;cursor:pointer;white-space:nowrap}
 .hero-new:hover{background:rgba(255,255,255,.35)}
-@media (max-width:380px){.topbar .tab{padding:7px 8px;letter-spacing:.07em}}
+@media (max-width:380px){.tab{padding:7px 8px;letter-spacing:.07em}}
 .plist-filter button{white-space:nowrap;font-size:12px;padding:6px 9px}
 .hero .caveat-line{font-size:12px;line-height:1.3;opacity:.85;margin:-4px 0 10px}
 @media (max-width:560px){body.fit .hero .caveat-line{font-size:10.5px;margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:none}

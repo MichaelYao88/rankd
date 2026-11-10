@@ -101,8 +101,9 @@ test("About, Learn, Contact and Privacy sit in the header on every public page",
   for (const file of pages) {
     const html = read(file);
     const header = html.slice(0, html.indexOf("<main"));
-    assert.match(header, /class="site-links"/, file);
-    assert.match(header, />About<\/a>\s*<a [^>]*contact\.html[^>]*>Contact</, file);
+    assert.match(header, /class="tabs site-links"/, file);
+    assert.match(header, /<a class="tab(?: active)?" href="[^"]*about\.html">About<\/a>/, file);
+    assert.match(header, />About<\/a>\s*<a class="tab(?: active)?" href="[^"]*contact\.html">Contact</, file);
     assert.match(header, />Learn</, file);
     assert.match(header, />Privacy</, file);
     const foot = html.slice(html.lastIndexOf("<footer"));
@@ -132,5 +133,5 @@ test("the home page explains the modes in HTML, without a homicide sample", () =
   assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
   assert.match(read("sw.js"), /"\/learn\/index\.html"/);
   assert.match(read("sw.js"), /"\/sources\.html"/);
-  assert.match(read("sw.js"), /ranki-shell-v58/);
+  assert.match(read("sw.js"), /ranki-shell-v59/);
 });
