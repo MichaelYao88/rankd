@@ -14,6 +14,7 @@ test("ui sounds stay quiet until a gesture, and the mute is remembered", () => {
   assert.match(app, /settings\.sound !== "off"/);
   assert.match(app, /id="mSound"/);
   assert.match(app, /Snd\.tick\(\)/);
+  assert.match(app, /this\.env\(907, this\.ctx\.currentTime, 0\.05, "sine", 0\.03, 479\)/);
   assert.match(app, /Snd\.lock\(\)/);
   assert.match(app, /tier === "explosive"\) Snd\.godlike\(\)/);
   assert.match(app, /tier === "big"\) Snd\.yay\(\)/);

@@ -911,7 +911,8 @@ const Snd = {
   },
   tick() {
     if (!this.ctx) return;
-    this.env(720, this.ctx.currentTime, 0.05, "sine", 0.03, 380);
+    // Row shift. Four semitones above the old 720 to 380 blip, still 50ms.
+    this.env(907, this.ctx.currentTime, 0.05, "sine", 0.03, 479);
   },
   burst(t, dur, center, q, peak) {
     if (!this.ready || !this.on() || !this.ctx) return;

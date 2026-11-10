@@ -116,7 +116,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v56");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v57");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
@@ -129,6 +129,8 @@ test("ad, analytics, and Supabase requests are not intercepted", () => {
     ["https://ep1.adtrafficquality.google/getconfig", "google-ad"],
     ["https://www.gstatic.com/adsense/domains/caf.js", "google-ad"],
     ["https://fundingchoicesmessages.google.com/el/AGSKWx", "google-ad"],
+    ["https://fundingchoicesmessages.google.com/i/pub-5196178239625142", "google-ad"],
+    ["https://www.google.com/fundingchoices/d/s/consent", "google-ad"],
     ["https://www.googletagservices.com/tag/js/gpt.js", "google-ad"],
     ["https://us.i.posthog.com/e/", "posthog"],
     ["https://us-assets.i.posthog.com/static/array.js", "posthog"],
