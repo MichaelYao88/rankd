@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v52";
+var CACHE = "ranki-shell-v58";
 
 var PRECACHE = [
   "/",
@@ -24,6 +24,7 @@ var PRECACHE = [
   "/how-to-play.html",
   "/terms.html",
   "/sources.html",
+  "/methodology.html",
   "/contact.html",
   "/learn/index.html",
   "/learn/cocoa-supply.html",
@@ -111,6 +112,7 @@ function isGoogleAd(url) {
   if (host === "ads.google.com" || host.indexOf("ads.google.") === 0) return true;
   if (host === "google.com" || hostEnds(host, "google.com")) {
     if (path.indexOf("/adsense") === 0 || path.indexOf("/pagead") === 0 || path.indexOf("/aclk") === 0 || path.indexOf("/ads/") !== -1) return true;
+    if (path.indexOf("/fundingchoices") === 0 || path.indexOf("/ccm/") === 0) return true;
   }
   if (hostEnds(host, "gstatic.com")) {
     if (/\/(ads|adsense|pagead|fundingchoices|adx|doubleclick)(\/|$)/.test(path)) return true;

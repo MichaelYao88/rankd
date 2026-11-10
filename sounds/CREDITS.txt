@@ -1,3 +1,4 @@
-godlike.ogg and yay.ogg are original clips.
-Voice: en_GB-alan-medium from Piper (https://github.com/rhasspy/piper), MIT license.
+godlike.ogg is an original trumpet fanfare, about 1.6 seconds, synthesized for ranki.gg. No sample library.
+yay.ogg is an original clip.
+Voice on yay.ogg: en_GB-alan-medium from Piper (https://github.com/rhasspy/piper), MIT license.
 Pitched down, with a short stutter and room reverb added here. Not the Unreal Tournament announcer.

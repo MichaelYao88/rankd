@@ -34,6 +34,12 @@ test("the garlic fact card is sourced, and the Trump gender claim is not shipped
   assert.match(app, /rankd\.spotlight\.seen\.v1/);
   assert.match(app, /spotlightDismiss/);
   assert.match(app, /Library of Congress/);
+  assert.match(app, /dpi-country-democratic"\] = SPOTLIGHTS\["dpi-democracy-meaning"\]/);
+  assert.match(app, /dpi-feels-israel-vietnam"\] = SPOTLIGHTS\["dpi-democracy-meaning"\]/);
+  assert.match(app, /dpi-feels-above-nordics"\] = SPOTLIGHTS\["dpi-democracy-meaning"\]/);
+  assert.match(app, /how well it performs and cares for people/);
+  assert.match(app, /speech is restricted/);
+  assert.match(app, /10\.1353\/jod\.2010\.0012/);
   assert.doesNotMatch(app, /only group where women voted more for Trump/i);
   const puzzles = load("puzzles-data.js", "RANKD_PUZZLES");
   for (const id of ["homicide-women", "homicide-women-b", "homicide-women-c"]) {

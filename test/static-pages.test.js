@@ -93,6 +93,29 @@ test("static pages do not link to a missing local file", () => {
   assert.deepEqual(missing, []);
 });
 
+test("About, Learn, Contact and Privacy sit in the header on every public page", () => {
+  const pages = ["index.html", "about.html", "contact.html", "privacy.html", "how-to-play.html", "terms.html", "sources.html", "methodology.html"];
+  for (const file of fs.readdirSync(path.join(root, "learn"))) {
+    if (file.endsWith(".html")) pages.push("learn/" + file);
+  }
+  for (const file of pages) {
+    const html = read(file);
+    const header = html.slice(0, html.indexOf("<main"));
+    assert.match(header, /class="site-links"/, file);
+    assert.match(header, />About<\/a>\s*<a [^>]*contact\.html[^>]*>Contact</, file);
+    assert.match(header, />Learn</, file);
+    assert.match(header, />Privacy</, file);
+    const foot = html.slice(html.lastIndexOf("<footer"));
+    assert.match(foot, />About<\/a>\s*<a [^>]*contact\.html[^>]*>Contact</, file);
+    assert.doesNotMatch(foot, /data-contact-link/, file);
+  }
+  const privacy = read("privacy.html");
+  assert.match(privacy, /Google's consent message is turned on/);
+  assert.match(privacy, /US state privacy laws/);
+  assert.match(read("site-config.js"), /November 10, 2026/);
+  assert.doesNotMatch(privacy, /pending|not yet set up|will be added/i);
+});
+
 test("the home page explains the modes in HTML, without a homicide sample", () => {
   const html = read("index.html");
   assert.match(html, /id="homeGuide"/);
@@ -109,5 +132,5 @@ test("the home page explains the modes in HTML, without a homicide sample", () =
   assert.doesNotMatch(html, /homicide|suicide|cannabis|overdose/i);
   assert.match(read("sw.js"), /"\/learn\/index\.html"/);
   assert.match(read("sw.js"), /"\/sources\.html"/);
-  assert.match(read("sw.js"), /ranki-shell-v52/);
+  assert.match(read("sw.js"), /ranki-shell-v58/);
 });

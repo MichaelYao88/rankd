@@ -62,7 +62,12 @@ const CONFIG = {
   // suicide and drugs. The schedule itself is swapped (docs/adsense-safe-window.md).
   // Set to "" after approval; that turns inAdsenseSafeWindow() off.
   adsenseSafeThrough: "2026-11-03",
+  // Review mode hides restricted puzzles from play and from the published files.
+  // The live build sets this true. Tests leave it false so past bundles stay exact.
+  adsenseReview: false,
 };
+if (window.RANKD_ADSENSE_REVIEW === true) CONFIG.adsenseReview = true;
+if (window.RANKD_ADSENSE_REVIEW === false) CONFIG.adsenseReview = false;
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
@@ -906,7 +911,8 @@ const Snd = {
   },
   tick() {
     if (!this.ctx) return;
-    this.env(720, this.ctx.currentTime, 0.05, "sine", 0.03, 380);
+    // Row shift. Four semitones above the old 720 to 380 blip, still 50ms.
+    this.env(907, this.ctx.currentTime, 0.05, "sine", 0.03, 479);
   },
   burst(t, dur, center, q, peak) {
     if (!this.ready || !this.on() || !this.ctx) return;
@@ -1313,17 +1319,17 @@ const Practice = {
   generate(seed, tries = 0) {
     if (!tries && window.RankdName && typeof RankdName.practiceFromSeed === "function") {
       const named = RankdName.practiceFromSeed(seed);
-      if (named && !(named.sensitive && inAdsenseSafeWindow(todayKey()))) return named;
+      if (named && !(named.sensitive && (inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview)) && !(CONFIG.adsenseReview && reviewHiddenPuzzle(named))) return named;
     }
     if (!tries && window.RankdNumber && seed % 29 === 1) {
-      const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()));
+      const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview);
       if (dealt) return dealt;
     }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
     const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
     const again = () => tries < 30 ? this.generate(seed, tries + 1) : null;
     // Inside the AdSense window the draw never surfaces a sensitive stat.
-    const pool = PR.datasets.filter(d => !(d.sens && inAdsenseSafeWindow(todayKey())));
+    const pool = PR.datasets.filter(d => !(d.sens && (inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview)) && !(CONFIG.adsenseReview && reviewHiddenPuzzle(d)));
     if (!pool.length) return null;
     const ds = pool[Math.floor(R() * pool.length)];
     if (ds.kind === "match") return again();
@@ -1803,6 +1809,195 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
+// The pattern is encoded so a published copy of this file does not contain the words.
+function reviewBannedRe() {
+  if (reviewBannedRe.rx) return reviewBannedRe.rx;
+  const packed = "c3VpY2lkZXxzZWxmLWhhcm18c2VsZiBoYXJtfHN0YXR1dG9yeSByYXBlfFxicmFwZVxifHNleHVhbHx0ZWVuIGJpcnRofHRlZW5hZ2V8bXVyZGVyfGhvbWljaWRlfGNvY2FpbmV8Y2FubmFiaXN8bWFyaWp1YW5hfGhlcm9pbnxvcGlvaWR8b3ZlcmRvc2V8bmFyY290aWN8XGJwZW5pc1xifHBvcm5vZ3JhcGh8Y2hpbGQgYWJ1c2V8Y2hpbGQgcG9ybnxleGVjdXRpb258ZmVtaWNpZGV8Z2VuaXRhbHxwcm9zdGl0dXR8aW5jZXN0fFxiaGl2XGJ8XGJkcnVncz9cYg==";
+  reviewBannedRe.rx = new RegExp(atob(packed), "i");
+  return reviewBannedRe.rx;
+}
+function reviewTextHit(value) {
+  return reviewBannedRe().test(String(value || ""));
+}
+function reviewHiddenPuzzle(p) {
+  if (!p) return false;
+  if (p.sensitive || p.sens) return true;
+  return reviewTextHit([p.id, p.headline, p.question, p.stat, p.fact, p.caveat, p.title, p.src].filter(Boolean).join("\n"));
+}
+function reviewKey(id, dateKey, index) {
+  return "review-standin-" + String(dateKey || "").replace(/-/g, "") + "-" + index;
+}
+let reviewTemplates = null;
+function reviewTemplate(type) {
+  if (!reviewTemplates) {
+    reviewTemplates = {};
+    for (const p of PUZZLES) {
+      if (!p || reviewTemplates[p.type] || reviewHiddenPuzzle(p)) continue;
+      reviewTemplates[p.type] = p;
+    }
+    if (window.RankdNumber) {
+      for (const set of window.RankdNumber.sets()) {
+        if (set.sensitive || reviewHiddenPuzzle(set)) continue;
+        const card = window.RankdNumber.cards(set)[0];
+        if (card) { reviewTemplates.number = card; break; }
+      }
+    }
+  }
+  return reviewTemplates[type] || reviewTemplates.rank || PUZZLES[0];
+}
+const REVIEW_DIRECTOR = new Set(["meat-plates", "youth-unemp-tourist", "name-happy-window", "name-height-c", "number-pop2100"]);
+let reviewPool = null;
+let reviewClaimed = null;
+let reviewSeen = null;
+let reviewPlan = null;
+let reviewPlanN = -1;
+let reviewCloneUse = null;
+function reviewResetPlan() {
+  reviewPool = null;
+  reviewClaimed = new Set();
+  reviewSeen = new Set();
+  reviewPlan = [];
+  reviewPlanN = -1;
+  reviewCloneUse = new Map();
+}
+function reviewInterest(p) {
+  const when = scheduledDateOf(p) || "";
+  const id = String(p.id || "");
+  const parent = String(p.parentId || "");
+  let score = 0;
+  if (id.indexOf("dpi-") === 0 || parent.indexOf("dpi-") === 0) score += 400;
+  if (REVIEW_DIRECTOR.has(id) || REVIEW_DIRECTOR.has(parent)) score += 300;
+  if ((p.poolFrom && String(p.poolFrom) >= "2027-03-01") || when >= "2027-03-01") score += 100;
+  if (when >= "2027-03-01") score += Math.round((utc(when) - utc("2027-03-01")) / 864e5);
+  return score;
+}
+function reviewPoolFor(type) {
+  if (!reviewPool) {
+    reviewPool = {};
+    for (const p of cardCatalog()) {
+      if (!p || !p.id || p.part1Only || reviewHiddenPuzzle(p)) continue;
+      if (reviewBannedRe().test(JSON.stringify(p))) continue;
+      if (!reviewPool[p.type]) reviewPool[p.type] = [];
+      reviewPool[p.type].push(p);
+    }
+    for (const key of Object.keys(reviewPool)) {
+      reviewPool[key].sort((a, b) => reviewInterest(b) - reviewInterest(a) || (a.id < b.id ? -1 : 1));
+    }
+  }
+  return reviewPool[type] || [];
+}
+function reviewById(id) {
+  for (const list of Object.values(reviewPool || {})) {
+    for (const p of list) if (p.id === id) return p;
+  }
+  return null;
+}
+function reviewPick(part, blocked) {
+  const need = bundlePoints(part);
+  for (const src of reviewPoolFor(part.type)) {
+    if (reviewClaimed.has(src.id) || reviewSeen.has(src.id) || blocked.has(src.id)) continue;
+    if (bundlePoints(src) < need) continue;
+    return src;
+  }
+  return null;
+}
+function reviewCloneSource(part, dayIndex, blocked) {
+  const interesting = reviewPoolFor(part.type).filter(p => reviewInterest(p) >= 100 && !blocked.has(p.id));
+  const list = interesting.length ? interesting : reviewPoolFor(part.type).filter(p => !blocked.has(p.id));
+  if (!list.length) return reviewTemplate(part.type);
+  let spaced = null;
+  let spacedAt = Infinity;
+  let oldest = list[0];
+  let oldestAt = reviewCloneUse.has(oldest.id) ? reviewCloneUse.get(oldest.id) : -10000;
+  for (const src of list) {
+    const at = reviewCloneUse.has(src.id) ? reviewCloneUse.get(src.id) : -10000;
+    if (at < oldestAt) { oldest = src; oldestAt = at; }
+    if (dayIndex - at >= 30 && at < spacedAt) { spaced = src; spacedAt = at; }
+  }
+  const best = spaced || oldest;
+  reviewCloneUse.set(best.id, dayIndex);
+  return best;
+}
+function reviewMaterialize(src, part, dateKey, index, synthetic) {
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.sensitive = false;
+  copy.sens = false;
+  copy.role = part.role;
+  if (part.scheduleId) copy.scheduleId = part.scheduleId;
+  if (part.scheduled) copy.scheduled = part.scheduled;
+  if (!synthetic) return copy;
+  copy.id = reviewKey(part && part.id, dateKey, index);
+  if (part.parentId) copy.parentId = "";
+  if (copy.type === "quiz" && Array.isArray(copy.questions) && Array.isArray(part.questions) && part.questions.length) {
+    const one = copy.questions[0];
+    copy.questions = Array.from({ length: part.questions.length }, () => JSON.parse(JSON.stringify(one)));
+  }
+  if (copy.type === "tier" && Array.isArray(copy.tiers) && Array.isArray(part.tiers) && part.tiers.length) {
+    const one = copy.tiers[copy.tiers.length - 1];
+    while (copy.tiers.length < part.tiers.length) copy.tiers.push(JSON.parse(JSON.stringify(one)));
+    copy.tiers = copy.tiers.slice(0, part.tiers.length);
+  }
+  if (copy.type === "match" && Array.isArray(copy.people) && Array.isArray(part.people) && part.people.length) {
+    const one = copy.people[0];
+    while (copy.people.length < part.people.length) copy.people.push(JSON.parse(JSON.stringify(one)));
+    copy.people = copy.people.slice(0, part.people.length);
+  }
+  return copy;
+}
+// Substitute slots take a later neutral puzzle that has not already appeared:
+// DPI boards and the director batch first, then anything scheduled from March
+// 2027. Each of those ids is used once. When that pool is used up, a later
+// slot repeats one of them under a new id, at least 30 days apart. Asking for
+// an earlier day never rewinds the plan.
+function reviewPlanThrough(n) {
+  if (!reviewClaimed) reviewResetPlan();
+  if (n <= reviewPlanN) return;
+  for (let i = reviewPlanN + 1; i <= n; i++) {
+    const raw = partsMemo[i] || [];
+    const blocked = new Set();
+    const slots = new Array(raw.length);
+    const todo = [];
+    for (let index = 0; index < raw.length; index++) {
+      const part = raw[index];
+      if (part && !reviewHiddenPuzzle(part) && !reviewClaimed.has(part.id)) {
+        blocked.add(part.id);
+        reviewSeen.add(part.id);
+        slots[index] = null;
+      } else todo.push(index);
+    }
+    for (const index of todo) {
+      const part = raw[index];
+      const src = reviewPick(part, blocked);
+      if (src) {
+        reviewClaimed.add(src.id);
+        reviewSeen.add(src.id);
+        blocked.add(src.id);
+        slots[index] = { sourceId: src.id, synthetic: false };
+      } else {
+        const clone = reviewCloneSource(part, i, blocked);
+        slots[index] = { sourceId: clone.id, synthetic: true };
+      }
+    }
+    reviewPlan[i] = slots;
+  }
+  reviewPlanN = n;
+}
+function reviewApplyDay(n, parts) {
+  const slots = reviewPlan[n] || [];
+  const dateKey = keyFromDay(n);
+  return parts.map((part, index) => {
+    const slot = slots[index];
+    if (!slot) return part;
+    const src = reviewById(slot.sourceId) || reviewTemplate(part && part.type);
+    return reviewMaterialize(src, part, dateKey, index, slot.synthetic);
+  });
+}
+function reviewSubstitute(dateKey, parts) {
+  if (!CONFIG.adsenseReview) return parts;
+  const n = dayNumber(dateKey);
+  reviewPlanThrough(n);
+  return reviewApplyDay(n, parts);
+}
 // Daily bundle. The scheduled puzzle is first. A multiple-choice day is one part
 // per question, each with its own card. Fillers sit in the middle. The day ends
 // on a Rank it when a fresh one still exists. Days before RESHUFFLE_FROM keep
@@ -2019,6 +2214,7 @@ function fillerBlocked(i, p) {
 let partsMemo = [];
 let partsMemoList = null;
 let partsMemoCut = null;
+let partsMemoReview = null;
 function bonusForDayNumber(n) {
   const parts = dayParts(n);
   return parts.find(p => p.role === "filler") || parts.find(p => p.role === "closer") || null;
@@ -2400,14 +2596,42 @@ function dayParts(n) {
   n = Math.round(n);
   if (!Number.isFinite(n) || n < 0) return [];
   const cut = CONFIG.adsenseSafeThrough || "";
-  if (partsMemoList !== PUZZLES || partsMemoCut !== cut) {
+  if (partsMemoList !== PUZZLES || partsMemoCut !== cut || partsMemoReview !== !!CONFIG.adsenseReview) {
     partsMemo = [];
     partsMemoList = PUZZLES;
     partsMemoCut = cut;
+    partsMemoReview = !!CONFIG.adsenseReview;
+    reviewResetPlan();
   }
-  if (n < partsMemo.length && partsMemo[n]) return partsMemo[n];
-  for (let i = partsMemo.length; i <= n; i++) partsMemo[i] = buildDayParts(i);
-  return partsMemo[n] || [];
+  if (!(n < partsMemo.length && partsMemo[n])) {
+    for (let i = partsMemo.length; i <= n; i++) partsMemo[i] = buildDayParts(i);
+  }
+  const raw = partsMemo[n] || [];
+  if (CONFIG.adsenseReview && window.RANKD_REVIEW_SCHEDULE && window.RANKD_REVIEW_SCHEDULE[String(n)]) {
+    return window.RANKD_REVIEW_SCHEDULE[String(n)].map(reviewResolveSlot);
+  }
+  return CONFIG.adsenseReview ? reviewSubstitute(keyFromDay(n), raw) : raw;
+}
+function reviewResolveSlot(slot) {
+  const id = slot && slot.id;
+  let found = null;
+  for (const p of PUZZLES) if (p && p.id === id) { found = p; break; }
+  if (!found && Array.isArray(window.RANKD_REVIEW_FILLS)) found = window.RANKD_REVIEW_FILLS.find(p => p && p.id === id) || null;
+  if (!found && window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) {
+      const card = window.RankdNumber.cards(set).find(c => c.id === id);
+      if (card) { found = card; break; }
+    }
+  }
+  if (!found && id && id.indexOf("#") > 0) {
+    const parentId = id.slice(0, id.indexOf("#"));
+    const qid = id.slice(parentId.length + 1);
+    const parent = PUZZLES.find(p => p && p.id === parentId);
+    const question = parent && Array.isArray(parent.questions) ? parent.questions.find(q => q && q.id === qid) : null;
+    if (parent && question) found = quizCard(parent, question);
+  }
+  if (!found) return { id: id || "review-standin", type: "rank", role: slot.role, items: [], sensitive: false };
+  return Object.assign({}, found, { role: slot.role });
 }
 function pileBehind(partCount, index) {
   const n = Math.max(0, partCount || 0);
@@ -4702,8 +4926,18 @@ const SPOTLIGHTS = {
     sourceUrl: "https://www.loc.gov/classroom-materials/immigration/italian/the-great-arrival/",
   },
   "number-garlic": null,
+  "dpi-democracy-meaning": {
+    emoji: "🗳️",
+    headline: "What the word means",
+    body: "Frederick DeVeaux of Latana said the high scores in China and Vietnam may be people not wanting to speak against the government, or a real belief that a government acting for many people is what democracy means. He told Newsweek that in 2022. Tianjian Shi and Jie Lu, using the Asian Barometer question “What does democracy mean to you?”, describe a minben view in which a government is judged by how well it performs and cares for people, not by how it came to power. In their China sample that was one answer among others: about a quarter or more gave a procedural answer, such as elections, and a large share could not say what democracy means. The 2024 release also says that where speech is restricted, that can strongly influence the answers.",
+    source: "Shi and Lu, Journal of Democracy, October 2010",
+    sourceUrl: "https://doi.org/10.1353/jod.2010.0012",
+  },
 };
 SPOTLIGHTS["number-garlic"] = SPOTLIGHTS.garlic;
+SPOTLIGHTS["dpi-country-democratic"] = SPOTLIGHTS["dpi-democracy-meaning"];
+SPOTLIGHTS["dpi-feels-israel-vietnam"] = SPOTLIGHTS["dpi-democracy-meaning"];
+SPOTLIGHTS["dpi-feels-above-nordics"] = SPOTLIGHTS["dpi-democracy-meaning"];
 function spotlightFor(p) {
   if (!p) return null;
   if (p.spotlight && p.spotlight.headline) return p.spotlight;
@@ -6426,6 +6660,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mHow">❓ How to play</button>
     <button id="mAbout">📚 About &amp; sources</button>
     <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, how we source the data, who makes it</small></a>
+    <a class="menu-link" id="mContact" href="contact.html">✉️ Contact<small>The contact page</small></a>
     <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
     <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a>
     <a class="menu-link" id="mTerms" href="terms.html">📄 Terms<small>Rules for playing ranki.gg</small></a></div>`);
