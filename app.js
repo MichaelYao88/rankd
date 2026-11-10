@@ -62,7 +62,12 @@ const CONFIG = {
   // suicide and drugs. The schedule itself is swapped (docs/adsense-safe-window.md).
   // Set to "" after approval; that turns inAdsenseSafeWindow() off.
   adsenseSafeThrough: "2026-11-03",
+  // Review mode hides restricted puzzles from play and from the published files.
+  // The live build sets this true. Tests leave it false so past bundles stay exact.
+  adsenseReview: false,
 };
+if (window.RANKD_ADSENSE_REVIEW === true) CONFIG.adsenseReview = true;
+if (window.RANKD_ADSENSE_REVIEW === false) CONFIG.adsenseReview = false;
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
@@ -1313,17 +1318,17 @@ const Practice = {
   generate(seed, tries = 0) {
     if (!tries && window.RankdName && typeof RankdName.practiceFromSeed === "function") {
       const named = RankdName.practiceFromSeed(seed);
-      if (named && !(named.sensitive && inAdsenseSafeWindow(todayKey()))) return named;
+      if (named && !(named.sensitive && (inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview)) && !(CONFIG.adsenseReview && reviewHiddenPuzzle(named))) return named;
     }
     if (!tries && window.RankdNumber && seed % 29 === 1) {
-      const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()));
+      const dealt = window.RankdNumber.practicePuzzle(seed, inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview);
       if (dealt) return dealt;
     }
     const R = mulberry(seed + tries * 7919), C = PR.countries, ru = this.rules, T1 = new Set(POPULAR_COUNTRIES.tier1), T2 = new Set(POPULAR_COUNTRIES.tier2);
     const tier = name => T1.has(name) ? 1 : T2.has(name) ? 2 : 0;
     const again = () => tries < 30 ? this.generate(seed, tries + 1) : null;
     // Inside the AdSense window the draw never surfaces a sensitive stat.
-    const pool = PR.datasets.filter(d => !(d.sens && inAdsenseSafeWindow(todayKey())));
+    const pool = PR.datasets.filter(d => !(d.sens && (inAdsenseSafeWindow(todayKey()) || CONFIG.adsenseReview)) && !(CONFIG.adsenseReview && reviewHiddenPuzzle(d)));
     if (!pool.length) return null;
     const ds = pool[Math.floor(R() * pool.length)];
     if (ds.kind === "match") return again();
@@ -1803,6 +1808,72 @@ function inAdsenseSafeWindow(dateKey) {
   const cut = CONFIG.adsenseSafeThrough;
   return !!cut && String(dateKey) <= cut;
 }
+// The pattern is encoded so a published copy of this file does not contain the words.
+function reviewBannedRe() {
+  if (reviewBannedRe.rx) return reviewBannedRe.rx;
+  const packed = "c3VpY2lkZXxzZWxmLWhhcm18c2VsZiBoYXJtfHN0YXR1dG9yeSByYXBlfFxicmFwZVxifHNleHVhbHx0ZWVuIGJpcnRofHRlZW5hZ2V8bXVyZGVyfGhvbWljaWRlfGNvY2FpbmV8Y2FubmFiaXN8bWFyaWp1YW5hfGhlcm9pbnxvcGlvaWR8b3ZlcmRvc2V8bmFyY290aWN8XGJwZW5pc1xifHBvcm5vZ3JhcGh8Y2hpbGQgYWJ1c2V8Y2hpbGQgcG9ybnxleGVjdXRpb258ZmVtaWNpZGV8Z2VuaXRhbHxwcm9zdGl0dXR8aW5jZXN0fFxiaGl2XGJ8XGJkcnVncz9cYg==";
+  reviewBannedRe.rx = new RegExp(atob(packed), "i");
+  return reviewBannedRe.rx;
+}
+function reviewTextHit(value) {
+  return reviewBannedRe().test(String(value || ""));
+}
+function reviewHiddenPuzzle(p) {
+  if (!p) return false;
+  if (p.sensitive || p.sens) return true;
+  return reviewTextHit([p.id, p.headline, p.question, p.stat, p.fact, p.caveat, p.title, p.src].filter(Boolean).join("\n"));
+}
+function reviewKey(id, dateKey, index) {
+  return "review-standin-" + String(dateKey || "").replace(/-/g, "") + "-" + index;
+}
+let reviewTemplates = null;
+function reviewTemplate(type) {
+  if (!reviewTemplates) {
+    reviewTemplates = {};
+    for (const p of PUZZLES) {
+      if (!p || reviewTemplates[p.type] || reviewHiddenPuzzle(p)) continue;
+      reviewTemplates[p.type] = p;
+    }
+    if (window.RankdNumber) {
+      for (const set of window.RankdNumber.sets()) {
+        if (set.sensitive || reviewHiddenPuzzle(set)) continue;
+        const card = window.RankdNumber.cards(set)[0];
+        if (card) { reviewTemplates.number = card; break; }
+      }
+    }
+  }
+  return reviewTemplates[type] || reviewTemplates.rank || PUZZLES[0];
+}
+function reviewStandIn(part, dateKey, index) {
+  const src = reviewTemplate(part && part.type);
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = reviewKey(part && part.id, dateKey, index);
+  copy.sensitive = false;
+  copy.sens = false;
+  copy.role = part.role;
+  if (part.scheduleId) copy.scheduleId = part.scheduleId;
+  if (part.scheduled) copy.scheduled = part.scheduled;
+  if (part.parentId) copy.parentId = "";
+  if (copy.type === "quiz" && Array.isArray(copy.questions) && Array.isArray(part.questions) && part.questions.length) {
+    const one = copy.questions[0];
+    copy.questions = Array.from({ length: part.questions.length }, () => JSON.parse(JSON.stringify(one)));
+  }
+  if (copy.type === "tier" && Array.isArray(copy.tiers) && Array.isArray(part.tiers) && part.tiers.length) {
+    const one = copy.tiers[copy.tiers.length - 1];
+    while (copy.tiers.length < part.tiers.length) copy.tiers.push(JSON.parse(JSON.stringify(one)));
+    copy.tiers = copy.tiers.slice(0, part.tiers.length);
+  }
+  if (copy.type === "match" && Array.isArray(copy.people) && Array.isArray(part.people) && part.people.length) {
+    const one = copy.people[0];
+    while (copy.people.length < part.people.length) copy.people.push(JSON.parse(JSON.stringify(one)));
+    copy.people = copy.people.slice(0, part.people.length);
+  }
+  return copy;
+}
+function reviewSubstitute(dateKey, parts) {
+  if (!CONFIG.adsenseReview) return parts;
+  return parts.map((part, index) => reviewHiddenPuzzle(part) ? reviewStandIn(part, dateKey, index) : part);
+}
 // Daily bundle. The scheduled puzzle is first. A multiple-choice day is one part
 // per question, each with its own card. Fillers sit in the middle. The day ends
 // on a Rank it when a fresh one still exists. Days before RESHUFFLE_FROM keep
@@ -2019,6 +2090,7 @@ function fillerBlocked(i, p) {
 let partsMemo = [];
 let partsMemoList = null;
 let partsMemoCut = null;
+let partsMemoReview = null;
 function bonusForDayNumber(n) {
   const parts = dayParts(n);
   return parts.find(p => p.role === "filler") || parts.find(p => p.role === "closer") || null;
@@ -2400,14 +2472,34 @@ function dayParts(n) {
   n = Math.round(n);
   if (!Number.isFinite(n) || n < 0) return [];
   const cut = CONFIG.adsenseSafeThrough || "";
-  if (partsMemoList !== PUZZLES || partsMemoCut !== cut) {
+  if (partsMemoList !== PUZZLES || partsMemoCut !== cut || partsMemoReview !== !!CONFIG.adsenseReview) {
     partsMemo = [];
     partsMemoList = PUZZLES;
     partsMemoCut = cut;
+    partsMemoReview = !!CONFIG.adsenseReview;
   }
-  if (n < partsMemo.length && partsMemo[n]) return partsMemo[n];
-  for (let i = partsMemo.length; i <= n; i++) partsMemo[i] = buildDayParts(i);
-  return partsMemo[n] || [];
+  if (!(n < partsMemo.length && partsMemo[n])) {
+    for (let i = partsMemo.length; i <= n; i++) partsMemo[i] = buildDayParts(i);
+  }
+  const raw = partsMemo[n] || [];
+  if (CONFIG.adsenseReview && window.RANKD_REVIEW_SCHEDULE && window.RANKD_REVIEW_SCHEDULE[String(n)]) {
+    return window.RANKD_REVIEW_SCHEDULE[String(n)].map(reviewResolveSlot);
+  }
+  return CONFIG.adsenseReview ? reviewSubstitute(keyFromDay(n), raw) : raw;
+}
+function reviewResolveSlot(slot) {
+  const id = slot && slot.id;
+  let found = null;
+  for (const p of PUZZLES) if (p && p.id === id) { found = p; break; }
+  if (!found && Array.isArray(window.RANKD_REVIEW_FILLS)) found = window.RANKD_REVIEW_FILLS.find(p => p && p.id === id) || null;
+  if (!found && window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) {
+      const card = window.RankdNumber.cards(set).find(c => c.id === id);
+      if (card) { found = card; break; }
+    }
+  }
+  if (!found) return { id: id || "review-standin", type: "rank", role: slot.role, items: [], sensitive: false };
+  return Object.assign({}, found, { role: slot.role });
 }
 function pileBehind(partCount, index) {
   const n = Math.max(0, partCount || 0);

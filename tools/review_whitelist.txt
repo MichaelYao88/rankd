@@ -1,0 +1,2 @@
+# Optional allow-list for the published site. One entry per line: relative path, two spaces, the matched term.
+# Leave empty unless a neutral use cannot be rewritten. There are no entries.
