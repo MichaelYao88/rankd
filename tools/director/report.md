@@ -738,6 +738,198 @@ Countries with a figure: 30.
 | China | — | missing | — |
 | Australia | 2 | 15 of 30 | — |
 
+## Share who say their country is democratic, DPI 2024
+
+Countries with a figure: 53.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Switzerland | 78 | 4 of 53 | 0.06 |
+| Norway | 77 | 6 of 53 | 0.10 |
+| Denmark | 70 | 10 of 53 | 0.17 |
+| Sweden | 67 | 14 of 53 | 0.25 |
+| Germany | 57 | 27 of 53 | 0.50 |
+| United States | 57 | 29 of 53 | 0.54 |
+| United Kingdom | 55 | 32 of 53 | 0.60 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 79 | 3 of 53 | 0.96 |
+| Russia | 50 | 41 of 53 | 0.23 |
+| Saudi Arabia | 54 | 35 of 53 | 0.35 |
+| Iran | 25 | 53 of 53 | 0.00 |
+| Vietnam | 81 | 2 of 53 | 0.98 |
+| Venezuela | 30 | 52 of 53 | 0.02 |
+| Hungary | 31 | 51 of 53 | 0.04 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 57 | 29 of 53 | 0.54 |
+| United Kingdom | 55 | 32 of 53 | 0.60 |
+| France | 46 | 43 of 53 | 0.81 |
+| Germany | 57 | 27 of 53 | 0.50 |
+| Sweden | 67 | 14 of 53 | 0.25 |
+| Norway | 77 | 6 of 53 | 0.10 |
+| Denmark | 70 | 10 of 53 | 0.17 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 79 | 3 of 53 | 0.96 |
+| Iran | 25 | 53 of 53 | 0.00 |
+| Saudi Arabia | 54 | 35 of 53 | 0.35 |
+| Nigeria | 45 | 44 of 53 | 0.17 |
+| Egypt | 62 | 23 of 53 | 0.58 |
+| Pakistan | 44 | 46 of 53 | 0.13 |
+| Venezuela | 30 | 52 of 53 | 0.02 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 57 | 29 of 53 | — |
+| United Kingdom | 55 | 32 of 53 | — |
+| France | 46 | 43 of 53 | — |
+| Japan | 44 | 45 of 53 | — |
+| Germany | 57 | 27 of 53 | — |
+| China | 79 | 3 of 53 | — |
+| Australia | 62 | 22 of 53 | — |
+
+## Share who say democracy is important, DPI 2024
+
+Countries with a figure: 53.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Greece | 94 | 1 of 53 | 0.00 |
+| Sweden | 88 | 24 of 53 | 0.44 |
+| Denmark | 87 | 25 of 53 | 0.46 |
+| Norway | 89 | 16 of 53 | 0.29 |
+| United States | 77 | 49 of 53 | 0.92 |
+| Germany | 90 | 12 of 53 | 0.21 |
+| France | 83 | 41 of 53 | 0.77 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 92 | 6 of 53 | 0.90 |
+| Saudi Arabia | 66 | 51 of 53 | 0.04 |
+| Russia | 69 | 50 of 53 | 0.06 |
+| Iran | 63 | 52 of 53 | 0.02 |
+| Vietnam | 93 | 5 of 53 | 0.92 |
+| Hungary | 81 | 42 of 53 | 0.21 |
+| Turkey | 87 | 30 of 53 | 0.44 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Sweden | 88 | 24 of 53 | 0.44 |
+| Norway | 89 | 16 of 53 | 0.29 |
+| Denmark | 87 | 25 of 53 | 0.46 |
+| Germany | 90 | 12 of 53 | 0.21 |
+| France | 83 | 41 of 53 | 0.77 |
+| United States | 77 | 49 of 53 | 0.92 |
+| United Kingdom | 81 | 46 of 53 | 0.87 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 92 | 6 of 53 | 0.90 |
+| Saudi Arabia | 66 | 51 of 53 | 0.04 |
+| Iran | 63 | 52 of 53 | 0.02 |
+| Nigeria | 84 | 38 of 53 | 0.29 |
+| Egypt | 93 | 4 of 53 | 0.94 |
+| Pakistan | 81 | 44 of 53 | 0.17 |
+| Venezuela | 81 | 47 of 53 | 0.12 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 77 | 49 of 53 | — |
+| United Kingdom | 81 | 46 of 53 | — |
+| France | 83 | 41 of 53 | — |
+| Japan | 63 | 53 of 53 | — |
+| Germany | 90 | 12 of 53 | — |
+| China | 92 | 6 of 53 | — |
+| Australia | 78 | 48 of 53 | — |
+
+## Perceived democratic deficit, DPI 2024
+
+Countries with a figure: 53.
+
+### Conventional, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 13 | 45 of 53 | 0.85 |
+| Russia | 19 | 40 of 53 | 0.75 |
+| Iran | 39 | 7 of 53 | 0.12 |
+| Saudi Arabia | 12 | 48 of 53 | 0.90 |
+| Venezuela | 50 | 3 of 53 | 0.04 |
+| Hungary | 50 | 2 of 53 | 0.02 |
+| Vietnam | 12 | 51 of 53 | 0.96 |
+
+### Conventional, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Switzerland | 11 | 53 of 53 | 0.00 |
+| Norway | 12 | 47 of 53 | 0.12 |
+| Denmark | 17 | 41 of 53 | 0.23 |
+| Sweden | 21 | 36 of 53 | 0.33 |
+| Greece | 51 | 1 of 53 | 1.00 |
+| United States | 20 | 38 of 53 | 0.29 |
+| United Kingdom | 26 | 28 of 53 | 0.48 |
+
+### Paternalistic, expected high
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| China | 13 | 45 of 53 | 0.85 |
+| Iran | 39 | 7 of 53 | 0.12 |
+| Nigeria | 39 | 8 of 53 | 0.13 |
+| Egypt | 32 | 18 of 53 | 0.33 |
+| Pakistan | 38 | 11 of 53 | 0.19 |
+| Saudi Arabia | 12 | 48 of 53 | 0.90 |
+| Venezuela | 50 | 3 of 53 | 0.04 |
+
+### Paternalistic, expected low
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| Sweden | 21 | 36 of 53 | 0.33 |
+| Norway | 12 | 47 of 53 | 0.12 |
+| Denmark | 17 | 41 of 53 | 0.23 |
+| Germany | 33 | 17 of 53 | 0.69 |
+| France | 38 | 10 of 53 | 0.83 |
+| United States | 20 | 38 of 53 | 0.29 |
+| United Kingdom | 26 | 28 of 53 | 0.48 |
+
+### Popular
+
+| Country | Value | Rank | Surprise |
+|---|---:|---:|---:|
+| United States | 20 | 38 of 53 | — |
+| United Kingdom | 26 | 28 of 53 | — |
+| France | 38 | 10 of 53 | — |
+| Japan | 19 | 39 of 53 | — |
+| Germany | 33 | 17 of 53 | — |
+| China | 13 | 45 of 53 | — |
+| Australia | 16 | 42 of 53 | — |
+
 ## Highest surprises
 
 | Stat | Lens | Country | Expectation | Rank | Score |
@@ -745,18 +937,18 @@ Countries with a figure: 30.
 | Adults who identify as bisexual, Ipsos 2021 | conventional | India | low | 1 of 27 | 1.00 |
 | Adults who identify as bisexual, Ipsos 2021 | paternalistic | India | low | 1 of 27 | 1.00 |
 | Adults who identify as bisexual, Ipsos 2021 | lgbt | India | low | 1 of 27 | 1.00 |
+| Perceived democratic deficit, DPI 2024 | conventional | Greece | low | 1 of 53 | 1.00 |
 | Equaldex public opinion index | paternalistic | Cape Verde | low | 3 of 171 | 0.99 |
 | Equaldex public opinion index | lgbt | Cape Verde | low | 3 of 171 | 0.99 |
+| Share who say their country is democratic, DPI 2024 | conventional | Vietnam | low | 2 of 53 | 0.98 |
 | Population in 2100, UN medium variant | paternalistic | United States | low | 6 of 205 | 0.98 |
 | Adults outside male or female, Ipsos 2023 | conventional | Thailand | low | 2 of 30 | 0.97 |
 | Adults outside male or female, Ipsos 2023 | paternalistic | Thailand | low | 2 of 30 | 0.97 |
 | Adults outside male or female, Ipsos 2023 | lgbt | Thailand | low | 2 of 30 | 0.97 |
-| Youth unemployment, ages 15-24 in the labor force | conventional | Nigeria | high | 162 of 187 | 0.87 |
-| Youth unemployment, ages 15-24 in the labor force | paternalistic | Nigeria | high | 162 of 187 | 0.87 |
-| Adults outside male or female, Ipsos 2023 | conventional | United States | high | 26 of 30 | 0.86 |
-| Adults outside male or female, Ipsos 2023 | paternalistic | United States | high | 26 of 30 | 0.86 |
-| Adults outside male or female, Ipsos 2023 | lgbt | United States | high | 26 of 30 | 0.86 |
-| Population in 2100, UN medium variant | conventional | Japan | low | 32 of 205 | 0.85 |
+| Share who say their country is democratic, DPI 2024 | conventional | China | low | 3 of 53 | 0.96 |
+| Share who say their country is democratic, DPI 2024 | paternalistic | China | low | 3 of 53 | 0.96 |
+| Perceived democratic deficit, DPI 2024 | conventional | Vietnam | high | 51 of 53 | 0.96 |
+| Share who say democracy is important, DPI 2024 | paternalistic | Egypt | low | 4 of 53 | 0.94 |
 
 ## Missing from the series
 
@@ -787,6 +979,9 @@ The highest scores become a Rank it board: the surprising countries, in real ord
 - **Equaldex public opinion index:** Cape Verde 80, Pakistan 31, Saudi Arabia 22, Russia 19, Uganda 18, Nigeria 15.
 - **Adults who identify as bisexual, Ipsos 2021:** India 9, United States 6, United Kingdom 5, Canada 4, Sweden 3, Netherlands 2.
 - **Adults outside male or female, Ipsos 2023:** Thailand 5, Sweden 4, Japan 3, United States 2, Hungary 1.
+- **Share who say their country is democratic, DPI 2024:** Vietnam 81, China 79, Egypt 62, United States 57, United Kingdom 55, France 46.
+- **Share who say democracy is important, DPI 2024:** Egypt 93, China 92, Denmark 87, France 83, United Kingdom 81, United States 77.
+- **Perceived democratic deficit, DPI 2024:** Greece 51, France 38, Germany 33, Russia 19, China 13, Vietnam 12.
 
 ## Guess the number
 
@@ -802,6 +997,9 @@ One published value is shown. The most surprising country is the one to guess.
 - Equaldex public opinion index: show United States (56) and ask for Cape Verde (80, paternalistic expected it low, rank 3 of 171).
 - Adults who identify as bisexual, Ipsos 2021: show United States (6) and ask for India (9, conventional expected it low, rank 1 of 27).
 - Adults outside male or female, Ipsos 2023: show United States (2) and ask for Thailand (5, conventional expected it low, rank 2 of 30).
+- Share who say their country is democratic, DPI 2024: show United States (57) and ask for Vietnam (81, conventional expected it low, rank 2 of 53).
+- Share who say democracy is important, DPI 2024: show United States (77) and ask for Egypt (93, paternalistic expected it low, rank 4 of 53).
+- Perceived democratic deficit, DPI 2024: show United States (20) and ask for Greece (51, conventional expected it low, rank 1 of 53).
 
 ## Name it
 
@@ -817,6 +1015,9 @@ A window between two real values. It is kept when at least two countries sit str
 - Equaldex public opinion index: strictly between Japan (50) and United Kingdom (55), 11 countries.
 - Adults who identify as bisexual, Ipsos 2021: strictly between Japan (1) and France (3), 4 countries.
 - Adults outside male or female, Ipsos 2023: strictly between United States (2) and Germany (4), 8 countries.
+- Share who say their country is democratic, DPI 2024: strictly between Japan (44) and United Kingdom (55), 12 countries.
+- Share who say democracy is important, DPI 2024: strictly between Japan (63) and United States (77), 2 countries.
+- Perceived democratic deficit, DPI 2024: strictly between China (13) and Japan (19), 4 countries.
 
 ## Match it
 

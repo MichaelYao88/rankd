@@ -99,6 +99,30 @@
       "paternalisticLow": ["Thailand", "Turkey", "Hungary", "Poland", "South Africa", "Japan", "South Korea"],
       "lgbtHigh": ["United States", "United Kingdom", "Canada", "Sweden", "Netherlands", "Australia", "Germany"],
       "lgbtLow": ["Thailand", "Japan", "Turkey", "Hungary", "Poland", "South Korea", "South Africa"]
+    },
+    "dpi-country-democratic": {
+      "higherIs": "top",
+      "label": "Share who say their country is democratic, DPI 2024",
+      "expectHigh": ["Switzerland", "Norway", "Denmark", "Sweden", "Germany", "United States", "United Kingdom"],
+      "expectLow": ["China", "Russia", "Saudi Arabia", "Iran", "Vietnam", "Venezuela", "Hungary"],
+      "paternalisticHigh": ["United States", "United Kingdom", "France", "Germany", "Sweden", "Norway", "Denmark"],
+      "paternalisticLow": ["China", "Iran", "Saudi Arabia", "Nigeria", "Egypt", "Pakistan", "Venezuela"]
+    },
+    "dpi-democracy-important": {
+      "higherIs": "top",
+      "label": "Share who say democracy is important, DPI 2024",
+      "expectHigh": ["Greece", "Sweden", "Denmark", "Norway", "United States", "Germany", "France"],
+      "expectLow": ["China", "Saudi Arabia", "Russia", "Iran", "Vietnam", "Hungary", "Turkey"],
+      "paternalisticHigh": ["Sweden", "Norway", "Denmark", "Germany", "France", "United States", "United Kingdom"],
+      "paternalisticLow": ["China", "Saudi Arabia", "Iran", "Nigeria", "Egypt", "Pakistan", "Venezuela"]
+    },
+    "dpi-democratic-deficit": {
+      "higherIs": "top",
+      "label": "Perceived democratic deficit, DPI 2024",
+      "expectHigh": ["China", "Russia", "Iran", "Saudi Arabia", "Venezuela", "Hungary", "Vietnam"],
+      "expectLow": ["Switzerland", "Norway", "Denmark", "Sweden", "Greece", "United States", "United Kingdom"],
+      "paternalisticHigh": ["China", "Iran", "Nigeria", "Egypt", "Pakistan", "Saudi Arabia", "Venezuela"],
+      "paternalisticLow": ["Sweden", "Norway", "Denmark", "Germany", "France", "United States", "United Kingdom"]
     }
   }
 }
