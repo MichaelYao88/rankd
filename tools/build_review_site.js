@@ -194,12 +194,14 @@ function reslotSchedule(schedule, published) {
     const next = [];
     for (const slot of schedule[key]) {
       if (slot && published.ids.has(slot.id)) {
-        next.push({ id: slot.id, role: slot.role });
+        // Keep type: the live game uses it to resolve a slot and to pick a same-type
+        // fallback. Dropping it made every unresolvable slot become a random puzzle.
+        next.push({ id: slot.id, role: slot.role, type: slot.type });
         continue;
       }
       const id = replacement(slot && slot.type);
       if (!id) continue;
-      next.push({ id, role: slot.role });
+      next.push({ id, role: slot.role, type: slot.type });
     }
     schedule[key] = next;
   }
