@@ -2608,7 +2608,7 @@ function dayParts(n) {
   }
   const raw = partsMemo[n] || [];
   if (CONFIG.adsenseReview && window.RANKD_REVIEW_SCHEDULE && window.RANKD_REVIEW_SCHEDULE[String(n)]) {
-    return window.RANKD_REVIEW_SCHEDULE[String(n)].map(reviewResolveSlot);
+    return window.RANKD_REVIEW_SCHEDULE[String(n)].map(reviewResolveSlot).filter(Boolean);
   }
   return CONFIG.adsenseReview ? reviewSubstitute(keyFromDay(n), raw) : raw;
 }
@@ -2630,8 +2630,27 @@ function reviewResolveSlot(slot) {
     const question = parent && Array.isArray(parent.questions) ? parent.questions.find(q => q && q.id === qid) : null;
     if (parent && question) found = quizCard(parent, question);
   }
-  if (!found) return { id: id || "review-standin", type: "rank", role: slot.role, items: [], sensitive: false };
-  return Object.assign({}, found, { role: slot.role });
+  if (!reviewSlotUsable(found)) found = reviewFallback(slot);
+  if (!found) return null;
+  return Object.assign({}, found, { role: slot && slot.role });
+}
+function reviewSlotUsable(p) {
+  if (!p) return false;
+  if (!String(p.headline || p.question || "").trim()) return false;
+  if (p.type === "rank" && (!Array.isArray(p.items) || p.items.length < 2)) return false;
+  return true;
+}
+function reviewFallback(slot) {
+  const type = slot && slot.type;
+  const pools = [];
+  if (Array.isArray(window.RANKD_REVIEW_FILLS)) pools.push.apply(pools, window.RANKD_REVIEW_FILLS);
+  if (Array.isArray(PUZZLES)) pools.push.apply(pools, PUZZLES);
+  if (window.RankdNumber) {
+    for (const set of window.RankdNumber.sets()) pools.push.apply(pools, window.RankdNumber.cards(set));
+  }
+  for (const p of pools) if ((!type || p.type === type) && reviewSlotUsable(p)) return p;
+  for (const p of pools) if (reviewSlotUsable(p)) return p;
+  return null;
 }
 function pileBehind(partCount, index) {
   const n = Math.max(0, partCount || 0);
@@ -2643,7 +2662,7 @@ window.RankdBonus = {
   parts: dayParts, points: bundlePoints, score: partScore, target: BUNDLE_TARGET, ceiling: BUNDLE_CEILING,
   floor: BUNDLE_FLOOR, reshuffleFrom: RESHUFFLE_FROM, scheduleThrough: SCHEDULE_THROUGH, oneEachFrom: ONE_EACH_FROM,
   lateFrom: FILLER_LATE_FROM, pileBehind, scheduledDate: scheduledDateOf, pool: fillerPool,
-  showcase: SHOWCASE_KEY, catalog: cardCatalog,
+  showcase: SHOWCASE_KEY, catalog: cardCatalog, titlePart: dayTitlePart,
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
@@ -2752,7 +2771,12 @@ function goPractice(seed, opts) {
 // ================================================================ state
 const state = { view: "today", mode: "daily", dateKey: todayKey(), puzzle: null, practiceIdx: 0, order: [], sortable: null, busy: false, rank: null,
   challenge: null, challengeToken: "", challengeOpenedFresh: false, liveResult: null, slot: "main", partIndex: 0, bundleParts: null };
-const puzzleForDay = n => puzzleOnDay(n);
+function dayTitlePart(n) {
+  const parts = dayParts(n);
+  for (let i = 0; i < parts.length; i++) if (parts[i] && parts[i].role === "title") return parts[i];
+  return (parts && parts[0]) || puzzleOnDay(n);
+}
+const puzzleForDay = n => dayTitlePart(n);
 function dayOffersBonus() {
   return state.mode === "daily" || state.mode === "archive" || state.mode === "preview";
 }
