@@ -1272,15 +1272,25 @@ function getChallengerName() {
 // Shared with the Studio/tests. Review mode can swap a day's puzzle id between
 // deploys; a d:YYYY-MM-DD row belongs to the DAY, so keep that play instead of
 // orphaning it. b:/v:/r:/p: keys stay strictly id-matched (they are per-puzzle).
-function resultRowMatches(r, key, puzzleId) {
+// bundleIds: the card ids in that day right now. A swapped-out puzzle is no longer
+// in the bundle, so its row may stand in for the day. A row for a card that is still
+// in the bundle (the closer, saved before the title was restored) must not count for
+// the title, or the title is skipped and the closer looks unplayed.
+function resultRowMatches(r, key, puzzleId, bundleIds) {
   if (!r) return false;
   if (puzzleId && (r.id === puzzleId || (r.scheduleId && r.scheduleId === puzzleId))) return true;
   const m = /^d:(\d{4}-\d{2}-\d{2})$/.exec(String(key || ""));
-  return !!m && !!r.dayKey && r.dayKey === m[1];
+  if (!m || !r.dayKey || r.dayKey !== m[1]) return false;
+  return !(Array.isArray(bundleIds) && bundleIds.indexOf(r.id) >= 0);
+}
+function dayBundleIds(key) {
+  const m = /^d:(\d{4}-\d{2}-\d{2})$/.exec(String(key || ""));
+  if (!m) return null;
+  try { return dayParts(dayNumber(m[1])).map(p => p.id); } catch (e) { return null; }
 }
 function resultRowFor(key, puzzle) {
   const r = load(LS.results, {})[key];
-  return resultRowMatches(r, key, puzzle && puzzle.id) ? r : null;
+  return resultRowMatches(r, key, puzzle && puzzle.id, dayBundleIds(key)) ? r : null;
 }
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
 // One CSS class is the final backstop: even if a slot gets .ad-on, it never reserves space.
@@ -3223,7 +3233,8 @@ function storedRow(key, id) {
   return resultRowFor(key, { id: id });
 }
 function rowMatchesPuzzle(row, p, key) {
-  return resultRowMatches(row, key || resultKey(), p && p.id);
+  const k = key || resultKey();
+  return resultRowMatches(row, k, p && p.id, dayBundleIds(k));
 }
 function storedMainDone(p) {
   if (!p) return null;

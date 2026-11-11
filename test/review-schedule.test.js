@@ -103,9 +103,8 @@ test("the review builder keeps slot type so the live page can resolve it", () =>
 test("stored results survive a review-mode puzzle swap", () => {
   const app = read("app.js");
   assert.match(app, /dayKey: state\.dateKey \|\| ""/);
-  assert.match(app, /function resultRowMatches\(r, key, puzzleId\)/);
   assert.match(app, /function resultRowFor\(key, puzzle\)/);
-  assert.match(read("test/adsense-safe-window.test.js"), /function resultRowMatches/);
+  assert.match(app, /function resultRowMatches\(r, key, puzzleId, bundleIds\)/);
   const S = boot().RankdShared;
   const row = { id: "old-review-substitute", dayKey: "2026-11-04", at: 1, done: true, solved: true, tries: 2 };
   assert.equal(S.resultRowMatches(row, "d:2026-11-04", "new-substitute"), true);
@@ -147,7 +146,20 @@ test("one day never contains two cards from the same dataset", () => {
   assert.equal(new Set(heads).size, heads.length, "no repeated headline: " + heads.join(", "));
 });
 
+test("a day row for a card still in the bundle never counts for the title", () => {
+  const w = boot({ RANKD_ADSENSE_REVIEW: false });
+  const S = w.RankdShared;
+  const key = "d:2026-10-26";
+  const closerRow = { id: "land-area", dayKey: "2026-10-26", type: "rank", done: true, solved: true, tries: 1, at: 1 };
+  w.localStorage.setItem(S.LS.results, JSON.stringify({ [key]: closerRow }));
+  assert.equal(S.resultRowFor(key, { id: "match-foreign-relations" }), null, "title is not done");
+  assert.deepEqual(S.resultRowFor(key, { id: "land-area" }), closerRow, "the closer still finds its own row");
+  const swapped = { id: "retired-title-from-old-deploy", dayKey: "2026-10-26", type: "rank", done: true, solved: true, tries: 2, at: 2 };
+  w.localStorage.setItem(S.LS.results, JSON.stringify({ [key]: swapped }));
+  assert.deepEqual(S.resultRowFor(key, { id: "match-foreign-relations" }), swapped, "a review swap keeps the day's play");
+});
+
 test("the service worker caches the review schedule with the shell", () => {
   assert.match(read("sw.js"), /"\/review-play\.js"/);
-  assert.match(read("sw.js"), /ranki-shell-v71/);
+  assert.match(read("sw.js"), /ranki-shell-v72/);
 });
