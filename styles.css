@@ -454,9 +454,14 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .arch .ar{font-weight:700;font-size:11px;letter-spacing:.06em;white-space:nowrap;padding:6px 11px;border-radius:999px;background:rgba(var(--ink-rgb),.06)}
 .arch .ar.done{background:var(--good-soft);color:var(--good)}.arch .ar.lost{background:var(--bad-soft);color:var(--bad)}
 .arch.today::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:3px;border-radius:0 3px 3px 0;background:var(--brand)}
-.arch.locked{opacity:.72;cursor:not-allowed}
+.arch.locked{opacity:.72;cursor:pointer}
 .arch.locked .ah,.arch.locked .asub{filter:grayscale(.15)}
 .arch .ar.lock{background:rgba(var(--brand-rgb),.12);color:var(--brand);letter-spacing:.04em}
+/* One Unlock! tap: the lock pops open and the row brightens. */
+@keyframes rkUnlock{0%{transform:scale(1);opacity:.72}35%{transform:scale(1.02);opacity:1}60%{transform:scale(.995)}100%{transform:scale(1);opacity:1}}
+.arch.just-unlocked{animation:rkUnlock .85s ease-out;opacity:1}
+.arch.just-unlocked .ar.unlock{background:var(--good-soft);color:var(--good)}
+.gate-clock{font-size:30px;font-weight:800;letter-spacing:.06em;font-variant-numeric:tabular-nums;text-align:center;margin:10px 0;color:var(--brand)}
 button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--brand);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .account-btn{border:0;background:var(--surface2);color:var(--ink);height:34px;border-radius:999px;padding:0 10px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;max-width:46vw;box-shadow:var(--shadow-soft)}
 .account-btn:active{transform:scale(.98)}
@@ -728,6 +733,8 @@ body.has-fab .share-row{scroll-margin-bottom:24px}
 /* v9: streamer mode hides every ad container */
 html.streamer .ad-slot{display:none!important}
 html.premium .ad-slot{display:none!important}   /* Premium: no ads */
+/* Ads off for everyone: no slot, no reserved gap, no overlay. app.js sets .ads-off from CONFIG.adsEnabled. */
+html.ads-off .ad-slot,html.ads-off .ad-banner,html.ads-off .ad-banner-shell,html.ads-off #adTopShell,html.ads-off #adBottomShell,html.ads-off #interstitial,html.ads-off #longAd{display:none!important}
 /* Guess the number and multiple choice: no banner, result ad, or between-part slot while that part is on screen. */
 body.no-part-ads #adTopShell,
 body.no-part-ads #adBottomShell,

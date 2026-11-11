@@ -162,6 +162,7 @@ function bootGame() {
   document.documentElement.dataset = {};
   const sandbox = {
     window: {},
+    RANKD_ADS_ENABLED: true,   // this file tests the (now disabled by default) ad slots
     document,
     localStorage,
     sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
