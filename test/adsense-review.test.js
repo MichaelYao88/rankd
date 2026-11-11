@@ -88,6 +88,65 @@ test("review mode swaps restricted slots and turning it off restores them", () =
   assert.ok(dpiSeen.size >= 6);
 });
 
+test("every published review day through 31 Dec has a real headline", () => {
+  function bootSite() {
+    const document = {
+      documentElement: { dataset: {}, classList: { toggle() {}, add() {}, remove() {} } },
+      querySelector: () => null, querySelectorAll: () => [], getElementById: () => null,
+      createElement: () => ({ style: {}, setAttribute() {}, appendChild() {} }),
+      head: { appendChild() {} }, addEventListener() {},
+    };
+    const appBox = {
+      window: { RANKD_STUDIO: true },
+      document,
+      localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+      location: { protocol: "http:", pathname: "/", search: "", hostname: "localhost", hash: "" },
+      matchMedia: () => ({ matches: false, addEventListener() {} }),
+      URLSearchParams, console, Date, Math, JSON, Intl, Number, String, Array, Object, Set, Map, RegExp,
+      Error, parseFloat, parseInt, isNaN, isFinite, setTimeout, clearTimeout,
+      fetch: () => Promise.reject(new Error("no")), AbortController, atob,
+    };
+    appBox.globalThis = appBox;
+    for (const key of ["document", "localStorage", "sessionStorage", "location", "matchMedia", "atob"]) appBox.window[key] = appBox[key];
+    vm.createContext(appBox);
+    const site = path.join(root, "_site");
+    for (const file of ["puzzles-data.js", "practice-data.js", "name-puzzles.js", "part1-puzzles.js", "invent-quiz.js", "number-stats.js", "number-puzzles.js", "number-guess.js", "review-play.js", "app.js"]) {
+      vm.runInContext(fs.readFileSync(path.join(site, file), "utf8"), appBox, { filename: file });
+    }
+    return appBox.window;
+  }
+  const win = bootSite();
+  const start = win.RankdShared.dayNumber("2026-10-06");
+  const end = win.RankdShared.dayNumber("2026-12-31");
+  for (let n = start; n <= end; n++) {
+    const date = win.RankdShared.keyFromDay(n);
+    const parts = win.RankdBonus.parts(n);
+    assert.ok(parts.length > 0, date);
+    for (const p of parts) {
+      assert.ok(String(p.headline || p.question || "").trim(), date + " " + p.id);
+      if (p.type === "rank") assert.ok(Array.isArray(p.items) && p.items.length >= 2, date + " " + p.id + " items");
+    }
+  }
+  const words = win.RANKD_PUZZLES.find(p => p.id === "who-invented-words");
+  assert.ok(words && words.questions.length >= 8);
+  assert.equal(words.questions.some(q => q.id === "clinical-trial"), false);
+  const life = win.RANKD_NUMBER.find(s => s.id === "number-life");
+  assert.ok(life && life.pairs.length >= 10);
+  assert.equal(life.pairs.some(pair => pair.known && pair.known.iso3 === "USA" && pair.ask && pair.ask.iso3 === "ALB"), false);
+  const off = boot(false);
+  let differed = 0;
+  for (let n = start; n <= end; n++) {
+    const title = off.RankdBonus.titlePart(n);
+    const parts = off.RankdBonus.parts(n);
+    const expected = parts.find(p => p.role === "title") || parts[0];
+    assert.equal(title.id, expected.id, off.RankdShared.keyFromDay(n));
+    assert.equal(title.headline, expected.headline);
+    if (title.id !== off.RANKD_PUZZLES[n % off.RANKD_PUZZLES.length].id) differed++;
+  }
+  assert.ok(differed > 0);
+});
+
 test("the published file set has no restricted terms", () => {
   const allow = new Set();
   const list = fs.readFileSync(path.join(root, "tools", "review_whitelist.txt"), "utf8");

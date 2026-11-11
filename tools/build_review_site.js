@@ -41,6 +41,65 @@ function boot(review) {
 function hidden(p) {
   return !!(p && (p.sensitive || p.sens || banned.test(JSON.stringify(p))));
 }
+function cleanJson(value) {
+  return !banned.test(JSON.stringify(value));
+}
+// A quiz or number set stays when only one question or pair is restricted.
+function publishPuzzle(p) {
+  if (!p || p.sensitive || p.sens) return null;
+  let next = p;
+  if (p.type === "quiz" && Array.isArray(p.questions)) {
+    const questions = p.questions.filter(cleanJson);
+    if (!questions.length) return null;
+    if (questions.length !== p.questions.length) next = Object.assign({}, p, { questions });
+  }
+  return cleanJson(next) ? next : null;
+}
+function publishNumber(set) {
+  if (!set || set.sensitive || set.sens) return null;
+  let next = set;
+  if (Array.isArray(set.pairs)) {
+    const pairs = set.pairs.filter(cleanJson);
+    if (!pairs.length) return null;
+    if (pairs.length !== set.pairs.length) next = Object.assign({}, set, { pairs });
+  }
+  return cleanJson(next) ? next : null;
+}
+function numberCardId(set, pair) {
+  const known = pair && pair.known;
+  const ask = pair && pair.ask;
+  if (!set || !known || !ask || !known.iso3 || !ask.iso3) return "";
+  return set.id + "#" + known.iso3 + "-" + ask.iso3;
+}
+function publishedIds(puzzles, numbers, fills) {
+  const ids = new Set();
+  const byType = {};
+  function add(type, id) {
+    if (!type || !id || ids.has(id)) return;
+    ids.add(id);
+    if (!byType[type]) byType[type] = [];
+    byType[type].push(id);
+  }
+  for (const p of puzzles || []) {
+    const kept = publishPuzzle(p);
+    if (!kept) continue;
+    add(kept.type, kept.id);
+    if (kept.type === "quiz") for (const q of kept.questions) add("quiz", kept.id + "#" + q.id);
+  }
+  for (const set of numbers || []) {
+    const kept = publishNumber(set);
+    if (!kept) continue;
+    for (const pair of kept.pairs || []) add("number", numberCardId(kept, pair));
+  }
+  for (const fill of fills || []) {
+    if (!fill || hidden(fill)) continue;
+    const head = String(fill.headline || fill.question || "").trim();
+    if (!head) continue;
+    if (fill.type === "rank" && (!Array.isArray(fill.items) || fill.items.length < 2)) continue;
+    add(fill.type, fill.id);
+  }
+  return { ids, byType };
+}
 function extractAssigned(text, marker) {
   const at = text.indexOf(marker);
   if (at < 0) throw new Error("marker missing " + marker);
@@ -106,7 +165,7 @@ for (let n = 0; off.RankdShared.keyFromDay(n) <= "2028-12-31"; n++) {
   const rawIds = raw.map(p => p.id + "/" + p.role);
   const nextIds = reviewed.map(p => p.id + "/" + p.role);
   if (rawIds.join("|") !== nextIds.join("|")) restore[date] = { off: rawIds, on: nextIds };
-  schedule[String(n)] = reviewed.map(p => ({ id: p.id, role: p.role }));
+  schedule[String(n)] = reviewed.map(p => ({ id: p.id, role: p.role, type: p.type }));
   for (const p of reviewed) if (String(p.id).startsWith("review-standin-")) fills.set(p.id, p);
 }
 
@@ -119,9 +178,29 @@ const fillList = [...fills.values()].map(p => {
   delete copy.scheduled;
   return copy;
 });
-const reviewPlay = "window.RANKD_REVIEW_FILLS = " + JSON.stringify(fillList) + ";\n"
-  + "window.RANKD_REVIEW_SCHEDULE = " + JSON.stringify(schedule) + ";\n";
-if (banned.test(reviewPlay)) throw new Error("review schedule still has a restricted term");
+function reslotSchedule(schedule, published) {
+  const cursor = {};
+  function replacement(type) {
+    const list = (published.byType && published.byType[type]) || published.byType.rank || [];
+    if (!list.length) return "";
+    const i = cursor[type] || 0;
+    cursor[type] = i + 1;
+    return list[i % list.length];
+  }
+  for (const key of Object.keys(schedule)) {
+    const next = [];
+    for (const slot of schedule[key]) {
+      if (slot && published.ids.has(slot.id)) {
+        next.push({ id: slot.id, role: slot.role });
+        continue;
+      }
+      const id = replacement(slot && slot.type);
+      if (!id) continue;
+      next.push({ id, role: slot.role });
+    }
+    schedule[key] = next;
+  }
+}
 
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out);
@@ -135,14 +214,14 @@ for (const abs of walk(root)) {
   if (ext === ".csv" || ext === ".xlsx") continue;
   if (!textExt.has(ext)) { fs.copyFileSync(abs, dest); continue; }
   let text = fs.readFileSync(abs, "utf8");
-  if (rel === "puzzles-data.js") text = scrubAssign("puzzles-data.js", "window.RANKD_PUZZLES = ", arr => arr.filter(p => !hidden(p)));
+  if (rel === "puzzles-data.js") text = scrubAssign("puzzles-data.js", "window.RANKD_PUZZLES = ", arr => arr.map(publishPuzzle).filter(Boolean));
   if (rel === "name-puzzles.js") text = scrubAssign("name-puzzles.js", "window.RANKD_NAME_PUZZLES = ", arr => arr.filter(p => !hidden(p)));
   if (rel === "number-stats.js") text = scrubAssign("number-stats.js", "window.RANKD_NUMBER_STATS = ", arr => arr.filter(p => !hidden(p)));
   if (rel === "number-puzzles.js") {
-    text = scrubAssign("number-puzzles.js", "window.RANKD_NUMBER = ", arr => arr.filter(p => !hidden(p)));
+    text = scrubAssign("number-puzzles.js", "window.RANKD_NUMBER = ", arr => arr.map(publishNumber).filter(Boolean));
     if (text.includes("window.RANKD_NUMBER_ARCHIVE = ")) {
       const got = extractAssigned(text, "window.RANKD_NUMBER_ARCHIVE = ");
-      text = text.slice(0, got.at) + "window.RANKD_NUMBER_ARCHIVE = " + JSON.stringify(got.value.filter(p => !hidden(p))) + got.suffix;
+      text = text.slice(0, got.at) + "window.RANKD_NUMBER_ARCHIVE = " + JSON.stringify(got.value.map(publishNumber).filter(Boolean)) + got.suffix;
     }
   }
   if (rel === "practice-data.js") {
@@ -186,6 +265,17 @@ for (const abs of walk(root)) {
   if (found) hits.push(rel + " :: " + found[0]);
   fs.writeFileSync(dest, text);
 }
+const puzzles = extractAssigned(fs.readFileSync(path.join(root, "puzzles-data.js"), "utf8"), "window.RANKD_PUZZLES = ").value;
+const names = extractAssigned(fs.readFileSync(path.join(root, "name-puzzles.js"), "utf8"), "window.RANKD_NAME_PUZZLES = ").value;
+const numberText = fs.readFileSync(path.join(root, "number-puzzles.js"), "utf8");
+const numbers = extractAssigned(numberText, "window.RANKD_NUMBER = ").value;
+const archiveNumbers = numberText.includes("window.RANKD_NUMBER_ARCHIVE = ")
+  ? extractAssigned(numberText, "window.RANKD_NUMBER_ARCHIVE = ").value
+  : [];
+reslotSchedule(schedule, publishedIds(puzzles.concat(names), numbers.concat(archiveNumbers), fillList));
+const reviewPlay = "window.RANKD_REVIEW_FILLS = " + JSON.stringify(fillList) + ";\n"
+  + "window.RANKD_REVIEW_SCHEDULE = " + JSON.stringify(schedule) + ";\n";
+if (banned.test(reviewPlay)) throw new Error("review schedule still has a restricted term");
 fs.writeFileSync(path.join(out, "review-play.js"), reviewPlay);
 fs.writeFileSync(path.join(root, "sensitive", "README.txt"), "Restricted puzzle text lives in the main data files of this repository.\nThis folder is left out of the Pages publish (_site) while review mode is on.\nrestore-map.json is the original bundle for each day that review mode changes, and the neutral substitute ids.\nTurn review mode off by publishing the repository without this filter. The game then uses the original bundles.\n");
 if (hits.length) {
