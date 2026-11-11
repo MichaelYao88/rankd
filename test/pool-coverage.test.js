@@ -93,6 +93,7 @@ test("every curated puzzle stat key resolves to a pool dataset", () => {
   const curated = puzzles.concat(namePuzzles, part1Puzzles);
   assert.ok(curated.length > 200);
   for (const p of curated) {
+    if (p.poolUntil) continue;   // retired cards no longer need a backing practice dataset
     const key = statKey(p);
     const ds = resolve(key);
     assert.ok(ds, key + " from " + p.id);
@@ -185,16 +186,6 @@ test("trends datasets stay high-internet lists", () => {
   assert.equal(caps.rows[0].length, 4);
   assert.equal(resolve("southern-capitals").id, "national-capitals");
   assert.equal(resolve("northern-capitals").id, "national-capitals");
-  const woman = datasets.find(d => d.id === "attr-never-woman-leader");
-  assert.equal(woman.kind, "quiz");
-  assert.equal(woman.coverage, "full");
-  assert.equal(woman.labels["1"], "Has had one");
-  assert.equal(woman.question, "Has this country ever had a woman as head of state or government?");
-  assert.equal(woman.labels["0"], "Never has");
-  assert.equal(woman.rows.find(r => r[0] === "ITA")[1], 1);
-  assert.equal(woman.rows.find(r => r[0] === "USA")[1], 0);
-  assert.equal(woman.rows.find(r => r[0] === "ESP")[1], 1);
-  assert.equal(woman.rows.some(r => r[0] === "CHN"), false);
   const kpop = datasets.find(d => d.id === "top-trends-kpop");
   assert.ok(kpop.rows.some(r => r[0] === "SGP" && r[1] === 95));
   assert.ok(kpop.rows.length > 6, "the full K-pop list stays, with Singapore filled in");

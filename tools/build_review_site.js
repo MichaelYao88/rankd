@@ -73,17 +73,21 @@ function numberCardId(set, pair) {
 function publishedIds(puzzles, numbers, fills) {
   const ids = new Set();
   const byType = {};
-  function add(type, id) {
+  function add(type, id, usable) {
     if (!type || !id || ids.has(id)) return;
     ids.add(id);
+    // Retired cards stay in `ids` so already-published past bundles are unchanged,
+    // but they are never offered as substitutes for future restricted slots.
+    if (usable === false) return;
     if (!byType[type]) byType[type] = [];
     byType[type].push(id);
   }
   for (const p of puzzles || []) {
     const kept = publishPuzzle(p);
     if (!kept) continue;
-    add(kept.type, kept.id);
-    if (kept.type === "quiz") for (const q of kept.questions) add("quiz", kept.id + "#" + q.id);
+    const retired = !!(p && p.poolUntil);
+    add(kept.type, kept.id, !retired);
+    if (kept.type === "quiz") for (const q of kept.questions) add("quiz", kept.id + "#" + q.id, !retired);
   }
   for (const set of numbers || []) {
     const kept = publishNumber(set);
