@@ -147,8 +147,7 @@ test("every published review day through 31 Dec has a real headline", () => {
   assert.ok(differed > 0);
 });
 
-test("the published file set has no restricted terms", () => {
-  const allow = new Set();
+test("the published file set has no restricted terms", () => {  const allow = new Set();
   const list = fs.readFileSync(path.join(root, "tools", "review_whitelist.txt"), "utf8");
   for (const line of list.split("\n")) {
     const trimmed = line.trim();
@@ -173,4 +172,39 @@ test("the published file set has no restricted terms", () => {
   assert.deepEqual(hits, []);
   assert.match(fs.readFileSync(path.join(root, "_site", "app.js"), "utf8"), /adsenseReview: true/);
   assert.equal(fs.existsSync(path.join(root, "_site", "sensitive")), false);
+});
+
+test("the static daily archive covers every past day and never the future", () => {
+  const dir = path.join(root, "_site", "daily");
+  const today = new Date().toISOString().slice(0, 10);
+  const pages = fs.readdirSync(dir).filter(name => /^\d{4}-\d{2}-\d{2}\.html$/.test(name)).sort();
+  assert.ok(pages.length >= 20, "pages: " + pages.length);
+  assert.equal(pages[0], "2026-10-06.html");
+  for (const name of pages) {
+    assert.ok(name.slice(0, 10) < today, "future page " + name);
+  }
+  // Yesterday is published, today is not: the answer is on the page.
+  const yesterday = new Date(Date.parse(today + "T00:00:00Z") - 864e5).toISOString().slice(0, 10);
+  assert.ok(pages.includes(yesterday + ".html"), "missing yesterday " + yesterday);
+  assert.equal(fs.existsSync(path.join(dir, today + ".html")), false, "today is a spoiler");
+  const index = fs.readFileSync(path.join(dir, "index.html"), "utf8");
+  assert.match(index, /Daily puzzle archive/);
+  assert.match(index, new RegExp(yesterday + "\\.html"));
+  assert.doesNotMatch(index, new RegExp(today + "\\.html"));
+  const sitemap = fs.readFileSync(path.join(root, "_site", "sitemap.xml"), "utf8");
+  assert.match(sitemap, /https:\/\/ranki\.gg\/daily\/index\.html|https:\/\/ranki\.gg\/daily\/</);
+  for (const name of pages) assert.match(sitemap, new RegExp("/daily/" + name.replace(".", "\\.")), name);
+});
+
+test("a daily page carries the question, the table, the fact and the source", () => {
+  const html = fs.readFileSync(path.join(root, "_site", "daily", "2026-11-09.html"), "utf8");
+  assert.match(html, /Holiday Queues/);
+  assert.match(html, /<table>/);
+  assert.match(html, /France/);
+  assert.match(html, /18\.6/);
+  assert.match(html, /See the source/);
+  assert.match(html, /href="\.\.\/index\.html#d=2026-11-09"/);
+  assert.match(html, /<link rel="canonical" href="https:\/\/ranki\.gg\/daily\/2026-11-09\.html">/);
+  assert.match(html, /application\/ld\+json/);
+  assert.match(html, /<meta charset="utf-8">/);
 });

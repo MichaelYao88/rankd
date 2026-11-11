@@ -6477,9 +6477,13 @@ function goDate(key, opts) {
   });
 }
 function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
-  if (!CONFIG.SHOW_ALL_PUZZLES) return goToday();
+  // The list itself is gated by CONFIG.SHOW_ALL_PUZZLES, but a #p=<id> link still
+  // opens that one puzzle: the learn pages link to specific cards with it.
   state.mode = "all";
-  if (idx == null) idx = (dayNumber(todayKey()) + 1) % PUZZLES.length;
+  if (idx == null) {
+    if (!CONFIG.SHOW_ALL_PUZZLES) return goToday();
+    idx = (dayNumber(todayKey()) + 1) % PUZZLES.length;
+  }
   state.practiceIdx = ((idx % PUZZLES.length) + PUZZLES.length) % PUZZLES.length;
   const p = PUZZLES[state.practiceIdx];
   bindChallenge(opts && opts.challengeToken, { k: "p", id: p.id });
@@ -6638,7 +6642,7 @@ function nextUnplayedDay() {   // most recent unplayed past daily (never today o
 function fabGo() {
   if (state.mode === "preview") { location.href = "loadingzone.html"; return; }
   if (state.mode === "practice") return goPractice();
-  if (state.mode === "all") return goAll(nextUnplayedPractice());
+  if (state.mode === "all") return CONFIG.SHOW_ALL_PUZZLES ? goAll(nextUnplayedPractice()) : goToday();
   const k = nextUnplayedDay(); k ? goDate(k) : goArchive();
 }
 function showFab(on) {
@@ -6646,7 +6650,7 @@ function showFab(on) {
   f.classList.toggle("hidden", !on); document.body.classList.toggle("has-fab", !!on);
   syncFabPad(); parkFab();
 }
-function next() { if (state.mode === "preview") { location.href = "loadingzone.html"; return; } if (state.mode === "all") goAll(state.practiceIdx + 1); else if (state.mode === "archive") goArchive(); else goPractice(); }
+function next() { if (state.mode === "preview") { location.href = "loadingzone.html"; return; } if (state.mode === "all") { CONFIG.SHOW_ALL_PUZZLES ? goAll(state.practiceIdx + 1) : goToday(); } else if (state.mode === "archive") goArchive(); else goPractice(); }
 function onResultNext() {
   if (morePartsRemain()) return advancePart();
   if (bundleHasParts() && !state.scoreShown) {
@@ -7229,7 +7233,7 @@ function route() {
   if (/^#archive(?:$|&)/.test(h)) return goArchive();
   if (d) return goDate(d[1], opts);
   if (rs && Practice.ok()) return goPractice(+rs[1], opts);
-  if (p && CONFIG.SHOW_ALL_PUZZLES) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i, opts); }
+  if (p) { const i = PUZZLES.findIndex(x => x.id === decodeURIComponent(p[1])); if (i >= 0) return goAll(i, opts); }
   if (h === "#today" || h === "#play") return goToday(opts);
   if (token) return goToday(opts);
   goHome();
