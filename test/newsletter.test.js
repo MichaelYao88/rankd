@@ -54,7 +54,6 @@ test("newsletter addresses are insert-only and duplicates are ignored", () => {
   assert.equal(/for select/i.test(migration), false);
   assert.equal(/for update/i.test(migration), false);
   assert.equal(/for delete/i.test(migration), false);
-  assert.match(migration, /resolution=ignore-duplicates/);
   const shared = boot();
   assert.equal(shared.normalizeNewsletterEmail("  Ada@Ranki.GG "), "ada@ranki.gg");
   assert.equal(shared.normalizeNewsletterEmail("not-an-email"), "");
@@ -62,7 +61,7 @@ test("newsletter addresses are insert-only and duplicates are ignored", () => {
   assert.equal(shared.NEWSLETTER_KEY, "rankd.newsletter.v1");
 });
 
-test("the inbox box sits under the QR and does not float over Next", () => {
+test("the inbox box sits under the QR on the results screen only", () => {
   const html = read("index.html");
   const css = read("styles.css");
   const app = read("app.js");
@@ -74,13 +73,28 @@ test("the inbox box sits under the QR and does not float over Next", () => {
   assert.ok(next > 0 && next < box, "Next stays above the inbox box");
   assert.match(html, /Get tomorrow's puzzle in your inbox/);
   assert.match(html, /One email a day\. Unsubscribe anytime\./);
-  assert.match(html, /id="homeNewsletterOpen"/);
   assert.match(html, /id="newsletterDismiss"/);
+  // The homepage signup was in a weird spot between the hero and Premium; it is gone.
+  assert.doesNotMatch(html, /id="homeNewsletterOpen"/);
+  assert.doesNotMatch(html, /id="homeNewsletter"/);
+  assert.doesNotMatch(css, /\.home-news-link|\.home-newsletter/);
+  assert.doesNotMatch(app, /syncHomeNewsletter|#homeNewsletter/);
   assert.match(css, /\.newsletter\{position:static/);
   assert.equal(/\.newsletter[^}]*position:\s*fixed/.test(css), false);
-  assert.match(app, /newsletter_signups\?on_conflict=email/);
-  assert.match(app, /resolution=ignore-duplicates/);
-  assert.match(app, /source === "results"/);
   assert.match(privacy, /tomorrow's puzzle by email/);
   assert.match(privacy, /rankd\.newsletter\.v1/);
+});
+
+test("the signup uses a plain insert, not an upsert that anon cannot perform", () => {
+  const app = read("app.js");
+  // ?on_conflict=email makes PostgREST do an upsert, which needs SELECT on the
+  // table. Anon is deliberately insert-only, so every submit returned 401.
+  assert.doesNotMatch(app, /newsletter_signups\?on_conflict/);
+  assert.doesNotMatch(app, /resolution=ignore-duplicates/);
+  assert.match(app, /res = await fetch\(base \+ "\/rest\/v1\/newsletter_signups",/);
+  assert.match(app, /Prefer: "return=minimal"/);
+  // A repeat address hits the unique constraint (409), which is a successful no-op.
+  assert.match(app, /if \(res\.ok \|\| res\.status === 409\) return;/);
+  assert.match(app, /sendNewsletterSignup\(email, "results", puzzleDate\)/);
+  assert.doesNotMatch(app, /source === "results"/);
 });

@@ -431,9 +431,6 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .newsletter-thanks{margin:0;font-size:14px;font-weight:700}
 .newsletter-dismiss{margin-top:8px;border:0;background:transparent;padding:8px 0;font-weight:700;font-size:13px;color:var(--muted);cursor:pointer}
 .newsletter-dismiss:hover{color:var(--ink)}
-.home-news-link{margin:12px 0 0}
-.home-news-link button{border:0;background:transparent;padding:0;color:var(--brand);font-weight:800;font-size:14px;cursor:pointer}
-.home-newsletter{margin-top:12px}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .actions{display:flex;justify-content:center;margin-top:16px}
 .hero .actions{justify-content:space-between}

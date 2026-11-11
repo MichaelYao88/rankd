@@ -5,8 +5,9 @@
 -- The browser inserts with the anon key (CONFIG.SUPABASE_ANON_KEY in app.js).
 -- Anon may insert email, source, and puzzle_date only. There is no select,
 -- update, or delete policy, so the list cannot be read or changed from the
--- client. Use Prefer: return=minimal,resolution=ignore-duplicates and
--- on_conflict=email. A repeat address is a no-op.
+-- client. Use a plain POST with Prefer: return=minimal. Do NOT use
+-- ?on_conflict=email (an upsert needs SELECT, which anon does not have).
+-- A repeat address violates the unique constraint (409) and is a no-op.
 --
 -- Export (SQL editor or service role; RLS does not apply to the owner):
 --   select email, created_at, source, puzzle_date

@@ -2098,6 +2098,7 @@ function reviewPoolFor(type) {
     reviewPool = {};
     for (const p of cardCatalog()) {
       if (!p || !p.id || p.part1Only || reviewHiddenPuzzle(p)) continue;
+      if (p.poolUntil) continue;   // retired card: never used as a review substitute either
       if (reviewBannedRe().test(JSON.stringify(p))) continue;
       if (!reviewPool[p.type]) reviewPool[p.type] = [];
       reviewPool[p.type].push(p);
@@ -2368,6 +2369,7 @@ function quizCard(parent, q) {
   return {
     type: "quiz", id: parent.id + "#" + q.id, fillerOnly: true, parentId: parent.id,
     order: parent.order, sensitive: !!parent.sensitive,
+    poolUntil: parent.poolUntil || "",   // retired cards stop appearing after this date; past bundles stay identical
     emoji: opt.emoji || parent.emoji || "💡", headline: q.prompt || q.ask || parent.headline,
     question: q.ask || "", stat: parent.stat || "", unit: parent.unit || "",
     source: q.source || parent.source || "", sourceUrl: q.sourceUrl || parent.sourceUrl || "",
@@ -6676,7 +6678,6 @@ function goHome() {
   state.mode = "home";
   state.view = "home";
   fillHomeCard();
-  syncHomeNewsletter();
   showView("home");
   setHash("");
   window.scrollTo({ top: 0 });
@@ -7302,47 +7303,17 @@ function maybeNewsletter() {
   const pre = signedInEmail();
   if (input && pre && !String(input.value || "").trim()) input.value = pre;
 }
-function syncHomeNewsletter() {
-  const link = $("#homeNewsletterOpen");
-  const form = $("#homeNewsletter");
-  if (newsletterSubscribed()) {
-    if (link) link.classList.add("hidden");
-    if (form) form.classList.add("hidden");
-    return;
-  }
-  if (link) link.classList.remove("hidden");
-  const input = $("#homeNewsletterEmail");
-  const pre = signedInEmail();
-  if (input && pre && !String(input.value || "").trim()) input.value = pre;
-}
-function showNewsletterThanks(source) {
+function showNewsletterThanks() {
   markNewsletterSubscribed();
-  if (source === "home") {
-    const form = $("#homeNewsletter");
-    const thanks = $("#homeNewsletterThanks");
-    const err = $("#homeNewsletterError");
-    const link = $("#homeNewsletterOpen");
-    if (err) { err.textContent = ""; err.classList.add("hidden"); }
-    if (link) link.classList.add("hidden");
-    if (form) form.classList.remove("hidden");
-    const row = form && form.querySelector(".newsletter-row");
-    const note = form && form.querySelector(".newsletter-note");
-    const title = form && form.querySelector(".newsletter-title");
-    if (row) row.classList.add("hidden");
-    if (note) note.classList.add("hidden");
-    if (title) title.classList.add("hidden");
-    if (thanks) thanks.classList.remove("hidden");
-  } else {
-    const form = $("#newsletterForm");
-    const thanks = $("#newsletterThanks");
-    if (form) form.classList.add("hidden");
-    if (thanks) thanks.classList.remove("hidden");
-    const box = $("#newsletter");
-    if (box) box.classList.remove("hidden");
-  }
+  const form = $("#newsletterForm");
+  const thanks = $("#newsletterThanks");
+  if (form) form.classList.add("hidden");
+  if (thanks) thanks.classList.remove("hidden");
+  const box = $("#newsletter");
+  if (box) box.classList.remove("hidden");
 }
-function showNewsletterError(source, message) {
-  const err = $(source === "home" ? "#homeNewsletterError" : "#newsletterError");
+function showNewsletterError(message) {
+  const err = $("#newsletterError");
   if (!err) return;
   err.textContent = message;
   err.classList.remove("hidden");
@@ -7356,14 +7327,17 @@ async function sendNewsletterSignup(email, source, puzzleDate) {
   const deadline = netDeadline();
   let res;
   try {
-    res = await fetch(base + "/rest/v1/newsletter_signups?on_conflict=email", {
+    // Plain insert. An upsert (?on_conflict=email) needs SELECT on the table,
+    // which anon deliberately does not have, so it returned 401 on every submit.
+    // A duplicate email raises 409 on the unique constraint, handled as success below.
+    res = await fetch(base + "/rest/v1/newsletter_signups", {
       method: "POST",
       signal: deadline.signal,
       headers: {
         "Content-Type": "application/json",
         apikey: key,
         Authorization: "Bearer " + key,
-        Prefer: "return=minimal,resolution=ignore-duplicates",
+        Prefer: "return=minimal",
       },
       body: JSON.stringify(payload),
     });
@@ -7373,7 +7347,7 @@ async function sendNewsletterSignup(email, source, puzzleDate) {
   if (res.ok || res.status === 409) return;
   const err = new Error("fail"); err.kind = "fail"; throw err;
 }
-function wireNewsletterForm(formId, source) {
+function wireNewsletterForm(formId) {
   const form = $(formId);
   if (!form || form.dataset.wired) return;
   form.dataset.wired = "1";
@@ -7382,24 +7356,23 @@ function wireNewsletterForm(formId, source) {
     const input = form.querySelector("input[name=email]");
     const email = normalizeNewsletterEmail(input && input.value);
     if (!email) {
-      showNewsletterError(source, "Enter a valid email.");
+      showNewsletterError("Enter a valid email.");
       return;
     }
     const btn = form.querySelector("button[type=submit]");
     if (btn) btn.disabled = true;
-    const puzzleDate = source === "results" && /^\d{4}-\d{2}-\d{2}$/.test(String(state.dateKey || "")) ? state.dateKey : null;
+    const puzzleDate = /^\d{4}-\d{2}-\d{2}$/.test(String(state.dateKey || "")) ? state.dateKey : null;
     try {
-      await sendNewsletterSignup(email, source, puzzleDate);
-      showNewsletterThanks(source);
+      await sendNewsletterSignup(email, "results", puzzleDate);
+      showNewsletterThanks();
     } catch (err) {
-      showNewsletterError(source, err && err.kind === "network" ? "Couldn't save that just now. Try again." : "Couldn't save that just now. Try again.");
+      showNewsletterError("Couldn't save that just now. Try again.");
       if (btn) btn.disabled = false;
     }
   });
 }
 function wireNewsletter() {
-  wireNewsletterForm("#newsletterForm", "results");
-  wireNewsletterForm("#homeNewsletter", "home");
+  wireNewsletterForm("#newsletterForm");
   const dismiss = $("#newsletterDismiss");
   if (dismiss && !dismiss.dataset.wired) {
     dismiss.dataset.wired = "1";
@@ -7409,20 +7382,6 @@ function wireNewsletter() {
       if (box) box.classList.add("hidden");
     };
   }
-  const open = $("#homeNewsletterOpen");
-  if (open && !open.dataset.wired) {
-    open.dataset.wired = "1";
-    open.onclick = () => {
-      const form = $("#homeNewsletter");
-      if (!form) return;
-      form.classList.remove("hidden");
-      const input = $("#homeNewsletterEmail");
-      const pre = signedInEmail();
-      if (input && pre && !String(input.value || "").trim()) input.value = pre;
-      if (input) input.focus();
-    };
-  }
-  syncHomeNewsletter();
 }
 function wirePuzzleForm() {
   const form = $("#puzzleForm");
