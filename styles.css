@@ -462,12 +462,12 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;font-weight:700;color:var(--brand);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 .account-btn{border:0;background:var(--surface2);color:var(--ink);height:34px;border-radius:999px;padding:0 10px;font-size:12px;font-weight:800;display:inline-flex;align-items:center;gap:6px;max-width:46vw;box-shadow:var(--shadow-soft)}
 .account-btn:active{transform:scale(.98)}
-.account-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:88px}
+/* Signed in: picture or one initial only. A full display name wrapped the top bar onto a second row. */
+.account-btn.is-signed-in{width:34px;padding:0;justify-content:center;max-width:none;border-radius:50%}
+.account-btn.is-signed-in .account-avatar,.account-btn.is-signed-in .account-fallback{width:26px;height:26px;font-size:13px}
 .account-avatar,.account-fallback{width:22px;height:22px;border-radius:50%;flex:none}
 .account-avatar{object-fit:cover;background:rgba(var(--ink-rgb),.08)}
 .account-fallback{display:grid;place-items:center;background:var(--brand);color:#fff;font-size:11px;font-weight:800}
-.account-out{border:0;background:none;color:var(--muted);font-size:12px;font-weight:800;padding:6px 4px}
-.account-out:hover{color:var(--ink)}
 .modal-box .account-sheet h2{margin:0 0 6px;padding-right:32px;font-size:26px;letter-spacing:-.04em;line-height:1.12}
 .account-lead{color:var(--muted);font-size:14.5px;line-height:1.45;margin:0 0 18px}
 .account-actions{display:flex;flex-direction:column;gap:14px;align-items:stretch}
@@ -566,6 +566,16 @@ button.prem-upsell,.prem-upsell{border:0;background:none;padding:0;font:inherit;
 .stat-countries .meta{flex:none;min-width:34px;text-align:right;font-size:11.5px;font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
 .stat-note{font-size:11px;color:var(--muted);margin:10px 0 0;line-height:1.45}
 .stat-empty{font-size:13px;color:var(--muted);margin:2px 0 0}
+/* Your games: compact history that leads into the fuller stats page. */
+.game-list{list-style:none;margin:4px 0 12px;padding:0}
+.game-list li{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);font-size:13px}
+.game-list li:first-child{border-top:0}
+.game-list .gd{flex:none;width:62px;color:var(--muted);font-size:11px;font-weight:700}
+.game-list .gt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.game-list .gb{flex:none;min-width:34px;text-align:right;color:var(--muted);font-weight:800;font-variant-numeric:tabular-nums}
+.game-list .gb.done{color:var(--good)}
+.game-list .gb.lost{color:var(--bad)}
+#gamesFullStats{width:100%;margin-top:2px}
 .menu-list{display:flex;flex-direction:column;border-radius:16px;overflow:hidden;border:1px solid var(--line)}
 .menu-list button{text-align:left;padding:14px 16px;border:0;background:transparent;font-weight:700}
 .menu-list button+button{border-top:1px solid var(--line)}
@@ -866,6 +876,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   .gear-btn{width:34px;height:34px}
   .ad-banner{margin:6px 10px 0}
   .account-btn{height:32px;padding:0 8px;font-size:11px}
+  .account-btn.is-signed-in{width:32px;padding:0}
 }
 @media (max-width:420px){
   .topbar{gap:4px;padding:6px 10px 0}
@@ -874,8 +885,7 @@ body.fx-shake .wrap{animation:fxShake .6s cubic-bezier(.36,.07,.19,.97) both}
   .page-top .hero-brand{font-size:17px}
   .page-top .play-link{font-size:12px;padding:7px 10px}
   .page-top .site-links.tabs{order:3;flex:1 0 100%;width:100%;justify-content:flex-start}
-  .account-name{max-width:64px}
-  .account-out{padding:4px 2px}
+  .account-btn.is-signed-in{width:32px;padding:0}
 }
 
 /* ---------- v12.2 Tier it ---------- */
