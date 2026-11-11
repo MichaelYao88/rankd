@@ -3049,6 +3049,8 @@ function countryRowsHtml(rows) {
   }).join("")}</ul>`;
 }
 window.RankdStats = { boardCountries, recordCountryTries, countryAccuracy, historyOutcome, recentDailyHistory };
+// Hoisted modals: exposed above the Studio early-return so tests can exercise the history logic.
+window.RankdGames = { gameHistoryRows, gamesModal, renderAccount };
 window.RankdStatsViews = { trySpread, statsHistoryHtml, countryRowsHtml };
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
@@ -7019,6 +7021,39 @@ function onResultNext() {
 }
 
 // ================================================================ modals
+// Small stats page: for now just a history of games. The fuller Your stats page
+// is one tap away, so the account entry is no longer a dead end into Premium.
+function gameHistoryRows(limit) {
+  const all = load(LS.results, {});
+  const rows = [];
+  for (const [key, r] of Object.entries(all)) {
+    if (!/^d:\d{4}-\d{2}-\d{2}$/.test(key) || !r || !r.id) continue;
+    const day = key.slice(2);
+    let p = null;
+    try { p = puzzleForDay(dayNumber(day)); } catch (e) { p = null; }
+    rows.push({ day, title: (p && (p.headline || p.question)) || r.id, outcome: historyOutcome(r), tries: Number(r.tries) || 0 });
+  }
+  rows.sort((a, b) => b.day.localeCompare(a.day));
+  return rows.slice(0, Math.max(1, Number(limit) || 12));
+}
+function gamesModal() {
+  const s = load(LS.stats, { played: 0, wins: 0, best: 0, dist: {} });
+  const rows = gameHistoryRows(12);
+  const list = rows.length
+    ? `<ul class="game-list">${rows.map(r => {
+      const badge = r.outcome === 3 ? "✗" : r.outcome === 0 ? "·" : `✓${r.tries ? " " + r.tries : ""}`;
+      const cls = r.outcome === 3 ? " lost" : r.outcome === 1 ? " done" : "";
+      return `<li><span class="gd">${esc(prettyDate(r.day).replace(/, \d{4}$/, ""))}</span><span class="gt">${esc(r.title)}</span><span class="gb${cls}">${badge}</span></li>`;
+    }).join("")}</ul>`
+    : `<p class="stat-empty">Play today's puzzle and your games will show up here.</p>`;
+  openModal(`<h2>Your games</h2>
+    <div class="stat-grid"><div><b>${s.played}</b><span>Played</span></div><div><b>${s.wins}</b><span>Solved</span></div><div><b>${currentStreak()}</b><span>Streak</span></div><div><b>${s.best || 0}</b><span>Best</span></div></div>
+    <h3>Recent games</h3>${list}
+    <button type="button" class="pill-btn outline" id="gamesFullStats">📊 Full stats →</button>
+    <p class="stat-note">A fuller stats page is coming. For now this is your game history in this browser.</p>`);
+  const full = $("#gamesFullStats");
+  if (full) full.onclick = statsModal;
+}
 function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classList.remove("hidden", "sheet"); }
 function closeModal() { $("#modal").classList.add("hidden"); }
 function statsModal() {
@@ -7042,10 +7077,9 @@ function statsModal() {
 const themeLabel = () => effectiveTheme() === "dark" ? "☀️ Light mode<small>Switch the theme</small>" : "🌙 Dark mode<small>Switch the theme</small>";
 function menuModal() {   // v11: the single gear opens this sheet (stats + theme moved here from the old corner buttons)
   const signedIn = !!authUser;
-  const who = signedIn ? (googleProfile(authUser).name || authUser.email || "Account") : "";
   openModal(`<h2>Menu</h2><div class="menu-list">
     ${signedIn
-      ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · ranki.gg + whereisshe.gg" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
+      ? `<button id="mAccount">🗓 Your games<small>History of puzzles you've played</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
       : `<button id="mSignIn">${esc(accountCopy().header)}<small>${esc(accountCopy().menuSmall)}</small></button>`}
     <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
     <button id="mStats">📊 Your stats<small>Accuracy, streaks and history</small></button>
@@ -7056,21 +7090,16 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     ${Practice.ok() ? `<button id="mPractice">🎲 Practice<small>A new random puzzle from the full datasets</small></button>` : ""}
     ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
     <button id="mSettings">⚙️ Settings<small>Theme, streamer mode, load your spreadsheet</small></button>
-    <button id="mHow">❓ How to play</button>
-    <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, how we source the data, who makes it</small></a>
-    <a class="menu-link" id="mContact" href="contact.html">✉️ Contact<small>The contact page</small></a>
-    <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
-    <a class="menu-link" id="mPrivacy" href="privacy.html">🔒 Privacy policy<small>Browser storage, ads and cookies</small></a>
-    <a class="menu-link" id="mTerms" href="terms.html">📄 Terms<small>Rules for playing ranki.gg</small></a></div>`);
+    <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, who makes it</small></a></div>`);
   $("#mStats").onclick = statsModal; $("#mTheme").onclick = () => { settings.theme = effectiveTheme() === "dark" ? "light" : "dark"; saveSettings(); applyTheme(); };
   if ($("#mSound")) $("#mSound").onclick = () => { Snd.arm(); settings.sound = settings.sound === "off" ? "on" : "off"; saveSettings(); $("#mSound").innerHTML = soundLabel(); };
   if ($("#mSignIn")) $("#mSignIn").onclick = () => { closeModal(); signInModal(); };
   if ($("#mSignOut")) $("#mSignOut").onclick = () => { closeModal(); signOutAccount(); };
-  if ($("#mAccount")) $("#mAccount").onclick = () => { closeModal(); goPremium(); };
+  if ($("#mAccount")) $("#mAccount").onclick = () => { closeModal(); gamesModal(); };
   if ($("#mPremium")) $("#mPremium").onclick = () => { closeModal(); goPremium(); };
   $("#modal").classList.add("sheet");
   if ($("#mShare")) $("#mShare").onclick = () => { closeModal(); doShare(challengeText()); };
-  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal;
+  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal;
 }
 function settingsModal() {
   const seg = (name, opts, cur) => `<div class="seg" data-set="${name}">${opts.map(([v, l]) => `<button data-v="${v}" class="${cur === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
@@ -7459,6 +7488,7 @@ function renderAccount() {
   btn.replaceChildren();
   if (!authUser) {
     const label = accountCopy().header;
+    btn.classList.remove("is-signed-in");
     btn.textContent = label;
     btn.setAttribute("aria-label", label);
     if (out) out.hidden = true;
@@ -7466,6 +7496,9 @@ function renderAccount() {
   }
   const g = googleProfile(authUser);
   const label = accountLabel();
+  // A long display name used to wrap the top bar onto a second row. Show only
+  // the picture (or one initial) and keep the full name in the aria-label.
+  btn.classList.add("is-signed-in");
   if (g.avatar) {
     const img = document.createElement("img");
     img.className = "account-avatar";
@@ -7479,12 +7512,9 @@ function renderAccount() {
     mark.textContent = (label.trim().charAt(0) || "A").toUpperCase();
     btn.appendChild(mark);
   }
-  const name = document.createElement("span");
-  name.className = "account-name";
-  name.textContent = label;
-  btn.appendChild(name);
-  btn.setAttribute("aria-label", "Account, " + label);
-  if (out) out.hidden = false;
+  btn.setAttribute("aria-label", "Your games, " + label);
+  btn.title = label;
+  if (out) out.hidden = true;   // Sign out lives in the menu; keep the top bar to one row.
 }
 function paintPremiumScreen() {
   const btn = $("#premiumCheckout");
@@ -7686,7 +7716,7 @@ function startAuth() {
     sb = null;
   }
 }
-if ($("#accountBtn")) $("#accountBtn").onclick = () => { if (authUser) goPremium(); else signInModal(); };
+if ($("#accountBtn")) $("#accountBtn").onclick = () => { if (authUser) gamesModal(); else signInModal(); };
 window.RankdPremium.renderAccount = renderAccount;
 window.RankdPremium.signInModal = signInModal;
 if ($("#signOutBtn")) $("#signOutBtn").onclick = () => signOutAccount();
