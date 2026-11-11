@@ -117,7 +117,37 @@ test("stored results survive a review-mode puzzle swap", () => {
   assert.equal(S.resultRowMatches({ id: "x", dayKey: "2026-11-04" }, "d:2026-11-04", ""), true);
 });
 
+test("frozen number cards from RANKD_NUMBER_ARCHIVE resolve instead of being skipped", () => {
+  const w = boot({
+    RANKD_REVIEW_SCHEDULE: {
+      "7": [
+        { id: "tomatoes", role: "title", type: "rank" },
+        { id: "number-testosterone#JPN-DEU", role: "filler", type: "number" },
+        { id: "billionaire-cities", role: "closer", type: "rank" },
+      ],
+    },
+    RANKD_REVIEW_FILLS: [],
+  });
+  const parts = w.RankdBonus.parts(7);
+  assert.equal(parts.length, 3, "the archived number card is not dropped");
+  assert.equal(parts[1].id, "number-testosterone#JPN-DEU");
+  assert.equal(parts[1].type, "number");
+});
+
+test("one day never contains two cards from the same dataset", () => {
+  const app = read("app.js");
+  assert.match(app, /if \(p\.dataset && used\.datasets && used\.datasets\.has\(p\.dataset\)\) return false;/);
+  assert.match(app, /const usedDatasets = new Set\(\)/);
+  assert.match(app, /const datasetTaken = d =>/);
+  const w = boot({ RANKD_ADSENSE_REVIEW: false });
+  const parts = w.RankdBonus.parts(33);   // 2026-11-08
+  const datasets = parts.map(p => p.dataset).filter(Boolean);
+  assert.equal(new Set(datasets).size, datasets.length, "no repeated dataset: " + datasets.join(", "));
+  const heads = parts.map(p => p.headline);
+  assert.equal(new Set(heads).size, heads.length, "no repeated headline: " + heads.join(", "));
+});
+
 test("the service worker caches the review schedule with the shell", () => {
   assert.match(read("sw.js"), /"\/review-play\.js"/);
-  assert.match(read("sw.js"), /ranki-shell-v70/);
+  assert.match(read("sw.js"), /ranki-shell-v71/);
 });

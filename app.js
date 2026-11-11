@@ -2508,6 +2508,9 @@ function scheduledPieces(main) {
 }
 function fillerFits(i, p, used, sum, cap) {
   if (!p || used.ids.has(p.id)) return false;
+  // One dataset per day. A "Guess the number" card and a "Rank it" card can share
+  // a dataset (both McDonald's density on 2026-11-08) and read as the same puzzle twice.
+  if (p.dataset && used.datasets && used.datasets.has(p.dataset)) return false;
   if (p.type === "number" && used.numberParents.has(p.parentId)) return false;
   if (p.parentId && used.parents.has(p.parentId)) return false;
   const main = puzzleOnDay(i);
@@ -2517,12 +2520,13 @@ function fillerFits(i, p, used, sum, cap) {
 }
 function rememberUsed(used, p) {
   used.ids.add(p.id);
+  if (p.dataset) used.datasets.add(p.dataset);
   if (p.parentId) used.parents.add(p.parentId);
   if (p.scheduleId) used.parents.add(p.scheduleId);
   if (p.type === "number" && p.parentId) used.numberParents.add(p.parentId);
 }
 function freshUsed(list) {
-  const used = { ids: new Set(), parents: new Set(), numberParents: new Set() };
+  const used = { ids: new Set(), parents: new Set(), numberParents: new Set(), datasets: new Set() };
   for (const p of list) rememberUsed(used, p);
   return used;
 }
@@ -2716,10 +2720,13 @@ function buildDayPartsFresh(i) {
     return ids;
   };
   const numberParents = new Set();
+  const usedDatasets = new Set();
+  for (const p of head) if (p && p.dataset) usedDatasets.add(p.dataset);
   const take = (card, role) => {
     const copy = Object.assign({}, card, { role: role });
     if (!copy.scheduleId && role === "title") copy.scheduleId = copy.id;
     blocked.add(copy.id);
+    if (copy.dataset) usedDatasets.add(copy.dataset);
     if (copy.type === "number" && copy.parentId) numberParents.add(copy.parentId);
     if (prior.last) prior.last.set(copy.id, i);
     return copy;
@@ -2728,18 +2735,21 @@ function buildDayPartsFresh(i) {
   if (dateKey === SHOWCASE_KEY) {
     for (const stat of SHOWCASE_STATS) {
       if (typeFull(parts, { type: "number" }, dateKey)) break;
-      const card = contentQueue().find(p => p.type === "number" && p.parentId === stat && cardOk(p, dateKey, blocked, false, true));
+      const card = contentQueue().find(p => p.type === "number" && p.parentId === stat && (!p.dataset || !usedDatasets.has(p.dataset)) && cardOk(p, dateKey, blocked, false, true));
       if (card) parts.push(take(card, "filler"));
     }
   }
-  const closerCard = contentQueue().find(p => p.type === "rank" && cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe));
+  const closerCard = contentQueue().find(p => p.type === "rank" && (!p.dataset || !usedDatasets.has(p.dataset)) && cardOk(p, dateKey, blocked, holdShowcase, showcaseSafe));
   if (closerCard) blocked.add(closerCard.id);
+  const closerDataset = closerCard && closerCard.dataset;
   const closerWeight = closerCard ? bundlePoints(closerCard) : 0;
   const sumOf = list => list.reduce((sum, p) => sum + bundlePoints(p), 0);
   const roomFor = () => parts.length + (closerCard ? 1 : 0) < BUNDLE_MAX_PARTS;
+  const datasetTaken = d => !!d && (usedDatasets.has(d) || d === closerDataset);
   const pullNext = (allowSameStat) => {
     for (const card of contentQueue()) {
       if (card.type === "rank") continue;
+      if (datasetTaken(card.dataset)) continue;
       if (typeFull(parts, card, dateKey)) continue;
       if (!cardOk(card, dateKey, blocked, holdShowcase, showcaseSafe)) continue;
       if (card.type === "number" && !allowSameStat && numberParents.has(card.parentId)) continue;
@@ -2859,6 +2869,12 @@ function reviewResolveSlot(slot) {
       const card = window.RankdNumber.cards(set).find(c => c.id === id);
       if (card) { found = card; break; }
     }
+  }
+  // Frozen days reference number cards from RANKD_NUMBER_ARCHIVE (older pair sets),
+  // which RankdNumber.sets() does not include. Without this they cannot resolve and
+  // the slot gets dropped -> a puzzle silently disappears from that day.
+  if (!found && typeof archiveNumberCards === "function") {
+    found = archiveNumberCards().find(c => c.id === id) || null;
   }
   if (!found && id && id.indexOf("#") > 0) {
     const parentId = id.slice(0, id.indexOf("#"));
