@@ -18,6 +18,12 @@ const CONFIG = {
   dailyEpoch: "2026-10-06",
   interstitialSeconds: 5,           // skip countdown
   interstitialOnDaily: false,       // never interrupt today's daily
+  // All ad units off. Flip adsEnabled only when an ad network is actually serving.
+  adsEnabled: false,
+  // OFF until Polar is live: the whole archive is free. ON = 3 Unlock! per 12h + Go Premium wall.
+  archiveGate: false,
+  archiveUnlocksPerWindow: 3,
+  archiveUnlockWindowHours: 12,
   rankMaxTries: 5,                  // Rank it: lock-ins allowed before the answer is revealed
   // v11 PRE-LAUNCH SWITCH: true = show the "All puzzles" tab/list (every puzzle, past AND future, for testing).
   // Set to false at launch: the tab, the menu entry and #p= links disappear (random Practice stays).
@@ -70,6 +76,9 @@ const CONFIG = {
 };
 if (window.RANKD_ADSENSE_REVIEW === true) CONFIG.adsenseReview = true;
 if (window.RANKD_ADSENSE_REVIEW === false) CONFIG.adsenseReview = false;
+// Test hooks: the real site ships with ads off and the archive wall off.
+if (window.RANKD_ADS_ENABLED === true) CONFIG.adsEnabled = true;
+if (window.RANKD_ARCHIVE_GATE === true) CONFIG.archiveGate = true;
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
@@ -82,8 +91,9 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 //   rankd.countries.v1: per-country accuracy for daily + archive boards: { appearances, tries, flag }
 //   rankd.settings.v1 : theme, streamer mode, and sound (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
-//   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
-//                            including today. Kept as stored when the ad step changes; never rescaled.
+//   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Legacy ad-reward save, migrated into
+//                            rankd.archiveCredits.v1 when the gate is switched on; no longer written by the UI.
+//   rankd.archiveCredits.v1: unlocked day keys + Unlock! credits used in the current 12-hour window.
 //   rankd.practiceAds.v1   : practice games since last long-ad gate
 //   rankd.supabase.auth    : Supabase session for this project only (not WhereIsShe's key). Sign out clears it.
 //   rankd.premium.intent   : sessionStorage flag to resume checkout after sign-in. Not an entitlement.
@@ -1260,6 +1270,8 @@ function getChallengerName() {
   return googleProfile(authUser).name || null;
 }
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
+// One CSS class is the final backstop: even if a slot gets .ad-on, it never reserves space.
+function applyAdsEnabled() { document.documentElement.classList.toggle("ads-off", !CONFIG.adsEnabled); }
 function syncPremiumUpsells() {
   const hide = isPremium();
   const nodes = document.querySelectorAll("[data-premium-upsell]");
@@ -1300,7 +1312,7 @@ function trackGameCompleted(res) {
   const guesses = legacyGuesses ? res.guesses.length : (Number(res.tries) || (Array.isArray(res.attempts) ? res.attempts.length : 0));
   track("game_completed", { won: type === "top5" ? !!(res.won || res.solved) : !!res.solved, guesses, mode: state.mode, puzzle_type: type });
 }
-const Ads = { allowed: () => !streamerOn() && !isPremium(),   // streamer OR premium → no AdSense
+const Ads = { allowed: () => CONFIG.adsEnabled && !streamerOn() && !isPremium(),   // ads off by default; streamer OR premium → none either
   decisions: [],                              // v11: one entry per finished puzzle {puzzle, mode, show, reason} (tests / debugging)
   last: () => Ads.decisions[Ads.decisions.length - 1] || null,
   skipsAfterWin: tier => !!tier };            // v11: interstitials are skipped after any win tier
@@ -1609,10 +1621,76 @@ function applyArchiveAdUnlock() {
   setArchiveUnlockedDays(next);
   return next;
 }
+// ---- Archive Unlock! credits -------------------------------------------------
+// Kept as a separate rankd.* key (not added to LS) so it never collides with the
+// stats PR. "Clear all data" picks it up through isRankdKey; ?preview= gets a sandbox.
+// OFF (CONFIG.archiveGate = false): every past day is free. Nothing is written.
+// ON: today + previously unlocked days are free; each other day costs 1 Unlock!,
+// 3 per 12-hour window, then a Go Premium wall.
+const ARCHIVE_CREDITS_KEY = PREVIEW ? "rankd.preview.archiveCredits.v1" : "rankd.archiveCredits.v1";
+const archiveWindowMs = () => (Number(CONFIG.archiveUnlockWindowHours) || 12) * 3600e3;
+const archiveMaxCredits = () => Math.max(1, Number(CONFIG.archiveUnlocksPerWindow) || 3);
+
+function archiveCreditState(now) {
+  const at = Number(now) || Date.now();
+  if (!CONFIG.archiveGate) return { used: 0, start: at, days: [], migrated: true };
+  const raw = load(ARCHIVE_CREDITS_KEY, {});
+  let used = Math.max(0, Number(raw.used) || 0);
+  let start = Number(raw.start) || 0;
+  const days = Array.isArray(raw.days) ? raw.days.filter(k => /^\d{4}-\d{2}-\d{2}$/.test(String(k))).map(String) : [];
+  let changed = !raw.migrated;
+  if (!raw.migrated) {
+    // Only carry over days a returning player actually opened. A brand-new browser
+    // has no legacy save and gets today alone, not the old 7-day free window.
+    const legacySave = load(LS.archiveUnlock, {});
+    const legacy = Number(legacySave && legacySave.unlockedDays) || 0;
+    if (legacy > 0) {
+      const last = dayNumber(todayKey());
+      for (let n = last; n >= Math.max(0, last - legacy + 1); n--) {
+        const k = keyFromDay(n);
+        if (!days.includes(k)) days.push(k);
+      }
+    }
+  }
+  if (!start || at - start >= archiveWindowMs() || start > at) { used = 0; start = at; changed = true; }
+  const st = { used, start, days, migrated: true };
+  if (changed) save(ARCHIVE_CREDITS_KEY, st);
+  return st;
+}
+function archiveCreditsLeft(st) { return Math.max(0, archiveMaxCredits() - (st ? st.used : 0)); }
+function archiveWindowEnd(st) { return (st ? st.start : Date.now()) + archiveWindowMs(); }
+function archiveUnlockDay(key, now) {
+  const at = Number(now) || Date.now();
+  const st = archiveCreditState(at);
+  if (st.days.includes(key)) return { ok: true, already: true, left: archiveCreditsLeft(st), endsAt: archiveWindowEnd(st) };
+  if (st.used >= archiveMaxCredits()) return { ok: false, reason: "cooldown", left: 0, endsAt: archiveWindowEnd(st) };
+  st.used += 1;
+  st.days.push(key);
+  save(ARCHIVE_CREDITS_KEY, st);
+  return { ok: true, left: archiveCreditsLeft(st), endsAt: archiveWindowEnd(st) };
+}
+function archiveDayUnlocked(key, now) {
+  if (!CONFIG.archiveGate || isPremium() || key === todayKey()) return true;
+  return archiveCreditState(now).days.includes(key);
+}
+function archiveClockText(ms) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+  return [h, m, s].map(n => String(n).padStart(2, "0")).join(":");
+}
+function archiveGateHeaderHtml() {
+  const st = archiveCreditState();
+  const left = archiveCreditsLeft(st);
+  return `Today and every day you've unlocked is free. <b>${left}</b> of ${archiveMaxCredits()} Unlock! left — another ${archiveMaxCredits()} in ${archiveClockText(archiveWindowEnd(st) - Date.now())}. Premium opens every day and lets you share unlocked puzzles. ${premiumUpsellHtml()}`;
+}
+window.RankdArchiveCredits = {
+  key: ARCHIVE_CREDITS_KEY, state: archiveCreditState, left: archiveCreditsLeft,
+  windowEnd: archiveWindowEnd, unlockDay: archiveUnlockDay, dayUnlocked: archiveDayUnlocked,
+  clock: archiveClockText, header: archiveGateHeaderHtml, windowMs: archiveWindowMs, max: archiveMaxCredits,
+};
+
 function archiveFreeUnlocked(key) {
-  if (isPremium()) return true;
-  const age = archiveAgeDays(key);
-  return age >= 0 && age < getArchiveUnlockedDays();
+  return archiveDayUnlocked(key);
 }
 function archiveUnlockToast() {
   return `Unlocked ${archiveAdUnlockDays()} more days — tap again for older puzzles`;
@@ -6709,11 +6787,12 @@ function goDate(key, opts) {
     openDay();
     return;
   }
-  // Free: watch a long ad to unlock the next adUnlockDays, then retry. Malformed challenges fall through to here.
-  unlockNextArchiveDays(() => {
-    goArchive();
-    if (archiveFreeUnlocked(key)) { state.mode = "archive"; state.dateKey = key; bindChallenge("", { k: "d", id: key }); openDay(); }
-    else toast(archiveUnlockToast());
+  // Locked day: spend one Unlock! credit, or show the Go Premium wall. Malformed challenges fall through here.
+  requestArchiveUnlock(key, () => {
+    if (!archiveFreeUnlocked(key)) return;
+    state.mode = "archive"; state.dateKey = key;
+    bindChallenge("", { k: "d", id: key });
+    openDay();
   });
 }
 function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
@@ -6786,10 +6865,47 @@ function showLongAd({ reason, onDone, onCancel } = {}) {
 window.RankdLongAd = window.RankdLongAd || { show: (opts) => showLongAd(opts) };
 
 function unlockNextArchiveDays(then) {
+  // Legacy ad-reward path. Unused while CONFIG.adsEnabled is false; kept so the
+  // old unlock helpers still have one caller and the archive save stays readable.
   showLongAd({ reason: "archive", onDone: () => {
     applyArchiveAdUnlock();
     then && then();
   }});
+}
+
+// ---- Unlock! / Go Premium wall ----------------------------------------------
+let premiumGateTimer = null;
+function stopPremiumGateTimer() { if (premiumGateTimer) { clearInterval(premiumGateTimer); premiumGateTimer = null; } }
+function showPremiumGate(endsAt) {
+  // No modal in Studio / tests: the credit logic is still exercised there.
+  if (typeof openModal !== "function" || !$("#modalBody")) return;
+  stopPremiumGateTimer();
+  openModal(`<h2>🔒 Go Premium!</h2>
+    <p>You've used all <b>${archiveMaxCredits()} Unlock!</b> for now. Another ${archiveMaxCredits()} are ready in:</p>
+    <p class="gate-clock" id="gateTimer" role="timer" aria-live="polite">--:--:--</p>
+    <p>Premium opens <b>every archived day</b> instantly — and you can <b>share unlocked puzzles with friends</b>: your challenge links open those days for them.</p>
+    <div class="confirm-row"><button type="button" class="pill-btn outline" id="gateClose">Not now</button><button type="button" class="pill-btn primary" id="gatePremium">Go Premium</button></div>`);
+  const tick = () => {
+    const left = Math.max(0, endsAt - Date.now());
+    const el = $("#gateTimer");
+    if (!el) { stopPremiumGateTimer(); return; }
+    el.textContent = left > 0 ? archiveClockText(left) : "Ready — tap Unlock! again";
+    if (left <= 0) stopPremiumGateTimer();
+  };
+  tick();
+  premiumGateTimer = setInterval(tick, 1000);
+  const close = $("#gateClose"); if (close) close.onclick = () => { stopPremiumGateTimer(); closeModal(); goArchive(); };
+  const prem = $("#gatePremium"); if (prem) prem.onclick = () => { stopPremiumGateTimer(); closeModal(); goPremium(); };
+}
+function requestArchiveUnlock(key, then) {
+  // Gate off (until Polar is live) or Premium: no credits spent, just open the day.
+  if (!CONFIG.archiveGate || isPremium()) { then && then(); return; }
+  const res = archiveUnlockDay(key);
+  if (!res.ok) { showPremiumGate(res.endsAt); return; }
+  const row = document.querySelector(`.arch[data-key="${key}"]`);
+  if (row) { row.classList.add("just-unlocked"); setTimeout(() => row.classList.remove("just-unlocked"), 900); }
+  toast(res.already ? "Already unlocked — enjoy!" : `Unlocked! ${res.left} of ${archiveMaxCredits()} left in this window.`);
+  then && then();
 }
 function practiceGamesPlayed() { return Number(load(LS.practiceAds, { games: 0 }).games) || 0; }
 function bumpPracticeGame() {
@@ -6800,16 +6916,16 @@ function bumpPracticeGame() {
 function goArchive() {
   state.view = "archive"; showView("archive"); setHash("#archive");
   const today = todayKey(), last = dayNumber(today), all = load(LS.results, {});
-  const prem = isPremium(), unlocked = getArchiveUnlockedDays();
+  const prem = isPremium();
   const sub = document.querySelector("#archiveView .section-sub");
-  if (sub) sub.innerHTML = prem
+  if (sub) sub.innerHTML = (!CONFIG.archiveGate || prem)
     ? "Every daily puzzle so far. Archive plays don't affect your streak."
-    : archiveListHeaderHtml(unlocked, last);
+    : archiveGateHeaderHtml();
   const rows = [];
   for (let n = last; n >= 0; n--) {
     const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = rowMatchesPuzzle(r, p) ? r : null;
     const locked = !archiveFreeUnlocked(key);
-    let badge = locked ? `<span class="ar unlock">Watch ad ▶</span>` : `<span class="ar">Play →</span>`;
+    let badge = locked ? `<span class="ar unlock">🔓 Unlock!</span>` : `<span class="ar">Play →</span>`;
     if (!locked) {
       const mr = mine && mine.type === "rank" ? normRank(mine) : null;
       if (mr && mr.done) badge = mr.solved ? `<span class="ar done">✓ in ${mr.tries}</span>` : `<span class="ar lost">✗ X/${CONFIG.rankMaxTries}</span>`;
@@ -6838,7 +6954,7 @@ function goArchive() {
   if (runArchiveSearch) runArchiveSearch();
   window.scrollTo({ top: 0 });
 }
-// Search only hides rows. Locked rows keep data-locked and still go through goDate (the ad unlock).
+// Search only hides rows. Locked rows keep data-locked and still go through goDate (the Unlock! step).
 let runArchiveSearch = null;
 function applyArchiveFilter() {
   const input = $("#archiveSearch");
@@ -6940,7 +7056,6 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
     <button id="mSettings">⚙️ Settings<small>Theme, streamer mode, load your spreadsheet</small></button>
     <button id="mHow">❓ How to play</button>
-    <button id="mAbout">📚 About &amp; sources</button>
     <a class="menu-link" id="mAboutPage" href="about.html">ℹ️ About ranki.gg<small>What it is, how we source the data, who makes it</small></a>
     <a class="menu-link" id="mContact" href="contact.html">✉️ Contact<small>The contact page</small></a>
     <a class="menu-link" id="mHowPage" href="how-to-play.html">📖 Full how-to-play guide</a>
@@ -6954,7 +7069,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
   if ($("#mPremium")) $("#mPremium").onclick = () => { closeModal(); goPremium(); };
   $("#modal").classList.add("sheet");
   if ($("#mShare")) $("#mShare").onclick = () => { closeModal(); doShare(challengeText()); };
-  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal; $("#mAbout").onclick = aboutModal;
+  $("#mArchive").onclick = () => { closeModal(); goArchive(); }; if ($("#mList")) $("#mList").onclick = listModal; if ($("#mPractice")) $("#mPractice").onclick = () => { closeModal(); goPractice(); }; $("#mSettings").onclick = settingsModal; $("#mHow").onclick = howModal;
 }
 function settingsModal() {
   const seg = (name, opts, cur) => `<div class="seg" data-set="${name}">${opts.map(([v, l]) => `<button data-v="${v}" class="${cur === v ? "on" : ""}">${l}</button>`).join("")}</div>`;
@@ -7044,11 +7159,6 @@ function howModal() {
    <p>🎉 Solve a Rank it, Match it, Tier it, Top 5 or Name it on the 1st or 2nd try for a celebration. First try = the big one. Every card in the wrong spot on the first try — or a Top 5 where all five slots are wrong on the first try — gets a playful Ignorant!. So does a Name it loss where every guess was wrong.</p>
    <p>A new daily puzzle drops at local midnight. Missed one? It's in the Archive. Every number links to its source.</p>`);
 }
-function aboutModal() {
-  openModal(`<h2>About &amp; sources</h2><p style="color:var(--muted);font-size:14px">Every value and hint comes from the source linked below.</p>
-    <ol class="src-list">${PUZZLES.map(p => `<li>${esc(p.emoji)} ${esc(fullTitle(p))}<br>${p.sourceUrl ? `<a href="${esc(p.sourceUrl)}" target="_blank" rel="noopener">${esc(p.source || p.sourceUrl)}</a>` : esc(p.source)}${
-      p.type === "top5" ? `<br><small>Hints: World Bank (population SP.POP.TOTL; GDP per capita NY.GDP.PCAP.CD, current US$; capital cities), 6-continent grouping, standard landlocked list</small>` : ""}</li>`).join("")}</ol>`);
-}
 function downloadCsv() {
   const cols = SHEET_COLS.puzzles, q = v => /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v), lines = [cols.join(",")];
   PUZZLES.filter(p => p.type === "rank").forEach(p => p.items.forEach((it, n) => lines.push([p.id, n ? "" : p.order, n ? "" : p.emoji, n ? "" : p.question, n ? "" : p.stat, n ? "" : p.unit,
@@ -7113,7 +7223,6 @@ $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
 if ($("#spotlightDismiss")) $("#spotlightDismiss").onclick = dismissSpotlight;
 $("#modal").addEventListener("click", e => { if (e.target.id === "modal") closeModal(); });
-$("#aboutLink").onclick = e => { e.preventDefault(); aboutModal(); };
 $("#homeLink").onclick = e => { e.preventDefault(); goHome(); };
 if ($("#homePlay")) $("#homePlay").addEventListener("click", () => goToday());
 function anonAnalyticsId() {
@@ -7634,7 +7743,7 @@ document.addEventListener("click", e => {
 });
 startAuth();
 
-applyTheme(); applyStreamer(); applyPremium();
+applyTheme(); applyAdsEnabled(); applyStreamer(); applyPremium();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   dismissLongAd();
