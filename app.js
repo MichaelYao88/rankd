@@ -1269,6 +1269,15 @@ function googleProfile(user) {
 function getChallengerName() {
   return googleProfile(authUser).name || null;
 }
+// Shared with the Studio/tests. Review mode can swap a day's puzzle id between
+// deploys; the d:YYYY-MM-DD key is the day, so keep that play instead of orphaning it.
+function resultRowMatches(r, key, puzzleId, dateKey, mode) {
+  if (!r) return false;
+  if (r.id === puzzleId || (r.scheduleId && r.scheduleId === puzzleId)) return true;
+  return /^d:\d{4}-\d{2}-\d{2}$/.test(key)
+    && (mode === "daily" || mode === "archive")
+    && !!r.dayKey && r.dayKey === dateKey;
+}
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
 // One CSS class is the final backstop: even if a slot gets .ad-on, it never reserves space.
 function applyAdsEnabled() { document.documentElement.classList.toggle("ads-off", !CONFIG.adsEnabled); }
@@ -2865,15 +2874,9 @@ function reviewSlotUsable(p) {
   return true;
 }
 function reviewFallback(slot) {
-  const type = slot && slot.type;
-  const pools = [];
-  if (Array.isArray(window.RANKD_REVIEW_FILLS)) pools.push.apply(pools, window.RANKD_REVIEW_FILLS);
-  if (Array.isArray(PUZZLES)) pools.push.apply(pools, PUZZLES);
-  if (window.RankdNumber) {
-    for (const set of window.RankdNumber.sets()) pools.push.apply(pools, window.RankdNumber.cards(set));
-  }
-  for (const p of pools) if ((!type || p.type === type) && reviewSlotUsable(p)) return p;
-  for (const p of pools) if (reviewSlotUsable(p)) return p;
+  // A slot whose puzzle was stripped from the review build must not silently turn
+  // into an unrelated first puzzle from the pool (that looked like a random
+  // practice board in the archive). Drop it; dayParts filters null slots out.
   return null;
 }
 function pileBehind(partCount, index) {
@@ -3056,7 +3059,7 @@ if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
-    normalizeNewsletterEmail, NEWSLETTER_KEY, NEWSLETTER_DISMISS,
+    normalizeNewsletterEmail, NEWSLETTER_KEY, NEWSLETTER_DISMISS, resultRowMatches,
     top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
     sourceCardModel, premium: window.RankdPremium, bonusForDay: bonusForDayNumber, bonusGap: BONUS_GAP, sameTheme };
   window.RankdArchive = {
@@ -3149,10 +3152,14 @@ const resultKey = () => {
   }
   return state.mode === "preview" ? `v:${state.puzzle.id}:${state.dateKey}` : state.mode === "all" ? `p:${state.puzzle.id}` : state.mode === "practice" ? `r:${state.puzzle.id}` : `d:${state.dateKey}`;
 };
-const getResult = () => { const r = load(LS.results, {})[resultKey()]; return r && r.id === state.puzzle.id ? r : null; };
-const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, scheduleId: (state.puzzle && (state.puzzle.scheduleId || state.puzzle.id)) || "", at: Date.now() };
+const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, scheduleId: (state.puzzle && (state.puzzle.scheduleId || state.puzzle.id)) || "", dayKey: state.dateKey || "", at: Date.now() };
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
+const getResult = () => {
+  const key = resultKey();
+  const r = load(LS.results, {})[key];
+  return resultRowMatches(r, key, state.puzzle && state.puzzle.id, state.dateKey, state.mode) ? r : null;
+};
 function activePlay() {
   const p = state.puzzle;
   if (!p) return null;
@@ -3198,7 +3205,9 @@ function storedRow(key, id) {
 }
 function rowMatchesPuzzle(row, p) {
   if (!row || !p) return false;
-  return row.id === p.id || row.scheduleId === p.id;
+  if (row.id === p.id || row.scheduleId === p.id) return true;
+  // A review-build deploy can swap a day's puzzle id. The row is still for this day.
+  return (state.mode === "daily" || state.mode === "archive") && !!row.dayKey && row.dayKey === state.dateKey;
 }
 function storedMainDone(p) {
   if (!p) return null;

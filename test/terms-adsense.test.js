@@ -28,7 +28,7 @@ test("terms.html exists, is linked, and is in the sitemap", () => {
     assert.doesNotMatch(html, /prototype/i, page);
   }
   const sw = read("sw.js");
-  assert.match(sw, /ranki-shell-v68/);
+  assert.match(sw, /ranki-shell-v69/);
   assert.match(sw, /"\/terms\.html"/);
   assert.match(sw, /"\/about\.html"/);
   assert.match(sw, /"\/privacy\.html"/);

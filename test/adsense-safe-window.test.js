@@ -102,7 +102,9 @@ test("cutoff helper, and day-keyed progress still requires the puzzle id", () =>
 
   const app = fs.readFileSync(path.join(root, "app.js"), "utf8");
   assert.match(app, /d:\$\{state\.dateKey\}/);
-  assert.match(app, /r && r\.id === state\.puzzle\.id/);
+  // A review-build deploy can swap a day's puzzle id. Keep the day's play via dayKey.
+  assert.match(app, /function resultRowMatches\(/);
+  assert.match(app, /dayKey: state\.dateKey \|\| ""/);
   assert.match(app, /#d=\$\{state\.dateKey\}/);
   assert.match(app, /#p=\$\{encodeURIComponent\(state\.puzzle\.id\)\}/);
   assert.match(app, /#r=\$\{state\.puzzle\.seed\}/);
