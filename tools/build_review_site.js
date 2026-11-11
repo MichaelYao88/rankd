@@ -6,8 +6,7 @@ const vm = require("vm");
 
 const root = path.join(__dirname, "..");
 const out = path.join(root, "_site");
-const packed = "c3VpY2lkZXxzZWxmLWhhcm18c2VsZiBoYXJtfHN0YXR1dG9yeSByYXBlfFxicmFwZVxifHNleHVhbHx0ZWVuIGJpcnRofHRlZW5hZ2V8bXVyZGVyfGhvbWljaWRlfGNvY2FpbmV8Y2FubmFiaXN8bWFyaWp1YW5hfGhlcm9pbnxvcGlvaWR8b3ZlcmRvc2V8bmFyY290aWN8XGJwZW5pc1xifHBvcm5vZ3JhcGh8Y2hpbGQgYWJ1c2V8Y2hpbGQgcG9ybnxleGVjdXRpb258ZmVtaWNpZGV8Z2VuaXRhbHxwcm9zdGl0dXR8aW5jZXN0fFxiaGl2XGJ8XGJkcnVncz9cYg==";
-const banned = new RegExp(Buffer.from(packed, "base64").toString("utf8"), "i");
+const { banned } = require("./review_terms");
 const skipDir = new Set([".git", "node_modules", "test", "tools", "docs", "sensitive", "_site"]);
 const textExt = new Set([".html", ".js", ".css", ".json", ".xml", ".txt", ".svg", ".webmanifest", ".md"]);
 
@@ -282,5 +281,8 @@ if (hits.length) {
   console.error(hits.slice(0, 40).join("\n"));
   throw new Error(hits.length + " restricted hits in _site");
 }
+// Crawlable archive: one plain page per day that has already gone live. Reads
+// the built site, so it uses the same review substitutions as the game.
+require("./build_daily_pages").main();
 console.log("review days", Object.keys(restore).length, "fills", fillListSafe(fillList), "site files ok");
 function fillListSafe(list) { return list.length; }

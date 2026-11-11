@@ -568,10 +568,18 @@ test("challenge share, the result qr, and the first play", async () => {
   assert.equal(qrBox().classList.contains("hidden"), false);
 });
 
-test("the All-puzzles list is off for the AdSense review", () => {
+test("the All-puzzles list is off, but #p= still opens one named card", () => {
   const { api } = bootGame();
   assert.equal(api.CONFIG.SHOW_ALL_PUZZLES, false);
-  api.goAll(0);
+  // No list: a bare goAll() falls back to today.
+  api.goAll();
   assert.notEqual(api.state.mode, "all");
+  // The learn pages link to specific cards with #p=<id>, so those still open.
+  const idx = api.PUZZLES.findIndex(p => p.id === "rice");
+  api.goAll(idx);
+  assert.equal(api.state.mode, "all");
+  assert.equal(api.state.puzzle.id, "rice");
+  // "Next puzzle" must not walk the hidden list.
+  api.goAll(idx);
   assert.match(read("app.js"), /SHOW_ALL_PUZZLES: false/);
 });

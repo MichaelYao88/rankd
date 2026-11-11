@@ -84,6 +84,8 @@ test("static pages do not link to a missing local file", () => {
       if (/^https?:\/\//i.test(href)) continue;
       const clean = href.split("#")[0].split("?")[0];
       if (!clean) continue;
+      // daily/ is generated into _site by tools/build_daily_pages.js, not committed.
+      if (/^daily\//.test(clean)) continue;
       const target = clean.startsWith("/")
         ? path.join(root, decodeURIComponent(clean.slice(1)))
         : path.resolve(dir, decodeURIComponent(clean));
