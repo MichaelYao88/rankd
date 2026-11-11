@@ -73,6 +73,7 @@ The sign-in session is sent only to ranki.gg's Supabase project so the account s
   <li><code>rankd.newsletter.dismiss.v1</code>: set when you dismiss the results-screen box</li>
   <li><code>rankd.settings.v1</code>: your settings (light or dark theme, streamer mode, sound)</li>
   <li><code>rankd.country.v1</code>: the coarse country code used to show community results for your country (no IP address)</li>
+  <li><code>rankd.community.v1</code>: today's comparison snapshot, kept on the device so a slow or failed request can still show the crowd. It is replaced the next day</li>
   <li><code>rankd.custom.v2</code>: only if you load your own puzzle spreadsheet</li>
   <li><code>rankd.supabase.auth</code>: your ranki.gg sign-in session, if you created an account</li>
   <li><code>ranki.account.seen.v1</code>: remembers that this browser has had a ranki.gg session, so the button says Sign in instead of Sign up. It is not the session. Clear all data leaves it in place, because that action only removes <code>rankd.</code> keys. Clearing this site's storage removes it</li>

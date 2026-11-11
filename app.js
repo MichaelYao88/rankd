@@ -143,10 +143,39 @@ window.RankdData = RankdData;
 // card already skip it) so those finishes are not inserted either. Streamer mode
 // only hides ads — a Daily or Archive finish there still counts.
 // ?stats=local forces the repo seed. ?cc=TW only changes which bucket the panel reads.
-// Writes are fire-and-forget. Failures never surface in the UI.
+// Writes are fire-and-forget. A 429, 5xx, or timeout drops the row and pauses
+// further submits. The old plays insert runs only when submit-play is missing
+// (404). Failures never surface in the UI.
+// The comparison document is one row (newest community_snapshots.id), not a
+// per-request aggregate. The browser keeps it for the local day. A miss uses
+// that copy, then community-stats.json. Each network call gives up after 3s.
 // Country is not sent by the client. submit-play derives an ISO code and drops the IP.
 // ================================================================
 const COMMUNITY_STATS_FALLBACK = "community-stats.json";
+const NET_TIMEOUT_MS = 3000;
+const SUBMIT_BACKOFF_MS = 30000;
+const ACCOUNT_REFRESH_MS = 60000;
+const COMMUNITY_CACHE_KEY = "rankd.community.v1";
+function netDeadline() {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => { try { ctrl.abort(); } catch (e) {} }, NET_TIMEOUT_MS) : null;
+  return { signal: ctrl ? ctrl.signal : undefined, done() { if (timer) clearTimeout(timer); } };
+}
+function runQuery(builder) {
+  const deadline = netDeadline();
+  let query = builder;
+  try {
+    if (deadline.signal && query && typeof query.abortSignal === "function") query = query.abortSignal(deadline.signal);
+  } catch (e) {}
+  let timer = null;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(Object.assign(new Error("timeout"), { name: "TimeoutError" })), NET_TIMEOUT_MS);
+  });
+  return Promise.race([Promise.resolve(query), timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+    deadline.done();
+  });
+}
 const COMMUNITY_MIN_COUNTRY = (window.RankdSeed && window.RankdSeed.MIN_COUNTRY) || 9;
 const GEO_LS = "rankd.country.v1";
 const GEO_TTL_MS = 12 * 60 * 60 * 1000;
@@ -603,11 +632,10 @@ const ViewerGeo = {
     const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
     const key = CONFIG.SUPABASE_ANON_KEY;
     if (!base || !key) return null;
-    const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
-    const timer = ctrl ? setTimeout(() => ctrl.abort(), 2500) : null;
+    const deadline = netDeadline();
     try {
       const res = await fetch(base + "/functions/v1/submit-play", {
-        method: "GET", cache: "no-store", signal: ctrl ? ctrl.signal : undefined,
+        method: "GET", cache: "no-store", signal: deadline.signal,
         headers: { apikey: key, Authorization: "Bearer " + key },
       });
       if (!res.ok) return null;
@@ -615,27 +643,58 @@ const ViewerGeo = {
       const code = String((body && body.countryCode) || "").toUpperCase();
       return /^[A-Z]{2}$/.test(code) && code !== "XX" && code !== "T1" ? code : null;
     } catch { return null; }
-    finally { if (timer) clearTimeout(timer); }
+    finally { deadline.done(); }
   },
 };
+function readCommunityCache() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(COMMUNITY_CACHE_KEY) || "null");
+    if (!saved || saved.day !== keyOf(new Date()) || !saved.doc || typeof saved.doc.puzzles !== "object" || !saved.doc.puzzles) return null;
+    return saved.doc;
+  } catch { return null; }
+}
+function writeCommunityCache(doc) {
+  if (!doc || typeof doc.puzzles !== "object" || !doc.puzzles) return;
+  try { localStorage.setItem(COMMUNITY_CACHE_KEY, JSON.stringify({ day: keyOf(new Date()), doc })); } catch { /* full or private mode */ }
+}
 const CommunityStats = {
-  _cache: null, _url: null,
+  _cache: null, _url: null, _loading: null, _dropUntil: 0, _inflight: false, _queue: [],
   async load() {
     let local = false;
     try { local = new URLSearchParams(location.search).get("stats") === "local"; } catch { local = false; }
     const url = local ? COMMUNITY_STATS_FALLBACK : (CONFIG.COMMUNITY_STATS_URL || COMMUNITY_STATS_FALLBACK);
     if (this._cache && this._url === url) return this._cache;
+    if (this._loading && this._url === url) return this._loading;
     this._url = url;
+    this._loading = this._load(url, local).finally(() => { this._loading = null; });
+    return this._loading;
+  },
+  async _load(url, local) {
     const pull = async (u) => {
-      const res = await fetch(u, { cache: "no-store" });
-      if (!res.ok) throw new Error("community-stats " + res.status);
-      return res.json();
+      const deadline = netDeadline();
+      try {
+        // "default" lets the browser honor Cache-Control. The live function is
+        // still DYNAMIC at the edge (a Set-Cookie), so the day cache below is
+        // what actually skips a repeat download.
+        const res = await fetch(u, { cache: "default", signal: deadline.signal });
+        if (!res.ok) throw new Error("community-stats " + res.status);
+        return await res.json();
+      } finally { deadline.done(); }
     };
-    try { this._cache = await pull(url); }
-    catch (e) {
-      if (url !== COMMUNITY_STATS_FALLBACK) { try { this._cache = await pull(COMMUNITY_STATS_FALLBACK); return this._cache; } catch {} }
-      this._cache = { puzzles: {} };
+    if (!local) {
+      try {
+        const doc = await pull(url);
+        if (doc && doc.puzzles && typeof doc.puzzles === "object") {
+          this._cache = doc;
+          writeCommunityCache(doc);
+          return doc;
+        }
+      } catch { /* seeded copy below */ }
+      const cached = readCommunityCache();
+      if (cached) { this._cache = cached; return cached; }
     }
+    try { this._cache = await pull(local ? url : COMMUNITY_STATS_FALLBACK); }
+    catch { this._cache = { puzzles: {} }; }
     return this._cache;
   },
   submit(result) {
@@ -644,28 +703,52 @@ const CommunityStats = {
       const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
       const key = CONFIG.SUPABASE_ANON_KEY;
       if (!row || !base || !key) return false;
-      const headers = { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key };
-      // Legacy insert omits country_code and the new columns. Guesses still ride in payload.
+      if (Date.now() < this._dropUntil) return false;
+      if (this._inflight) {
+        if (this._queue.length < 3) this._queue.push(row);
+        return true;
+      }
+      this._send(row, base, key);
+      return true;
+    } catch { return false; }
+  },
+  _pauseSubmits() {
+    this._dropUntil = Date.now() + SUBMIT_BACKOFF_MS;
+    this._queue = [];
+  },
+  _send(row, base, key) {
+    this._inflight = true;
+    const headers = { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key };
+    const deadline = netDeadline();
+    const finish = () => {
+      deadline.done();
+      this._inflight = false;
+      if (Date.now() < this._dropUntil) { this._queue = []; return; }
+      const next = this._queue.shift();
+      if (next) this._send(next, base, key);
+    };
+    // 404 means the function is not deployed. Anything slower or busier is dropped.
+    const legacyInsert = () => {
       const legacy = {
         puzzle_id: row.puzzle_id, day_key: row.day_key, mode: row.mode, puzzle_type: row.puzzle_type,
         solved: row.solved, perfect: row.perfect, payload: row.payload,
       };
-      const legacyInsert = () => {
-        fetch(base + "/rest/v1/plays", {
-          method: "POST", keepalive: true,
-          headers: { ...headers, Prefer: "return=minimal" },
-          body: JSON.stringify(legacy),
-        }).catch(() => {});
-      };
-      // 422 = rejected row (no insert). Anything else (missing function, 500) falls back.
-      fetch(base + "/functions/v1/submit-play", {
-        method: "POST", keepalive: true, headers, body: JSON.stringify(row),
-      }).then(res => {
-        if (res.ok || res.status === 422) return;
-        legacyInsert();
-      }, legacyInsert);
-      return true;
-    } catch { return false; }
+      fetch(base + "/rest/v1/plays", {
+        method: "POST", keepalive: true,
+        headers: { ...headers, Prefer: "return=minimal" },
+        body: JSON.stringify(legacy),
+      }).catch(() => {});
+    };
+    fetch(base + "/functions/v1/submit-play", {
+      method: "POST", keepalive: true, headers, body: JSON.stringify(row), signal: deadline.signal,
+    }).then(res => {
+      if (res.status === 404) legacyInsert();
+      else if (res.status === 429 || res.status >= 500) this._pauseSubmits();
+      finish();
+    }, () => {
+      this._pauseSubmits();
+      finish();
+    });
   },
   async fetch(puzzleId, /* dayKey */) {
     const doc = await this.load();
@@ -6947,16 +7030,18 @@ async function sendPuzzleSubmission(row) {
     user_agent: (typeof navigator !== "undefined" && navigator.userAgent) ? String(navigator.userAgent).slice(0, SUBMISSION_LIMITS.user_agent) : null,
     anon_id: anonAnalyticsId(),
   };
+  const deadline = netDeadline();
   let res;
   try {
     res = await fetch(base + "/rest/v1/puzzle_submissions", {
       method: "POST",
+      signal: deadline.signal,
       headers: { "Content-Type": "application/json", apikey: key, Authorization: "Bearer " + key, Prefer: "return=minimal" },
       body: JSON.stringify(payload),
     });
   } catch (e) {
     const err = new Error("network"); err.kind = "network"; throw err;
-  }
+  } finally { deadline.done(); }
   if (res.ok) return;
   let text = "";
   try { text = await res.text(); } catch (e) {}
@@ -7051,10 +7136,12 @@ async function sendNewsletterSignup(email, source, puzzleDate) {
   if (!base || !key) { const err = new Error("missing"); err.kind = "missing"; throw err; }
   const payload = { email: email, source: source };
   if (puzzleDate) payload.puzzle_date = puzzleDate;
+  const deadline = netDeadline();
   let res;
   try {
     res = await fetch(base + "/rest/v1/newsletter_signups?on_conflict=email", {
       method: "POST",
+      signal: deadline.signal,
       headers: {
         "Content-Type": "application/json",
         apikey: key,
@@ -7065,7 +7152,7 @@ async function sendNewsletterSignup(email, source, puzzleDate) {
     });
   } catch (e) {
     const err = new Error("network"); err.kind = "network"; throw err;
-  }
+  } finally { deadline.done(); }
   if (res.ok || res.status === 409) return;
   const err = new Error("fail"); err.kind = "fail"; throw err;
 }
@@ -7333,33 +7420,51 @@ async function signOutAccount() {
   renderAccount();
   paintPremiumScreen();
 }
-async function refreshAccount() {
+let accountRefreshFlight = null;
+let accountFetchedAt = 0;
+let syncedProfile = "";
+async function refreshAccount(opts) {
+  const force = !!(opts && opts.force);
   renderAccount();
   if (!sb || !authUser) {
     setPremiumCache(null);
     paintPremiumScreen();
+    accountFetchedAt = 0;
+    syncedProfile = "";
     return;
   }
-  try { await sb.rpc("claim_premium_email"); } catch (e) {}
-  let row = null;
-  try {
-    const { data } = await sb.from("entitlements").select("premium, current_period_end, status, source_product").eq("user_id", authUser.id).maybeSingle();
-    row = data || null;
-  } catch (e) { row = null; }
-  setPremiumCache(row);
-  const g = googleProfile(authUser);
-  if (g.name || g.avatar) {
-    try {
-      await sb.from("profiles").update({
+  if (accountRefreshFlight) return accountRefreshFlight;
+  if (!force && accountFetchedAt && Date.now() - accountFetchedAt < ACCOUNT_REFRESH_MS) {
+    paintPremiumScreen();
+    return;
+  }
+  accountRefreshFlight = (async () => {
+    const wasPremium = isPremium();
+    await runQuery(sb.rpc("claim_premium_email")).catch(() => {});
+    const ent = await runQuery(
+      sb.from("entitlements").select("premium, current_period_end, status, source_product").eq("user_id", authUser.id).maybeSingle()
+    ).catch(e => ({ error: e }));
+    if (ent && !ent.error) {
+      setPremiumCache(ent.data || null);
+      accountFetchedAt = Date.now();
+    }
+    const g = googleProfile(authUser);
+    const stamp = (g.name || "") + "\n" + (g.avatar || "");
+    if (stamp.trim() && stamp !== syncedProfile) {
+      syncedProfile = stamp;
+      runQuery(sb.from("profiles").update({
         display_name: g.name,
         avatar_url: g.avatar || null,
-      }).eq("user_id", authUser.id);
-    } catch (e) {}
-  }
-  renderAccount();
-  paintPremiumScreen();
-  const arch = $("#archiveView");
-  if (arch && !arch.classList.contains("hidden")) goArchive();
+      }).eq("user_id", authUser.id)).catch(() => { syncedProfile = ""; });
+    }
+    renderAccount();
+    paintPremiumScreen();
+    if (isPremium() !== wasPremium) {
+      const arch = $("#archiveView");
+      if (arch && !arch.classList.contains("hidden")) goArchive();
+    }
+  })().finally(() => { accountRefreshFlight = null; });
+  return accountRefreshFlight;
 }
 let checkoutResumeDone = false;
 function maybeResumeCheckout(event) {
@@ -7390,7 +7495,7 @@ function startAuth() {
     sb.auth.onAuthStateChange((event, session) => {
       try {
         noteAuthUser(session && session.user);
-        refreshAccount();
+        refreshAccount({ force: event === "SIGNED_IN" });
         maybeResumeCheckout(event);
       } catch (e) {}
     });
