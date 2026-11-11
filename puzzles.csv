@@ -1202,3 +1202,15 @@ highest-point-modest,,,,,,,,Luxembourg,🇱🇺,559,2026,,,,181,223,Factbook cou
 highest-point-modest,,,,,,,,Denmark,🇩🇰,171,2026,,,,203,223,Factbook countries in this game,,,,,
 highest-point-modest,,,,,,,,Singapore,🇸🇬,166,2026,,,,204,223,Factbook countries in this game,,,,,
 highest-point-modest,,,,,,,,Qatar,🇶🇦,103,2026,,,,209,223,Factbook countries in this game,,,,,
+poultry-supply,278,🍗,Which country has the most poultry meat available per person?,"Poultry meat supply, kg per person per year",kg per person per year,top,no,United States,🇺🇸,54.54,2023,"Food and Agriculture Organization of the United Nations (2025), processed by Our World in Data. Food Balances, 2023. Kilograms per person per year available at the end of the supply chain. It does not count consumer waste, so the amount eaten can be lower. Column: poultry meat.",https://ourworldindata.org/grapher/per-capita-meat-type,"Malaysia's poultry supply is 51.90 kg per person, against 7.24 kg of pork and 8.75 kg of beef and buffalo. Israel, not on this list, is at 72.82 kg. The figure is food available in 2023, FAO via Our World in Data, not what reaches the plate. ranki.gg",12,176,FAO 2023 countries,bowl,,fao-poultry-2023,,Bird Supply
+poultry-supply,,,,,,,,Australia,🇦🇺,53.13,2023,,,,15,176,FAO 2023 countries,,,,,
+poultry-supply,,,,,,,,Malaysia,🇲🇾,51.9,2023,,,,16,176,FAO 2023 countries,,,,,
+poultry-supply,,,,,,,,Panama,🇵🇦,50.01,2023,,,,18,176,FAO 2023 countries,,,,,
+poultry-supply,,,,,,,,Qatar,🇶🇦,48.28,2023,,,,22,176,FAO 2023 countries,,,,,
+poultry-supply,,,,,,,,Brazil,🇧🇷,47.55,2023,,,,23,176,FAO 2023 countries,,,,,
+beef-supply,279,🥩,Which country has the most beef and buffalo meat available per person?,"Beef and buffalo meat supply, kg per person per year",kg per person per year,top,no,Zimbabwe,🇿🇼,45.48,2023,"Food and Agriculture Organization of the United Nations (2025), processed by Our World in Data. Food Balances, 2023. Kilograms per person per year available at the end of the supply chain. It does not count consumer waste, so the amount eaten can be lower. Column: beef and buffalo meat.",https://ourworldindata.org/grapher/per-capita-meat-type,"Uruguay's beef and buffalo supply is 21.31 kg per person. Argentina, not on this list, is 48.99, and India is 2.32. The figure is food available in 2023, FAO via Our World in Data, not what reaches the plate. ranki.gg",2,176,FAO 2023 countries,bowl,,fao-beef-2023,,Cattle Ledger
+beef-supply,,,,,,,,Brazil,🇧🇷,39.07,2023,,,,3,176,FAO 2023 countries,,,,,
+beef-supply,,,,,,,,United States,🇺🇸,37.04,2023,,,,4,176,FAO 2023 countries,,,,,
+beef-supply,,,,,,,,Mongolia,🇲🇳,33.28,2023,,,,5,176,FAO 2023 countries,,,,,
+beef-supply,,,,,,,,Uzbekistan,🇺🇿,32.27,2023,,,,6,176,FAO 2023 countries,,,,,
+beef-supply,,,,,,,,Uruguay,🇺🇾,21.31,2023,,,,24,176,FAO 2023 countries,,,,,
