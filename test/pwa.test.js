@@ -82,7 +82,7 @@ test("every HTML page links the manifest and iOS tags", () => {
     for (const name of fs.readdirSync(dir)) {
       const abs = path.join(dir, name);
       if (fs.statSync(abs).isDirectory()) {
-        if (name === "node_modules" || name === "vendor") continue;
+        if (name === "node_modules" || name === "vendor" || name === "_site") continue;
         walk(abs);
       } else if (name.endsWith(".html")) pages.push(path.relative(root, abs));
     }
