@@ -36,6 +36,14 @@ function boot() {
   return appBox.window;
 }
 
+const BOARD = [
+  ["Male drivers, 75+", 25.25],
+  ["Male drivers, 65–74", 24.67],
+  ["Female drivers, 15–20", 22.74],
+  ["Female drivers, 21–24", 19.6],
+  ["Female drivers, 25–34", 15.86],
+  ["Female drivers, 35–44", 12.38],
+];
 const SEX = [
   ["Male drivers, 15–20", 58.73],
   ["Male drivers, 21–24", 53.41],
@@ -79,7 +87,11 @@ test("fatal-crash boards take the next two orders and keep one denominator each"
   assert.match(race.stat, /per 100,000 people/);
   assert.equal(sex.stat.includes("per 100,000 people"), false);
   assert.equal(race.question.toLowerCase().includes("driver"), false);
-  assert.equal(JSON.stringify(sex.items.map(it => [it.name, it.value])), JSON.stringify(SEX));
+  assert.equal(sex.items.length, 6);
+  assert.equal(JSON.stringify(sex.items.map(it => [it.name, it.value])), JSON.stringify(BOARD));
+  const males = SEX.filter(row => row[0].startsWith("Male")).map(row => row[1]);
+  const females = SEX.filter(row => row[0].startsWith("Female")).map(row => row[1]);
+  assert.ok(Math.min(...males) > Math.max(...females));
   assert.equal(JSON.stringify(race.items.map(it => [it.name, it.value])), JSON.stringify(RACE));
   assert.match(sex.fact, /100,000 licensed drivers/);
   assert.match(sex.fact, /ranki\.gg/);
@@ -89,6 +101,7 @@ test("fatal-crash boards take the next two orders and keep one denominator each"
   assert.equal(race.sourceUrl, "https://doi.org/10.1016/j.jsr.2025.03.005");
   const sexStat = w.RANKD_NUMBER_STATS.find(s => s.id === "nhtsa-fatal-licensed-2022");
   const raceStat = w.RANKD_NUMBER_STATS.find(s => s.id === "cdc-mvc-race-2022");
+  assert.equal(sexStat.rows.length, 16);
   assert.equal(JSON.stringify(sexStat.rows.map(r => r[1])), JSON.stringify(SEX.map(r => r[1])));
   assert.equal(JSON.stringify(raceStat.rows.map(r => r[1])), JSON.stringify(RACE.map(r => r[1])));
   const sexDs = w.RANKD_PRACTICE.datasets.find(d => d.id === "nhtsa-fatal-licensed-2022");

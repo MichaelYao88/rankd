@@ -12,6 +12,18 @@ const CDC = "https://doi.org/10.1016/j.jsr.2025.03.005";
 const SEX_FACT = "Within each sex, drivers 75 and older are in fatal crashes a little more often per licensed driver than drivers 65 to 74. Note: drivers in fatal crashes per 100,000 licensed drivers, 2022. ranki.gg";
 const RACE_FACT = "American Indian or Alaska Native people are far above the other groups in this table, and Asian people are the lowest. These are age-adjusted deaths of everyone killed in a motor vehicle crash, not drivers per licensed driver. Race groups are non-Hispanic. ranki.gg";
 
+// The full table does not interleave: every male rate is above every female
+// rate (lowest male 24.67, highest female 22.74). The daily is the six rates
+// closest to that boundary, so the board is a tight cluster instead of sixteen
+// cards that "men first" solves. Practice and number-stats keep all 16.
+const BOARD = [
+  ["Male drivers, 75+", "👨", 25.25],
+  ["Male drivers, 65–74", "👨", 24.67],
+  ["Female drivers, 15–20", "👩", 22.74],
+  ["Female drivers, 21–24", "👩", 19.6],
+  ["Female drivers, 25–34", "👩", 15.86],
+  ["Female drivers, 35–44", "👩", 12.38],
+];
 const sexItems = [
   ["Male drivers, 15–20", "👨", 58.73],
   ["Male drivers, 21–24", "👨", 53.41],
@@ -55,7 +67,7 @@ const PUZZLES = [
     fact: SEX_FACT,
     art: "car", support: "", dataset: "nhtsa-fatal-licensed-2022",
     year: "2022", poolFrom: "2027-07-06",
-    items: sexItems.map(item),
+    items: BOARD.map(item),
   },
   {
     type: "rank", id: "fatal-crash-deaths-race", order: 275, emoji: "🚗",
@@ -157,7 +169,9 @@ function bars(items, shift) {
   return order.map((it, i) => ({ slot: i + 1, name: it.name, pct: Math.max(12, 48 - i * 3), emoji: it.emoji }));
 }
 for (const puzzle of PUZZLES) {
-  if (doc.puzzles[puzzle.id]) continue;
+  const existing = doc.puzzles[puzzle.id];
+  const have = existing && existing.firstGuessWorld && existing.firstGuessWorld.bars;
+  if (have && have.length === puzzle.items.length) continue;
   const standing = seed.standingBlock(puzzle.id, 910, "rank", puzzle.items.length);
   if (standing.avgTries < 3.3 || standing.avgTries > 4.0) throw new Error(puzzle.id + " tries " + standing.avgTries);
   if (standing.avgAccuracy < 50 || standing.avgAccuracy > 72) throw new Error(puzzle.id + " acc " + standing.avgAccuracy);
@@ -177,4 +191,97 @@ for (const puzzle of PUZZLES) {
   };
 }
 fs.writeFileSync(statsFile, JSON.stringify(doc));
+
+const vm = require("vm");
+function repairDailyBoard() {
+  const file = path.join(root, "puzzles-data.js");
+  const text = fs.readFileSync(file, "utf8");
+  const box = { window: {} };
+  vm.runInNewContext(text, box, { filename: "puzzles-data.js" });
+  const puzzles = box.window.RANKD_PUZZLES;
+  const puzzle = puzzles.find(row => row.id === "fatal-licensed-drivers");
+  if (!puzzle) return;
+  const next = BOARD.map(item);
+  if (JSON.stringify(puzzle.items) === JSON.stringify(next)) return;
+  puzzle.items = next;
+  const comment = text.slice(0, text.indexOf("window.RANKD_PUZZLES"));
+  fs.writeFileSync(file, comment + "window.RANKD_PUZZLES = " + JSON.stringify(puzzles) + ";\n");
+}
+function repairCsv() {
+  const csvFile = path.join(root, "puzzles.csv");
+  const lines = fs.readFileSync(csvFile, "utf8").split("\n").filter(line => line.split(",")[0] !== "fatal-licensed-drivers");
+  const puzzle = PUZZLES[0];
+  const fresh = [];
+  puzzle.items.forEach((it, i) => {
+    const head = i === 0
+      ? [puzzle.id, puzzle.order, puzzle.emoji, puzzle.question, puzzle.stat, puzzle.unit, puzzle.higherIs, "no", it.name, it.emoji, it.value, it.year, puzzle.source, puzzle.sourceUrl, puzzle.fact, "", "", "", puzzle.art, "", puzzle.dataset, puzzle.stat, puzzle.headline]
+      : [puzzle.id, "", "", "", "", "", "", "", it.name, it.emoji, it.value, it.year, "", "", "", "", "", "", "", "", "", "", ""];
+    fresh.push(head.map(csvEscape).join(","));
+  });
+  const text = lines.filter(Boolean).join("\n") + "\n" + fresh.join("\n") + "\n";
+  fs.writeFileSync(csvFile, text);
+}
+repairDailyBoard();
+repairCsv();
+fs.writeFileSync("/tmp/rankd-fatal-board.json", JSON.stringify(PUZZLES[0].items.map((it, i) => ({
+  id: "fatal-licensed-drivers",
+  cells: i === 0 ? [
+    ["B", 274], ["C", "🚗"], ["D", PUZZLES[0].question], ["E", PUZZLES[0].stat],
+    ["F", PUZZLES[0].unit], ["G", "top"], ["H", "no"], ["I", it.name], ["J", it.emoji],
+    ["K", it.value], ["L", "2022"], ["M", PUZZLES[0].source], ["N", PUZZLES[0].sourceUrl],
+    ["O", PUZZLES[0].fact], ["S", "car"], ["U", PUZZLES[0].dataset], ["W", PUZZLES[0].headline],
+  ] : [
+    ["I", it.name], ["J", it.emoji], ["K", it.value], ["L", "2022"],
+  ],
+}))));
+const py = [
+  "import json, re, zipfile",
+  "from pathlib import Path",
+  "xlsx = Path(" + JSON.stringify(path.join(root, "puzzles.xlsx")) + ")",
+  "items = json.loads(Path('/tmp/rankd-fatal-board.json').read_text())",
+  "def esc(s):",
+  "    return ('' if s is None else str(s)).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')",
+  "def cell(col, row, text):",
+  "    if text is None or text == '':",
+  "        return ''",
+  "    return f'<c r=\"{col}{row}\" t=\"inlineStr\"><is><t>{esc(text)}</t></is></c>'",
+  "def renumber(row, n):",
+  "    row = re.sub(r'<row r=\"\\d+\"', f'<row r=\"{n}\"', row, count=1)",
+  "    row = re.sub(r'r=\"([A-Z]+)\\d+\"', lambda m: 'r=\"' + m.group(1) + str(n) + '\"', row)",
+  "    return row",
+  "with zipfile.ZipFile(xlsx) as book:",
+  "    stored = {info.filename: (info, book.read(info.filename)) for info in book.infolist()}",
+  "xml = stored['xl/worksheets/sheet1.xml'][1].decode('utf-8')",
+  "rows = re.findall(r'<row r=\"\\d+\".*?</row>', xml)",
+  "kept = []",
+  "for row in rows:",
+  "    text = re.search(r'<c r=\"A\\d+\".*?<t>(.*?)</t>', row)",
+  "    if text and text.group(1) == 'fatal-licensed-drivers':",
+  "        continue",
+  "    kept.append(row)",
+  "insert_at = next((i for i, row in enumerate(kept) if '>fatal-crash-deaths-race<' in row), len(kept))",
+  "out = []",
+  "n = 1",
+  "bi = 0",
+  "for row in kept[:insert_at] + ['__BOARD__'] * len(items) + kept[insert_at:]:",
+  "    if row == '__BOARD__':",
+  "        item = items[bi]; bi += 1",
+  "        parts = [cell('A', n, item['id'])] + [cell(col, n, val) for col, val in item['cells']]",
+  "        out.append(f'<row r=\"{n}\">' + ''.join(parts) + '</row>')",
+  "    else:",
+  "        out.append(renumber(row, n))",
+  "    n += 1",
+  "body = ''.join(out)",
+  "xml = re.sub(r'<sheetData>.*</sheetData>', '<sheetData>' + body + '</sheetData>', xml, count=1, flags=re.S)",
+  "xml = re.sub(r'<dimension ref=\"([A-Z]+)1:[A-Z]+\\d+\"\\s*/>', lambda m: f'<dimension ref=\"{m.group(1)}1:W{n-1}\" />', xml, count=1)",
+  "stored['xl/worksheets/sheet1.xml'] = (stored['xl/worksheets/sheet1.xml'][0], xml.encode('utf-8'))",
+  "tmp = xlsx.with_suffix('.xlsx.tmp')",
+  "with zipfile.ZipFile(tmp, 'w') as dest:",
+  "    for name, (info, data) in stored.items():",
+  "        dest.writestr(info, data)",
+  "tmp.replace(xlsx)",
+  "print('xlsx board rows', len(items), 'sheet rows', n - 1)",
+].join("\n");
+fs.writeFileSync("/tmp/rankd-fatal-xlsx.py", py);
+require("child_process").execFileSync("python3", ["/tmp/rankd-fatal-xlsx.py"], { stdio: "inherit" });
 console.log("fatal driver boards added");
