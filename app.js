@@ -1270,13 +1270,17 @@ function getChallengerName() {
   return googleProfile(authUser).name || null;
 }
 // Shared with the Studio/tests. Review mode can swap a day's puzzle id between
-// deploys; the d:YYYY-MM-DD key is the day, so keep that play instead of orphaning it.
-function resultRowMatches(r, key, puzzleId, dateKey, mode) {
+// deploys; a d:YYYY-MM-DD row belongs to the DAY, so keep that play instead of
+// orphaning it. b:/v:/r:/p: keys stay strictly id-matched (they are per-puzzle).
+function resultRowMatches(r, key, puzzleId) {
   if (!r) return false;
-  if (r.id === puzzleId || (r.scheduleId && r.scheduleId === puzzleId)) return true;
-  return /^d:\d{4}-\d{2}-\d{2}$/.test(key)
-    && (mode === "daily" || mode === "archive")
-    && !!r.dayKey && r.dayKey === dateKey;
+  if (puzzleId && (r.id === puzzleId || (r.scheduleId && r.scheduleId === puzzleId))) return true;
+  const m = /^d:(\d{4}-\d{2}-\d{2})$/.exec(String(key || ""));
+  return !!m && !!r.dayKey && r.dayKey === m[1];
+}
+function resultRowFor(key, puzzle) {
+  const r = load(LS.results, {})[key];
+  return resultRowMatches(r, key, puzzle && puzzle.id) ? r : null;
 }
 function applyStreamer() { document.documentElement.classList.toggle("streamer", streamerOn()); if (typeof AdSense !== "undefined") AdSense.init(); }
 // One CSS class is the final backstop: even if a slot gets .ad-on, it never reserves space.
@@ -2863,9 +2867,15 @@ function reviewResolveSlot(slot) {
     const question = parent && Array.isArray(parent.questions) ? parent.questions.find(q => q && q.id === qid) : null;
     if (parent && question) found = quizCard(parent, question);
   }
-  if (!reviewSlotUsable(found)) found = reviewFallback(slot);
+  if (!reviewSlotUsable(found)) found = null;
   if (!found) return null;
-  return Object.assign({}, found, { role: slot && slot.role });
+  // review-play.js stores only id/role/type per slot. Restore the scheduled flag
+  // on the title: without it streakIndexOf() falls back to the LAST part (the
+  // closer), so the title is treated as a bonus, its result goes to a b: key,
+  // and the day looks unfinished / restarts / shows a stale score.
+  const out = Object.assign({}, found, { role: slot && slot.role });
+  if (out.role === "title") out.scheduled = true;
+  return out;
 }
 function reviewSlotUsable(p) {
   if (!p) return false;
@@ -3059,7 +3069,7 @@ if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
-    normalizeNewsletterEmail, NEWSLETTER_KEY, NEWSLETTER_DISMISS, resultRowMatches,
+    normalizeNewsletterEmail, NEWSLETTER_KEY, NEWSLETTER_DISMISS, resultRowMatches, resultRowFor,
     top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
     sourceCardModel, premium: window.RankdPremium, bonusForDay: bonusForDayNumber, bonusGap: BONUS_GAP, sameTheme };
   window.RankdArchive = {
@@ -3136,9 +3146,8 @@ function partStoredDone(i) {
   const parts = currentParts();
   const puzzle = parts[i];
   if (!puzzle) return false;
-  const row = load(LS.results, {})[partStorageKey(i)];
-  if (!row || !isDone(row)) return false;
-  return row.id === puzzle.id || row.scheduleId === puzzle.id;
+  const row = resultRowFor(partStorageKey(i), puzzle);
+  return !!(row && isDone(row));
 }
 function firstUnfinishedPart(parts) {
   for (let i = 0; i < parts.length; i++) if (!partStoredDone(i)) return i;
@@ -3155,11 +3164,7 @@ const resultKey = () => {
 const setResult = r => { const all = load(LS.results, {}); all[resultKey()] = { ...r, id: state.puzzle.id, scheduleId: (state.puzzle && (state.puzzle.scheduleId || state.puzzle.id)) || "", dayKey: state.dateKey || "", at: Date.now() };
   const rk = Object.keys(all).filter(k => k.startsWith("r:")).sort((a, b) => all[a].at - all[b].at); rk.slice(0, -30).forEach(k => delete all[k]);   // keep the last 30 random practice results
   save(LS.results, all); };
-const getResult = () => {
-  const key = resultKey();
-  const r = load(LS.results, {})[key];
-  return resultRowMatches(r, key, state.puzzle && state.puzzle.id, state.dateKey, state.mode) ? r : null;
-};
+const getResult = () => resultRowFor(resultKey(), state.puzzle);
 function activePlay() {
   const p = state.puzzle;
   if (!p) return null;
@@ -3199,21 +3204,16 @@ function commitFinish(g) {
   return true;
 }
 function storedRow(key, id) {
-  const row = load(LS.results, {})[key];
-  if (!row || row.id !== id) return null;
-  return row;
+  return resultRowFor(key, { id: id });
 }
-function rowMatchesPuzzle(row, p) {
-  if (!row || !p) return false;
-  if (row.id === p.id || row.scheduleId === p.id) return true;
-  // A review-build deploy can swap a day's puzzle id. The row is still for this day.
-  return (state.mode === "daily" || state.mode === "archive") && !!row.dayKey && row.dayKey === state.dateKey;
+function rowMatchesPuzzle(row, p, key) {
+  return resultRowMatches(row, key || resultKey(), p && p.id);
 }
 function storedMainDone(p) {
   if (!p) return null;
   const key = state.mode === "preview" ? `v:${p.id}:${state.dateKey}` : `d:${state.dateKey}`;
-  const row = load(LS.results, {})[key];
-  if (!rowMatchesPuzzle(row, p)) return null;
+  const row = resultRowFor(key, p);
+  if (!row) return null;
   const y = p.type === "rank" ? (normRank(row) || row) : row;
   return y && isDone(y) ? y : null;
 }
@@ -6935,7 +6935,7 @@ function goArchive() {
     : archiveGateHeaderHtml();
   const rows = [];
   for (let n = last; n >= 0; n--) {
-    const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = rowMatchesPuzzle(r, p) ? r : null;
+    const key = keyFromDay(n), p = puzzleForDay(n), r = all[`d:${key}`], mine = rowMatchesPuzzle(r, p, `d:${key}`) ? r : null;
     const locked = !archiveFreeUnlocked(key);
     let badge = locked ? `<span class="ar unlock">🔓 Unlock!</span>` : `<span class="ar">Play →</span>`;
     if (!locked) {
