@@ -1178,3 +1178,15 @@ dpi-inequality-threat,,,,,,,,United States,🇺🇸,66,2024,,,,28,53,surveyed co
 dpi-inequality-threat,,,,,,,,China,🇨🇳,59,2024,,,,37,53,surveyed countries,,,,,
 dpi-inequality-threat,,,,,,,,Vietnam,🇻🇳,59,2024,,,,37,53,surveyed countries,,,,,
 dpi-inequality-threat,,,,,,,,Germany,🇩🇪,50,2024,,,,48,53,surveyed countries,,,,,
+fatal-crash-deaths-race,275,🚗,"Which group had the highest motor vehicle crash death rate per 100,000 people?","Motor vehicle crash deaths per 100,000 people, age-adjusted","per 100,000 people",top,no,American Indian or Alaska Native,🚗,33.5,2022,"CDC special report, Shaw et al., Journal of Safety Research, racial and ethnic differences in motor vehicle crash deaths, United States, 2019–2022. National Vital Statistics System. Age-adjusted death rate per 100,000 people, 2022. All motor vehicle crash deaths, not drivers and not per licensed driver.",https://doi.org/10.1016/j.jsr.2025.03.005,"American Indian or Alaska Native people are far above the other groups in this table, and Asian people are the lowest. These are age-adjusted deaths of everyone killed in a motor vehicle crash, not drivers per licensed driver. Race groups are non-Hispanic. ranki.gg",,,,car,,cdc-mvc-race-2022,"Motor vehicle crash deaths per 100,000 people, age-adjusted",Crash Deaths
+fatal-crash-deaths-race,,,,,,,,Black,🚗,17.9,2022,,,,,,,,,,,
+fatal-crash-deaths-race,,,,,,,,Hispanic,🚗,14.2,2022,,,,,,,,,,,
+fatal-crash-deaths-race,,,,,,,,Native Hawaiian or Pacific Islander,🚗,13.4,2022,,,,,,,,,,,
+fatal-crash-deaths-race,,,,,,,,White,🚗,12.3,2022,,,,,,,,,,,
+fatal-crash-deaths-race,,,,,,,,Asian,🚗,4.5,2022,,,,,,,,,,,
+fatal-licensed-drivers,274,🚗,Which drivers were in fatal crashes most often per licensed driver?,"Drivers in fatal crashes per 100,000 licensed drivers","per 100,000 licensed drivers",top,no,"Male drivers, 75+",👨,25.25,2022,"NHTSA Traffic Safety Facts 2022, Table 62 (DOT HS 813 656). Drivers involved in fatal crashes per 100,000 licensed drivers, by age and sex. FHWA supplies the licensed-driver counts. Rates marked not published, under 15 and unknown sex, are left out.",https://crashstats.nhtsa.dot.gov/Api/Public/ViewPublication/813656,"Within each sex, drivers 75 and older are in fatal crashes a little more often per licensed driver than drivers 65 to 74. Note: drivers in fatal crashes per 100,000 licensed drivers, 2022. ranki.gg",,,,car,,nhtsa-fatal-licensed-2022,"Drivers in fatal crashes per 100,000 licensed drivers",Per Licensed Driver
+fatal-licensed-drivers,,,,,,,,"Male drivers, 65–74",👨,24.67,2022,,,,,,,,,,,
+fatal-licensed-drivers,,,,,,,,"Female drivers, 15–20",👩,22.74,2022,,,,,,,,,,,
+fatal-licensed-drivers,,,,,,,,"Female drivers, 21–24",👩,19.6,2022,,,,,,,,,,,
+fatal-licensed-drivers,,,,,,,,"Female drivers, 25–34",👩,15.86,2022,,,,,,,,,,,
+fatal-licensed-drivers,,,,,,,,"Female drivers, 35–44",👩,12.38,2022,,,,,,,,,,,
