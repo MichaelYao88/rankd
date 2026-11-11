@@ -80,6 +80,9 @@ test("checkout keeps Lemon's bracket names and sends the Ranki user", () => {
   assert.match(url, /checkout\[custom\]\[app\]=ranki/);
   assert.match(url, /checkout\[email\]=Ada%40Example\.com/);
   assert.equal(url.includes("checkout%5B"), false);
+  // The store's hosted page 404s without these two: the checkout is embedded.
+  assert.match(url, /[?&]embed=1(&|$)/);
+  assert.match(url, /[?&]media=0(&|$)/);
 });
 
 test("checkout is refused without a user or a product link", () => {

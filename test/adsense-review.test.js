@@ -207,4 +207,13 @@ test("a daily page carries the question, the table, the fact and the source", ()
   assert.match(html, /<link rel="canonical" href="https:\/\/ranki\.gg\/daily\/2026-11-09\.html">/);
   assert.match(html, /application\/ld\+json/);
   assert.match(html, /<meta charset="utf-8">/);
+  // Same installable-app tags as every other page (pwa.test.js skips _site).
+  assert.match(html, /name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/);
+  assert.match(html, /rel="manifest" href="\/manifest\.webmanifest" type="application\/manifest\+json"/);
+  assert.match(html, /rel="apple-touch-icon" href="\/icons\/apple-touch-icon\.png"/);
+  assert.match(html, /name="mobile-web-app-capable" content="yes"/);
+  assert.match(html, /name="apple-mobile-web-app-capable" content="yes"/);
+  assert.match(html, /name="apple-mobile-web-app-status-bar-style"/);
+  assert.match(html, /name="apple-mobile-web-app-title" content="ranki\.gg"/);
+  assert.doesNotMatch(html, /class="day-part"|class="part-/);
 });

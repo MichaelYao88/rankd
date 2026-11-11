@@ -9,6 +9,7 @@ const read = file => fs.readFileSync(path.join(root, file), "utf8");
 function walk(dir, out = []) {
   for (const name of fs.readdirSync(dir)) {
     if (name === "node_modules" || name === "vendor" || name === ".git") continue;
+    if (name === "_site") continue;   // build output: tools/build_review_site.js writes it, adsense-review.test.js checks it
     const full = path.join(dir, name);
     const st = fs.statSync(full);
     if (st.isDirectory()) walk(full, out);

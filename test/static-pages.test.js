@@ -10,7 +10,7 @@ function walk(dir, acc = []) {
   for (const name of fs.readdirSync(dir)) {
     const abs = path.join(dir, name);
     if (fs.statSync(abs).isDirectory()) {
-      if (name === "node_modules" || name === "vendor") continue;
+      if (name === "node_modules" || name === "vendor" || name === "_site") continue;
       walk(abs, acc);
     } else acc.push(abs);
   }

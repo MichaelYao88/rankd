@@ -1118,11 +1118,39 @@ function premiumCheckoutUrl(checkoutUrl, user) {
   const params = [
     ["checkout[custom][user_id]", String(user.id)],
     ["checkout[custom][app]", "ranki"],
+    // The store's checkout is an embedded one: the bare link 404s, embed=1 works.
+    ["embed", "1"],
+    ["media", "0"],
   ];
   const email = String(user.email || "").trim();
   if (email) params.push(["checkout[email]", email]);
   const q = params.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
   return base + (base.includes("?") ? "&" : "?") + q;
+}
+
+// Lemon's overlay (lemon.js), same mechanism as whereisshe.gg. Opens the
+// checkout on top of the game and tells us when the order is paid.
+let lemonLoading = null;
+function loadLemon() {
+  if (window.LemonSqueezy && window.LemonSqueezy.Url) return Promise.resolve(window.LemonSqueezy);
+  if (lemonLoading) return lemonLoading;
+  lemonLoading = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://app.lemonsqueezy.com/js/lemon.js";
+    s.async = true;
+    s.onload = () => {
+      try { if (typeof window.createLemonSqueezy === "function") window.createLemonSqueezy(); } catch (e) {}
+      const lemon = window.LemonSqueezy;
+      if (!lemon || !lemon.Url) return reject(new Error("lemon.js did not initialise"));
+      try {
+        if (lemon.Setup) lemon.Setup({ eventHandler: e => { if (e && e.event === "Checkout.Success") refreshAccount().then(() => toast("Premium is on. Thanks!")); } });
+      } catch (e) {}
+      resolve(lemon);
+    };
+    s.onerror = () => reject(new Error("lemon.js failed"));
+    document.head.appendChild(s);
+  }).catch(err => { lemonLoading = null; throw err; });
+  return lemonLoading;
 }
 function googleProfile(user) {
   if (!user) return { name: null, avatar: "" };
@@ -7123,7 +7151,8 @@ function openPremiumCheckout() {
   }
   const url = premiumCheckoutUrl(base, authUser);
   if (!url) return;
-  window.open(url, "_blank", "noopener,noreferrer");
+  // Overlay first: the hosted page 404s for this store unless it is embedded.
+  loadLemon().then(lemon => lemon.Url.Open(url)).catch(() => window.open(url, "_blank", "noopener,noreferrer"));
 }
 async function signOutAccount() {
   try { if (sb) await sb.auth.signOut(); } catch (e) {}
@@ -7169,9 +7198,7 @@ function maybeResumeCheckout(event) {
   if (intent !== "1") return;
   checkoutResumeDone = true;
   try { sessionStorage.removeItem("rankd.premium.intent"); } catch (e) {}
-  const base = CONFIG.premium && CONFIG.premium.checkoutUrl;
-  const url = premiumCheckoutUrl(base, authUser);
-  if (url) window.open(url, "_blank", "noopener,noreferrer");
+  openPremiumCheckout();
 }
 function startAuth() {
   renderAccount();
