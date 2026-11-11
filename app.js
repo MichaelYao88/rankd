@@ -21,7 +21,9 @@ const CONFIG = {
   rankMaxTries: 5,                  // Rank it: lock-ins allowed before the answer is revealed
   // v11 PRE-LAUNCH SWITCH: true = show the "All puzzles" tab/list (every puzzle, past AND future, for testing).
   // Set to false at launch: the tab, the menu entry and #p= links disappear (random Practice stays).
-  SHOW_ALL_PUZZLES: true,
+  // Off for the AdSense review: the list published every future puzzle (including the
+  // sensitive ones) on a page a reviewer can browse.
+  SHOW_ALL_PUZZLES: false,
   // v12.1 GOOGLE ADSENSE. The loader is only added on the real site (https, not localhost/file://), never in studio.html,
   // Studio preview (?preview=) or streamer mode. ?ads=live forces it on (tests), ?ads=placeholder forces the placeholders.
   ADSENSE_CLIENT: "ca-pub-5196178239625142",
