@@ -1770,6 +1770,36 @@ function submissionErrorMessage(kind) {
   if (kind === "network") return "That didn't send. Check your connection and try again.";
   return "That didn't send. Try again in a moment, or email " + mail + ".";
 }
+const NEWSLETTER_KEY = "rankd.newsletter.v1";
+const NEWSLETTER_DISMISS = "rankd.newsletter.dismiss.v1";
+const NEWSLETTER_EMAIL = /^[a-z0-9._%+\-]+@[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?)+$/;
+function normalizeNewsletterEmail(raw) {
+  const email = String(raw || "").trim().toLowerCase();
+  if (email.length < 6 || email.length > 254) return "";
+  if (!NEWSLETTER_EMAIL.test(email)) return "";
+  return email;
+}
+function newsletterSubscribed() {
+  try { return localStorage.getItem(NEWSLETTER_KEY) === "1"; } catch (e) { return false; }
+}
+function markNewsletterSubscribed() {
+  try { localStorage.setItem(NEWSLETTER_KEY, "1"); } catch (e) {}
+}
+function newsletterDismissed() {
+  try { return localStorage.getItem(NEWSLETTER_DISMISS) === "1"; } catch (e) { return false; }
+}
+function markNewsletterDismissed() {
+  try { localStorage.setItem(NEWSLETTER_DISMISS, "1"); } catch (e) {}
+}
+function signedInEmail() {
+  return normalizeNewsletterEmail(authUser && authUser.email);
+}
+function dailyResultFinished() {
+  if (state.mode !== "daily") return false;
+  if (morePartsRemain()) return false;
+  if (bundleHasParts() && !state.scoreShown) return false;
+  return true;
+}
 // Opening guess entirely wrong: every Rank / Match / Tier card red on try 1,
 // or all five Top 5 slots red on try 1. Old guess-style Top 5: the first five guesses all miss.
 function openingAllWrong(res) {
@@ -2767,6 +2797,7 @@ if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
     HOME_DEMO, PUZZLE_TYPE_LABEL, SUBMISSION_LIMITS, homeCardCopy, validatePuzzleSubmission, submissionErrorKind, submissionErrorMessage,
+    normalizeNewsletterEmail, NEWSLETTER_KEY, NEWSLETTER_DISMISS,
     top1RankOf, top1IsLeader, top1FrameTitle, heroHeadline, top1HintLines, top1HintsRevealed, countryFactHints,
     sourceCardModel, premium: window.RankdPremium, bonusForDay: bonusForDayNumber, bonusGap: BONUS_GAP, sameTheme };
   window.RankdArchive = {
@@ -4965,6 +4996,7 @@ function showResult(res, opts) {
   paintBonus(res);
   paintDayTotal(res);
   maybeShowCrossPromo();
+  maybeNewsletter();
   // Lock controls are done once the share block is on screen — don't leave one floating over it.
   ["#submitBtn", "#matchSubmit", "#tierSubmit", "#t5Submit", "#nameBtn", "#quizNext"].forEach(id => { const b = $(id); if (b && b.parentElement) b.parentElement.classList.add("hidden"); });
   $("#result").classList.remove("hidden"); showFab(false); syncPlaying();
@@ -6387,6 +6419,7 @@ function goHome() {
   state.mode = "home";
   state.view = "home";
   fillHomeCard();
+  syncHomeNewsletter();
   showView("home");
   setHash("");
   window.scrollTo({ top: 0 });
@@ -6949,6 +6982,144 @@ function resetPuzzleForm() {
   if (err) { err.textContent = ""; err.classList.add("hidden"); }
   if (btn) btn.disabled = false;
 }
+function maybeNewsletter() {
+  const box = $("#newsletter");
+  if (!box) return;
+  if (!dailyResultFinished() || newsletterSubscribed() || newsletterDismissed()) {
+    box.classList.add("hidden");
+    return;
+  }
+  box.classList.remove("hidden");
+  const form = $("#newsletterForm");
+  const thanks = $("#newsletterThanks");
+  const err = $("#newsletterError");
+  if (form) form.classList.remove("hidden");
+  if (thanks) thanks.classList.add("hidden");
+  if (err) { err.textContent = ""; err.classList.add("hidden"); }
+  const input = $("#newsletterEmail");
+  const pre = signedInEmail();
+  if (input && pre && !String(input.value || "").trim()) input.value = pre;
+}
+function syncHomeNewsletter() {
+  const link = $("#homeNewsletterOpen");
+  const form = $("#homeNewsletter");
+  if (newsletterSubscribed()) {
+    if (link) link.classList.add("hidden");
+    if (form) form.classList.add("hidden");
+    return;
+  }
+  if (link) link.classList.remove("hidden");
+  const input = $("#homeNewsletterEmail");
+  const pre = signedInEmail();
+  if (input && pre && !String(input.value || "").trim()) input.value = pre;
+}
+function showNewsletterThanks(source) {
+  markNewsletterSubscribed();
+  if (source === "home") {
+    const form = $("#homeNewsletter");
+    const thanks = $("#homeNewsletterThanks");
+    const err = $("#homeNewsletterError");
+    const link = $("#homeNewsletterOpen");
+    if (err) { err.textContent = ""; err.classList.add("hidden"); }
+    if (link) link.classList.add("hidden");
+    if (form) form.classList.remove("hidden");
+    const row = form && form.querySelector(".newsletter-row");
+    const note = form && form.querySelector(".newsletter-note");
+    const title = form && form.querySelector(".newsletter-title");
+    if (row) row.classList.add("hidden");
+    if (note) note.classList.add("hidden");
+    if (title) title.classList.add("hidden");
+    if (thanks) thanks.classList.remove("hidden");
+  } else {
+    const form = $("#newsletterForm");
+    const thanks = $("#newsletterThanks");
+    if (form) form.classList.add("hidden");
+    if (thanks) thanks.classList.remove("hidden");
+    const box = $("#newsletter");
+    if (box) box.classList.remove("hidden");
+  }
+}
+function showNewsletterError(source, message) {
+  const err = $(source === "home" ? "#homeNewsletterError" : "#newsletterError");
+  if (!err) return;
+  err.textContent = message;
+  err.classList.remove("hidden");
+}
+async function sendNewsletterSignup(email, source, puzzleDate) {
+  const base = String(CONFIG.SUPABASE_URL || "").replace(/\/$/, "");
+  const key = CONFIG.SUPABASE_ANON_KEY;
+  if (!base || !key) { const err = new Error("missing"); err.kind = "missing"; throw err; }
+  const payload = { email: email, source: source };
+  if (puzzleDate) payload.puzzle_date = puzzleDate;
+  let res;
+  try {
+    res = await fetch(base + "/rest/v1/newsletter_signups?on_conflict=email", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: key,
+        Authorization: "Bearer " + key,
+        Prefer: "return=minimal,resolution=ignore-duplicates",
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (e) {
+    const err = new Error("network"); err.kind = "network"; throw err;
+  }
+  if (res.ok || res.status === 409) return;
+  const err = new Error("fail"); err.kind = "fail"; throw err;
+}
+function wireNewsletterForm(formId, source) {
+  const form = $(formId);
+  if (!form || form.dataset.wired) return;
+  form.dataset.wired = "1";
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = form.querySelector("input[name=email]");
+    const email = normalizeNewsletterEmail(input && input.value);
+    if (!email) {
+      showNewsletterError(source, "Enter a valid email.");
+      return;
+    }
+    const btn = form.querySelector("button[type=submit]");
+    if (btn) btn.disabled = true;
+    const puzzleDate = source === "results" && /^\d{4}-\d{2}-\d{2}$/.test(String(state.dateKey || "")) ? state.dateKey : null;
+    try {
+      await sendNewsletterSignup(email, source, puzzleDate);
+      showNewsletterThanks(source);
+    } catch (err) {
+      showNewsletterError(source, err && err.kind === "network" ? "Couldn't save that just now. Try again." : "Couldn't save that just now. Try again.");
+      if (btn) btn.disabled = false;
+    }
+  });
+}
+function wireNewsletter() {
+  wireNewsletterForm("#newsletterForm", "results");
+  wireNewsletterForm("#homeNewsletter", "home");
+  const dismiss = $("#newsletterDismiss");
+  if (dismiss && !dismiss.dataset.wired) {
+    dismiss.dataset.wired = "1";
+    dismiss.onclick = () => {
+      markNewsletterDismissed();
+      const box = $("#newsletter");
+      if (box) box.classList.add("hidden");
+    };
+  }
+  const open = $("#homeNewsletterOpen");
+  if (open && !open.dataset.wired) {
+    open.dataset.wired = "1";
+    open.onclick = () => {
+      const form = $("#homeNewsletter");
+      if (!form) return;
+      form.classList.remove("hidden");
+      const input = $("#homeNewsletterEmail");
+      const pre = signedInEmail();
+      if (input && pre && !String(input.value || "").trim()) input.value = pre;
+      if (input) input.focus();
+    };
+  }
+  syncHomeNewsletter();
+}
 function wirePuzzleForm() {
   const form = $("#puzzleForm");
   if (!form || form.dataset.wired) return;
@@ -6985,6 +7156,7 @@ function wirePuzzleForm() {
   if ($("#puzzleAnother")) $("#puzzleAnother").onclick = resetPuzzleForm;
 }
 wirePuzzleForm();
+wireNewsletter();
 try { matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncHomeMotion); } catch (e) {}
 $("#fileInput").onchange = e => { const f = [...e.target.files]; if (f.length) handleFiles(f); e.target.value = ""; };
 $$(".tab").forEach(b => b.onclick = () => b.dataset.view === "today" ? goToday() : b.dataset.view === "archive" ? goArchive() : practiceNext());   // v12.1: no top-bar "All" tab (the All puzzles list is in the menu)
