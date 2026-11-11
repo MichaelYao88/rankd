@@ -73,12 +73,13 @@ if (window.RANKD_ADSENSE_REVIEW === false) CONFIG.adsenseReview = false;
 // tests only: with ?ads=live a page may pre-set window.RANKD_ADSENSE_SLOTS to fake ad-unit IDs
 if (new URLSearchParams(location.search).get("ads") === "live" && window.RANKD_ADSENSE_SLOTS) Object.assign(CONFIG.ADSENSE_SLOTS, window.RANKD_ADSENSE_SLOTS);
 const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "rankd.settings.v1", custom: "rankd.custom.v2",
-  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1" };
+  archiveUnlock: "rankd.archiveUnlock.v1", practiceAds: "rankd.practiceAds.v1", countries: "rankd.countries.v1" };
 // v11.1 "Clear all data". Audit of everything Rankd stores (all of it is localStorage; nothing uses sessionStorage today):
 //   rankd.results.v2  : the first finished play of each puzzle (d: daily + archive, p: All puzzles, r: practice).
 //                       Replays and half-finished boards are not written here. Opening a puzzle does not restore it.
 //   rankd.device.v1   : this browser's id for the first community play of a puzzle. Cleared with the other rankd. keys.
 //   rankd.stats.v2    : played / wins / streak / best / guess distribution
+//   rankd.countries.v1: per-country accuracy for daily + archive boards: { appearances, tries, flag }
 //   rankd.settings.v1 : theme, streamer mode, and sound (v12.1: a saved showValues is ignored and dropped; values are always on) (also written by the inline script in index.html for ?stream=)
 //   rankd.custom.v2   : an uploaded spreadsheet
 //   rankd.archiveUnlock.v1 : free archive unlock depth (unlockedDays). Absolute days back from today,
@@ -99,7 +100,7 @@ const LS = { results: "rankd.results.v2", stats: "rankd.stats.v2", settings: "ra
 // results/stats/custom keys move to a sandbox (rankd.preview.*), so real stats and streaks are never touched;
 // Clear all data removes the sandbox too (it is rankd.-prefixed).
 const PREVIEW = (() => { try { return (new URLSearchParams(location.search).get("preview") || "").trim(); } catch { return ""; } })();
-if (PREVIEW) Object.assign(LS, { results: "rankd.preview.results.v2", stats: "rankd.preview.stats.v2", custom: "rankd.preview.custom.v2" });
+if (PREVIEW) Object.assign(LS, { results: "rankd.preview.results.v2", stats: "rankd.preview.stats.v2", custom: "rankd.preview.custom.v2", countries: "rankd.preview.countries.v1" });
 const isRankdKey = k => Object.values(LS).includes(k) || /^rankd[.:_-]/i.test(k);
 const RankdData = {
   keys() { const out = []; for (const st of [localStorage, sessionStorage]) { try { for (let i = 0; i < st.length; i++) { const k = st.key(i); if (k != null && isRankdKey(k)) out.push([st === localStorage ? "local" : "session", k]); } } catch {} } return out; },
@@ -2763,6 +2764,99 @@ function sourceCardModel(p) {
     tap: "Tap to see the data",
   };
 }
+
+// ---------------------------------------------------------------- country accuracy (Your stats)
+// Pure helpers live above the Studio early-return so Studio and the tests can reuse them.
+// "How accurately do I place each country?" A board's try count is shared by every country on it,
+// so a 1-try solve lifts all six countries and a 5-try slog drags them all down. Only boards whose
+// entries carry a real flag emoji count, which keeps company/food rankers out without a country list.
+const FLAG_PAIR_RE = /^\p{RI}\p{RI}$/u;
+function isFlagEmoji(s) { return FLAG_PAIR_RE.test(String(s || "")); }
+function boardCountries(p) {
+  if (!p || (p.type !== "rank" && p.type !== "tier" && p.type !== "match")) return [];
+  const items = p.type === "match" ? (p.people || []) : (p.items || []);
+  const seen = new Set();
+  const out = [];
+  for (const it of items) {
+    const name = it && String(it.name || "").trim();
+    if (!name || seen.has(name) || !isFlagEmoji(it.emoji)) continue;
+    seen.add(name);
+    out.push({ name, emoji: String(it.emoji) });
+  }
+  return out;
+}
+function recordCountryTries(p, res) {
+  const tries = Number(res && res.tries);
+  if (!Number.isFinite(tries) || tries < 1) return false;
+  const countries = boardCountries(p);
+  if (!countries.length) return false;
+  const all = load(LS.countries, {});
+  for (const c of countries) {
+    const cur = all[c.name] || { n: 0, tries: 0, emoji: "" };
+    cur.n = (Number(cur.n) || 0) + 1;
+    cur.tries = (Number(cur.tries) || 0) + tries;
+    if (c.emoji) cur.emoji = c.emoji;
+    all[c.name] = cur;
+  }
+  save(LS.countries, all);
+  return true;
+}
+// Average tries per appearance, ascending = sharpest first. `min` guards one-off luck.
+function countryAccuracy(all, min) {
+  const floor = Math.max(1, Number(min) || 1);
+  return Object.entries(all || {})
+    .filter(([, r]) => r && Number(r.n) >= floor && Number(r.tries) > 0)
+    .map(([name, r]) => ({ name, emoji: r.emoji || "", n: Number(r.n), avg: Number(r.tries) / Number(r.n) }))
+    .sort((a, b) => a.avg - b.avg || b.n - a.n || a.name.localeCompare(b.name));
+}
+// 0 = not played, 3 = lost. 1 = solved in 1-2 tries, 2 = solved in 3+.
+function historyOutcome(row) {
+  if (!row) return 0;
+  const win = row.type === "quiz" ? !!row.solved
+    : (row.type === "rank" || row.type === "match" || row.type === "tier" || row.type === "name") ? !!row.solved
+    : (row.type === "top5" && row.attempts) ? !!row.solved : !!row.won;
+  if (!win) return 3;
+  const tries = Number(row.tries);
+  return Number.isFinite(tries) && tries > 2 ? 2 : 1;
+}
+// Last `days` daily puzzles, oldest first. Keys are the same d:YYYY-MM-DD rows the daily + archive store.
+function recentDailyHistory(results, today, days) {
+  const n = Math.max(1, Number(days) || 14);
+  const end = dayNumber(today || todayKey());
+  const out = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const dn = end - i;
+    const key = "d:" + keyFromDay(dn);
+    out.push({ day: keyFromDay(dn), outcome: historyOutcome((results || {})[key]) });
+  }
+  return out;
+}
+function trySpread(dist) {
+  const out = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, x: 0 };
+  for (const [k, v] of Object.entries(dist || {})) {
+    const n = Number(v) || 0;
+    const m = / in (\d)\b/.exec(k);
+    if (m) out[Math.min(5, Math.max(1, Number(m[1])))] += n;
+    else if (k.includes("✗")) out.x += n;
+  }
+  return out;
+}
+function statsHistoryHtml(results) {
+  const cells = recentDailyHistory(results, todayKey(), 14).map(d =>
+    `<i class="h${d.outcome}" title="${esc(prettyDate(d.day))}"></i>`).join("");
+  return `<div class="stat-history" role="img" aria-label="Your last 14 daily puzzles">${cells}</div>
+    <p class="stat-legend"><span><b class="h1"></b>1–2 tries</span><span><b class="h2"></b>3+</span><span><b class="h3"></b>lost</span><span><b class="h0"></b>unplayed</span></p>`;
+}
+function countryRowsHtml(rows) {
+  if (!rows.length) return `<p class="stat-empty">Play a few rank-it, tier-it or match-it dailies and your best and worst countries show up here.</p>`;
+  const maxAvg = Math.max(5, ...rows.map(r => r.avg));
+  return `<ul class="stat-countries">${rows.map(r => {
+    const pct = Math.round(Math.max(0, Math.min(1, (maxAvg - r.avg) / (maxAvg - 1 || 1))) * 100);
+    return `<li><span class="fl">${esc(r.emoji)}</span><span class="nm">${esc(r.name)}</span><span class="cb"><i style="width:${pct}%"></i></span><span class="meta">${r.avg.toFixed(1)}×</span></li>`;
+  }).join("")}</ul>`;
+}
+window.RankdStats = { boardCountries, recordCountryTries, countryAccuracy, historyOutcome, recentDailyHistory };
+window.RankdStatsViews = { trySpread, statsHistoryHtml, countryRowsHtml };
 if (window.RANKD_STUDIO) {
   window.RankdShared = { CONFIG, LS, POPULAR_COUNTRIES, rules: Practice.rules, MIN_TOP5_COUNTRIES, isRankdKey, RankdData,
     keyFromDay, dayNumber, todayKey, puzzles: PUZZLES, practice: PR, valueGlossOf, inAdsenseSafeWindow, rating: window.RankdRating,
@@ -2897,6 +2991,7 @@ function commitFinish(g) {
     return true;
   }
   if (isToday()) recordStats(g);
+  if ((state.mode === "daily" || state.mode === "archive") && state.puzzle) recordCountryTries(state.puzzle, g);
   if (state.puzzle) CommunityStats.submit({ puzzleId: state.puzzle.id, day: state.dateKey, mode: state.mode, ...g });
   return true;
 }
@@ -5647,6 +5742,7 @@ function recordStats(res) {
 }
 function currentStreak() { const s = load(LS.stats, null); if (!s) return 0; const dn = dayNumber(todayKey()); return (s.lastDay === dn || s.lastDay === dn - 1) ? s.streak : 0; }
 
+
 // ================================================================ sister game (WhereIsShe)
 // Small card inside #result, after the share row. Daily finishes only (the result panel is already past any
 // interstitial). Never Studio, ?preview=, practice, or All puzzles. Not Premium-gated.
@@ -6694,9 +6790,21 @@ function openModal(html) { $("#modalBody").innerHTML = html; $("#modal").classLi
 function closeModal() { $("#modal").classList.add("hidden"); }
 function statsModal() {
   const s = load(LS.stats, { played: 0, wins: 0, best: 0, dist: {} });
-  const dist = Object.entries(s.dist || {}).sort().map(([k, v]) => `<div class="crow"><span class="cn">${esc(k)}</span><span class="cb"><i style="width:${v / Math.max(1, s.played) * 100}%"></i></span><span class="cp">${v}</span></div>`).join("") || "<p style='color:var(--muted)'>Play today's puzzle to start your stats.</p>";
-  openModal(`<h2>Your stats</h2><div class="stat-grid"><div><b>${s.played}</b><span>Played</span></div><div><b>${s.wins}</b><span>Perfect / solved</span></div><div><b>${currentStreak()}</b><span>Streak</span></div><div><b>${s.best || 0}</b><span>Best</span></div></div>
-    <h3>Daily results</h3>${dist}<p style="font-size:12px;color:var(--muted)">Only today's daily counts. Stats live in this browser (localStorage).</p>`);
+  const results = load(LS.results, {});
+  const rows = countryAccuracy(load(LS.countries, {}), 1);
+  const sharp = rows.slice(0, 3);
+  const rough = rows.length > 3 ? rows.slice(-3).reverse() : [];
+  const spread = trySpread(s.dist);
+  const spreadMax = Math.max(1, ...Object.values(spread));
+  const spreadHtml = [1, 2, 3, 4, 5, "x"].map(k =>
+    `<div class="sb${k === "x" ? " sx" : ""}"><i style="height:${Math.round((spread[k] / spreadMax) * 100)}%"></i><span>${k === "x" ? "✗" : k}</span><b>${spread[k]}</b></div>`).join("");
+  openModal(`<h2>Your stats</h2>
+    <div class="stat-grid"><div><b>${s.played}</b><span>Played</span></div><div><b>${s.wins}</b><span>Solved</span></div><div><b>${currentStreak()}</b><span>Streak</span></div><div><b>${s.best || 0}</b><span>Best</span></div></div>
+    <h3>Last 14 days</h3>${statsHistoryHtml(results)}
+    <h3>How many tries</h3><div class="stat-spread">${spreadHtml}</div>
+    <h3>Sharpest countries</h3>${countryRowsHtml(sharp)}
+    ${rough.length ? `<h3>Roughest countries</h3>${countryRowsHtml(rough)}` : ""}
+    <p class="stat-note">Each country is scored by how many tries the board took, not by a single placement. Only dailies and archive days count. Everything lives in this browser.</p>`);
 }
 const themeLabel = () => effectiveTheme() === "dark" ? "☀️ Light mode<small>Switch the theme</small>" : "🌙 Dark mode<small>Switch the theme</small>";
 function menuModal() {   // v11: the single gear opens this sheet (stats + theme moved here from the old corner buttons)
@@ -6707,7 +6815,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
       ? `<button id="mAccount">${esc(who)}<small>${isPremium() ? "Premium · ranki.gg + whereisshe.gg" : "Signed in"}</small></button><button id="mSignOut">Sign out<small>This device</small></button>`
       : `<button id="mSignIn">${esc(accountCopy().header)}<small>${esc(accountCopy().menuSmall)}</small></button>`}
     <button id="mPremium">★ Go Premium<small>${esc(premiumPriceLine())}</small></button>
-    <button id="mStats">📊 Your stats<small>Streak and daily results</small></button>
+    <button id="mStats">📊 Your stats<small>Accuracy, streaks and history</small></button>
     <button id="mTheme">${themeLabel()}</button>
     <button id="mSound">${soundLabel()}</button>
     ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${isToday() ? "Share today's puzzle" : "Share this puzzle"}<small>Spoiler-free link</small></button>` : ""}
@@ -6993,6 +7101,13 @@ $("#newRandomTop").onclick = () => practiceNext();
 { const mail = (window.RANKD_SITE || {}).CONTACT_EMAIL || ""; $$("[data-contact-link]").forEach(a => mail.includes("@") ? a.href = "mailto:" + mail : a.remove()); }
 
 if (!Practice.ok()) { $$('.tab[data-view="practice"]').forEach(b => b.remove()); }
+// The top bar's third slot is "How to play": go home, then scroll to the explainer. Practice still lives
+// in the menu and in #r= links; it just no longer owns a top-bar slot.
+{ const how = $("#howtoTab"); if (how) how.onclick = () => {
+  goHome();
+  const target = $("#homeHowTitle");
+  if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+}; }
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeModal();
   if (e.key === "Enter" && !e.target.closest("input, textarea, [contenteditable]") && !$("#playView").classList.contains("hidden")) {
