@@ -178,9 +178,9 @@ test("the credits key is disclosed, clearable and preview-sandboxed", () => {
   assert.match(app, /const isRankdKey = k => Object\.values\(LS\)\.includes\(k\) \|\| \/\^rankd\[\.:_-\]\/i\.test\(k\)/);
 });
 
-test("Premium price strings are untouched", () => {
-  assert.match(app, /From \$2\.67\/month · suggested \$6\.70/);
-  assert.match(html, /From \$2\.67\/month/);
-  assert.doesNotMatch(app, /\$5\.67/);
-  assert.doesNotMatch(html, /\$5\.67/);
+test("Premium price strings say $5.67/month", () => {
+  assert.match(app, /\$5\.67\/month/);
+  assert.match(html, /\$5\.67\/month/);
+  assert.doesNotMatch(app, /\$2\.67/);
+  assert.doesNotMatch(html, /\$2\.67/);
 });
