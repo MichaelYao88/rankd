@@ -1,4 +1,4 @@
-﻿/* Ranki service worker.
+/* Ranki service worker.
    Shell (HTML, CSS, JS, icons) is cached so the game opens offline.
    HTML navigations and puzzle data are network-first: a new day's puzzle
    replaces the cache whenever the network succeeds.
@@ -14,7 +14,7 @@
    navigation picks up the new HTML and puzzle data. */
 "use strict";
 
-var CACHE = "ranki-shell-v75";
+var CACHE = "ranki-shell-v76";
 
 var PRECACHE = [
   "/",
