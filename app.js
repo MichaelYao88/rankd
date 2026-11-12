@@ -40,14 +40,15 @@ const CONFIG = {
   // own profile and entitlement. Never put the service role in this file.
   SUPABASE_URL: "https://fkxbqftqxvgqrtvkpglx.supabase.co",
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
-  // Shared Premium for Ranki and WhereIsShe (Lemon store mikelyaps, test mode).
-  // checkoutUrl is the existing WhereIsShe checkout. Replace it if a dedicated
-  // product is created. An empty checkoutUrl shows "Premium unavailable".
+  // Ranki Premium is sold through Polar (product "Ranki Premium", $5.67 a month). The
+  // polar-checkout edge function creates a checkout for the signed-in user; the
+  // polar-webhook function writes the entitlement. WhereIsShe's own purchases still
+  // use Lemon and write the same entitlement table.
   // enabled:false forces everyone free (kill switch). Entitlement comes from Supabase, not localStorage.
   premium: {
     enabled: true,
-    checkoutUrl: "https://mikelyaps.lemonsqueezy.com/checkout/buy/ca1efbfa-7ab8-4fe6-b96a-694c1f5691fa",
-    priceLine: "From $2.67/month · suggested $6.70",
+    checkoutFunction: "polar-checkout",
+    priceLine: "$5.67/month",
     pitch: "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.",
   },
   // PostHog product analytics (same project as WhereIsShe; events are split with site:"ranki").
@@ -1197,7 +1198,7 @@ function noteAuthUser(user) {
   if (authUser) markAccountSeen();
 }
 function premiumPriceLine() {
-  return (CONFIG.premium && CONFIG.premium.priceLine) || "From $2.67/month · suggested $6.70";
+  return (CONFIG.premium && CONFIG.premium.priceLine) || "$5.67/month";
 }
 function premiumPitch() {
   return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.";
@@ -1206,45 +1207,15 @@ function premiumUpsellLabel() { return premiumPitch() + " " + premiumPriceLine()
 function premiumUpsellHtml() {
   return `<button type="button" class="prem-upsell">${premiumUpsellLabel()}</button>`;
 }
-function premiumCheckoutUrl(checkoutUrl, user) {
-  const base = String(checkoutUrl || "").trim();
-  if (!base || !user || !user.id) return "";
-  const params = [
-    ["checkout[custom][user_id]", String(user.id)],
-    ["checkout[custom][app]", "ranki"],
-    // The store's checkout is an embedded one: the bare link 404s, embed=1 works.
-    ["embed", "1"],
-    ["media", "0"],
-  ];
-  const email = String(user.email || "").trim();
-  if (email) params.push(["checkout[email]", email]);
-  const q = params.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
-  return base + (base.includes("?") ? "&" : "?") + q;
-}
-
-// Lemon's overlay (lemon.js), same mechanism as whereisshe.gg. Opens the
-// checkout on top of the game and tells us when the order is paid.
-let lemonLoading = null;
-function loadLemon() {
-  if (window.LemonSqueezy && window.LemonSqueezy.Url) return Promise.resolve(window.LemonSqueezy);
-  if (lemonLoading) return lemonLoading;
-  lemonLoading = new Promise((resolve, reject) => {
-    const s = document.createElement("script");
-    s.src = "https://app.lemonsqueezy.com/js/lemon.js";
-    s.async = true;
-    s.onload = () => {
-      try { if (typeof window.createLemonSqueezy === "function") window.createLemonSqueezy(); } catch (e) {}
-      const lemon = window.LemonSqueezy;
-      if (!lemon || !lemon.Url) return reject(new Error("lemon.js did not initialise"));
-      try {
-        if (lemon.Setup) lemon.Setup({ eventHandler: e => { if (e && e.event === "Checkout.Success") refreshAccount().then(() => toast("Premium is on. Thanks!")); } });
-      } catch (e) {}
-      resolve(lemon);
-    };
-    s.onerror = () => reject(new Error("lemon.js failed"));
-    document.head.appendChild(s);
-  }).catch(err => { lemonLoading = null; throw err; });
-  return lemonLoading;
+// Polar checkout: the polar-checkout edge function reads the user from the signed-in
+// session and returns a hosted checkout link tagged with that user. Polar sends the
+// buyer back to ranki.gg/?checkout=success, where Premium is picked up by polling.
+async function startPolarCheckout() {
+  if (!sb || !sb.functions) throw new Error("no-client");
+  const { data, error } = await sb.functions.invoke(CONFIG.premium.checkoutFunction || "polar-checkout", { body: {} });
+  const link = data && typeof data.url === "string" ? data.url : "";
+  if (error || !link.startsWith("https://")) throw error || new Error("no-link");
+  return link;
 }
 function googleProfile(user) {
   if (!user) return { name: null, avatar: "" };
@@ -2929,7 +2900,7 @@ window.RankdBonus = {
 };
 window.RankdPremium = {
   entitlementIsActive, isPremium, setPremiumCache, noteAuthUser, getChallengerName,
-  googleProfile, premiumCheckoutUrl, premiumUpsellLabel, premiumPitch, premiumPriceLine,
+  googleProfile, premiumUpsellLabel, premiumPitch, premiumPriceLine,
   accountSeen, markAccountSeen, accountCopy, accountModalHtml, authRedirectUrl,
 };
 /** Data year for source lines: p.year → item years → trailing year in stat. Omit if none. */
@@ -7580,14 +7551,14 @@ function paintPremiumScreen() {
   if (price) price.textContent = premiumPriceLine();
   if (pitch) pitch.textContent = premiumPitch();
   if (!btn) return;
-  const url = String((CONFIG.premium && CONFIG.premium.checkoutUrl) || "").trim();
+  const open = !!(CONFIG.premium && CONFIG.premium.checkoutFunction && CONFIG.premium.enabled);
   if (isPremium()) {
     btn.disabled = true;
     btn.textContent = "You're Premium";
     if (status) status.textContent = "Premium is on for this account on ranki.gg and whereisshe.gg.";
     return;
   }
-  if (!url) {
+  if (!open) {
     btn.disabled = true;
     btn.textContent = "Premium unavailable";
     if (status) status.textContent = "Checkout isn't open yet.";
@@ -7601,7 +7572,7 @@ function paintPremiumScreen() {
     return;
   }
   btn.textContent = "Go Premium";
-  if (status) status.textContent = "Lemon Squeezy hosts checkout. Monthly, pay what you want.";
+  if (status) status.textContent = "Polar hosts checkout. $5.67 a month, cancel any time.";
 }
 function goPremium() {
   closeModal();
@@ -7669,18 +7640,35 @@ async function startEmail(raw) {
   }
   if (note) { note.textContent = "Check your email for a sign-in link."; note.classList.remove("is-error"); }
 }
-function openPremiumCheckout() {
-  const base = CONFIG.premium && CONFIG.premium.checkoutUrl;
-  if (!String(base || "").trim()) return;
+async function openPremiumCheckout() {
   if (!authUser) {
     try { sessionStorage.setItem("rankd.premium.intent", "1"); } catch (e) {}
     signInModal();
     return;
   }
-  const url = premiumCheckoutUrl(base, authUser);
-  if (!url) return;
-  // Overlay first: the hosted page 404s for this store unless it is embedded.
-  loadLemon().then(lemon => lemon.Url.Open(url)).catch(() => window.open(url, "_blank", "noopener,noreferrer"));
+  if (isPremium()) return;
+  try {
+    const link = await startPolarCheckout();
+    window.location.assign(link);
+  } catch (e) {
+    toast("Checkout isn't available right now. Try again in a moment.");
+  }
+}
+// After Polar sends the buyer back, the webhook may take a few seconds to write the
+// entitlement. Re-read the account a few times so Premium appears without a reload.
+function watchCheckoutReturn() {
+  let params;
+  try { params = new URLSearchParams(location.search); } catch (e) { return; }
+  if (params.get("checkout") !== "success") return;
+  try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+  const tries = [0, 3000, 8000, 15000];
+  let wasPremium = isPremium();
+  tries.forEach((ms, i) => setTimeout(() => {
+    refreshAccount({ force: true }).then(() => {
+      if (!wasPremium && isPremium()) { wasPremium = true; toast("Premium is on. Thanks!"); }
+      if (i === tries.length - 1 && !isPremium()) toast("Payment received. Premium can take a minute to appear. Reload if it doesn't.");
+    }).catch(() => {});
+  }, ms));
 }
 async function signOutAccount() {
   try { if (sb) await sb.auth.signOut(); } catch (e) {}
@@ -7788,7 +7776,7 @@ document.addEventListener("click", e => {
 });
 startAuth();
 
-applyTheme(); applyAdsEnabled(); applyStreamer(); applyPremium();
+applyTheme(); applyAdsEnabled(); applyStreamer(); applyPremium(); watchCheckoutReturn();
 if (!PUZZLES.length) { $("#headline").textContent = "No puzzles found. Run build.py or load a spreadsheet."; return; }
 function route() {
   dismissLongAd();

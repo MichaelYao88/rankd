@@ -70,28 +70,21 @@ function googleUser(over) {
   }, over);
 }
 
-test("checkout keeps Lemon's bracket names and sends the Ranki user", () => {
-  assert.equal(shared.CONFIG.premium.checkoutUrl, CHECKOUT);
-  assert.equal(shared.CONFIG.premium.priceLine, "From $2.67/month · suggested $6.70");
+test("Ranki Premium is a flat $5.67 a month and checks out through Polar", () => {
+  assert.equal(shared.CONFIG.premium.priceLine, "$5.67/month");
+  assert.equal(shared.CONFIG.premium.checkoutFunction, "polar-checkout");
+  assert.equal(shared.CONFIG.premium.checkoutUrl, undefined, "no Lemon checkout link for Ranki");
   assert.match(shared.CONFIG.premium.pitch, /Premium unlocks ranki\.gg \+ whereisshe\.gg/);
-  const url = premium.premiumCheckoutUrl(CHECKOUT, { id: USER, email: "Ada@Example.com" });
-  assert.ok(url.startsWith(CHECKOUT + "?"));
-  assert.match(url, /checkout\[custom\]\[user_id\]=11111111-1111-4111-8111-111111111111/);
-  assert.match(url, /checkout\[custom\]\[app\]=ranki/);
-  assert.match(url, /checkout\[email\]=Ada%40Example\.com/);
-  assert.equal(url.includes("checkout%5B"), false);
-  // The store's hosted page 404s without these two: the checkout is embedded.
-  assert.match(url, /[?&]embed=1(&|$)/);
-  assert.match(url, /[?&]media=0(&|$)/);
+  assert.doesNotMatch(appSrc, /lemon\.js|LemonSqueezy|premiumCheckoutUrl\(|checkout\[custom\]/);
+  assert.match(appSrc, /sb\.functions\.invoke\(CONFIG\.premium\.checkoutFunction \|\| "polar-checkout"/);
+  assert.match(appSrc, /window\.location\.assign\(link\)/);
+  assert.match(appSrc, /watchCheckoutReturn\(\)/);
+  assert.match(appSrc, /params\.get\("checkout"\) !== "success"/);
 });
 
-test("checkout is refused without a user or a product link", () => {
-  assert.equal(premium.premiumCheckoutUrl("", { id: USER, email: "a@b.co" }), "");
-  assert.equal(premium.premiumCheckoutUrl("   ", { id: USER }), "");
-  assert.equal(premium.premiumCheckoutUrl(CHECKOUT, null), "");
-  assert.equal(premium.premiumCheckoutUrl(CHECKOUT, { email: "a@b.co" }), "");
-  const withQuery = premium.premiumCheckoutUrl(CHECKOUT + "?logo=0", { id: USER });
-  assert.match(withQuery, /\?logo=0&checkout\[custom\]\[user_id\]=/);
+test("checkout only starts for a signed-in user who is not already Premium", () => {
+  assert.match(appSrc, /async function openPremiumCheckout\(\) \{\s*if \(!authUser\) \{/);
+  assert.match(appSrc, /if \(isPremium\(\)\) return;\s*try \{\s*const link = await startPolarCheckout\(\)/);
 });
 
 test("Premium comes from the entitlement, not a local flag", () => {
@@ -154,9 +147,9 @@ test("the sign-in screen and the Premium screen advertise both games", () => {
   assert.match(appSrc, /redirectTo:\s*authRedirectUrl\(\)/);
   assert.match(html, /id="accountBtn"/);
   assert.match(html, /id="premiumView"/);
-  assert.match(html, /Premium unlocks ranki\.gg \+ whereisshe\.gg: no ads, full archive, and ad-free Practice\. From \$2\.67\/month · suggested \$6\.70/);
+  assert.match(html, /Premium unlocks ranki\.gg \+ whereisshe\.gg: no ads, full archive, and ad-free Practice\. \$5\.67\/month/);
   assert.match(html, /supabase-js@2/);
-  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. From $2.67/month · suggested $6.70");
+  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. $5.67/month");
   assert.match(premium.accountCopy("signup").subtitle, /ranki\.gg and whereisshe\.gg/);
   assert.match(privacy, /Sign up with Google/);
   assert.match(privacy, /Sign in with Google/);
