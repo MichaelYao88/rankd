@@ -159,7 +159,16 @@ test("a day row for a card still in the bundle never counts for the title", () =
   assert.deepEqual(S.resultRowFor(key, { id: "match-foreign-relations" }), swapped, "a review swap keeps the day's play");
 });
 
+test("an archive row opens its title card, not the next unfinished part", () => {
+  const app = read("app.js");
+  const goDate = app.slice(app.indexOf("function goDate("), app.indexOf("function goAll("));
+  assert.equal((goDate.match(/openDay\(\{ main: true \}\)/g) || []).length, 2, "both archive open paths use the title");
+  assert.doesNotMatch(goDate, /openDay\(\);/, "no archive path resumes mid-day");
+  assert.match(app, /function openDay\(opts\)[\s\S]{0,400}if \(opts && opts\.main\) return openPart\(streakIndexOf\(parts\)/);
+  assert.match(app, /if \(opts && opts\.main\) return openPart\(streakIndexOf\(parts\)/);
+});
+
 test("the service worker caches the review schedule with the shell", () => {
   assert.match(read("sw.js"), /"\/review-play\.js"/);
-  assert.match(read("sw.js"), /ranki-shell-v72/);
+  assert.match(read("sw.js"), /ranki-shell-v73/);
 });

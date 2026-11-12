@@ -6820,10 +6820,12 @@ function goDate(key, opts) {
   const decoded = token && RC ? RC.decode(token) : null;
   // A challenge for this day is playable even outside the free window. It does not widen the saved unlock.
   const viaChallenge = !!(decoded && RC.bypassArchiveAd(decoded, key));
+  // An archive row opens the card the row shows (the scheduled title), not the next unfinished
+  // part. A finished title reopens as a fresh board that does not count again, as before.
   if (archiveFreeUnlocked(key) || viaChallenge) {
     state.mode = "archive"; state.dateKey = key;
     bindChallenge(token, { k: "d", id: key });
-    openDay();
+    openDay({ main: true });
     return;
   }
   // Locked day: spend one Unlock! credit, or show the Go Premium wall. Malformed challenges fall through here.
@@ -6831,7 +6833,7 @@ function goDate(key, opts) {
     if (!archiveFreeUnlocked(key)) return;
     state.mode = "archive"; state.dateKey = key;
     bindChallenge("", { k: "d", id: key });
-    openDay();
+    openDay({ main: true });
   });
 }
 function goAll(idx, opts) {   // v11: the pre-launch "All puzzles" browser (was "Practice" before v11)
