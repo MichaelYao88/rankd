@@ -11,14 +11,25 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const SITE = "https://ranki.gg";
 
+// supabase-js sends Authorization/apikey headers, so the browser preflights this
+// function. Without these headers the Go Premium button fails with a CORS error
+// even though a direct server call succeeds.
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
+};
+
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "no-store" },
   });
 }
 
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false, error: "method" }, 405);
 
   const auth = req.headers.get("Authorization") ?? "";
