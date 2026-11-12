@@ -42,14 +42,14 @@ const CONFIG = {
   SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZreGJxZnRxeHZncXJ0dmtwZ2x4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI3NDY0MzksImV4cCI6MjEwODMyMjQzOX0.vr-ZWCCLmYlkzGIOpIVq5elFZ-10uijFELNw6ET66Bc",
   // Ranki Premium is sold through Polar (product "Ranki Premium", $5.67 a month). The
   // polar-checkout edge function creates a checkout for the signed-in user; the
-  // polar-webhook function writes the entitlement. WhereIsShe's own purchases still
-  // use Lemon and write the same entitlement table.
+  // polar-webhook function writes the entitlement. Premium here covers ranki.gg only;
+  // whereisshe.gg has its own separate subscription.
   // enabled:false forces everyone free (kill switch). Entitlement comes from Supabase, not localStorage.
   premium: {
     enabled: true,
     checkoutFunction: "polar-checkout",
     priceLine: "$5.67/month",
-    pitch: "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.",
+    pitch: "Premium unlocks ranki.gg: no ads, full archive, and ad-free Practice.",
   },
   // PostHog product analytics (same project as WhereIsShe; events are split with site:"ranki").
   // The loader, posthog.init and register({ site: "ranki" }) live in the index.html <head> snippet.
@@ -1118,7 +1118,7 @@ function accountIntent(mode) {
 }
 function accountCopy(mode) {
   const intent = accountIntent(mode);
-  const subtitle = "The same email unlocks Premium on ranki.gg and whereisshe.gg.";
+  const subtitle = "Use the same email as your Premium subscription.";
   if (intent === "signin") {
     return {
       intent,
@@ -1201,7 +1201,7 @@ function premiumPriceLine() {
   return (CONFIG.premium && CONFIG.premium.priceLine) || "$5.67/month";
 }
 function premiumPitch() {
-  return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice.";
+  return (CONFIG.premium && CONFIG.premium.pitch) || "Premium unlocks ranki.gg: no ads, full archive, and ad-free Practice.";
 }
 function premiumUpsellLabel() { return premiumPitch() + " " + premiumPriceLine(); }
 function premiumUpsellHtml() {
@@ -7555,7 +7555,7 @@ function paintPremiumScreen() {
   if (isPremium()) {
     btn.disabled = true;
     btn.textContent = "You're Premium";
-    if (status) status.textContent = "Premium is on for this account on ranki.gg and whereisshe.gg.";
+    if (status) status.textContent = "Premium is on for this account on ranki.gg.";
     return;
   }
   if (!open) {

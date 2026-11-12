@@ -14,7 +14,7 @@ test("terms.html exists, is linked, and is in the sitemap", () => {
   assert.match(terms, /href="how-to-play\.html"/);
   assert.match(terms, /href="privacy\.html"/);
   assert.match(terms, /href="terms\.html"/);
-  assert.match(terms, /Lemon Squeezy/);
+  assert.match(terms, /Polar/);
   assert.match(terms, /whereisshe\.gg/);
   assert.match(terms, /mailto:mikelyaps@gmail\.com/);
   assert.doesNotMatch(terms, /\bRanki\b/);
@@ -28,7 +28,7 @@ test("terms.html exists, is linked, and is in the sitemap", () => {
     assert.doesNotMatch(html, /prototype/i, page);
   }
   const sw = read("sw.js");
-  assert.match(sw, /ranki-shell-v76/);
+  assert.match(sw, /ranki-shell-v77/);
   assert.match(sw, /"\/terms\.html"/);
   assert.match(sw, /"\/about\.html"/);
   assert.match(sw, /"\/privacy\.html"/);

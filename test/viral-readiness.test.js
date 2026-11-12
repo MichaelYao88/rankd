@@ -81,7 +81,7 @@ test("the page does not wait on PostHog, and the snapshot request can be cached"
   assert.match(html, /p\.async=!0/);
   assert.doesNotMatch(html, /document\.write/);
   assert.match(privacy, /rankd\.community\.v1/);
-  assert.match(read("sw.js"), /ranki-shell-v76/);
+  assert.match(read("sw.js"), /ranki-shell-v77/);
   assert.match(read("sw.js"), /function isPosthog/);
 });
 

@@ -74,12 +74,26 @@ test("Ranki Premium is a flat $5.67 a month and checks out through Polar", () =>
   assert.equal(shared.CONFIG.premium.priceLine, "$5.67/month");
   assert.equal(shared.CONFIG.premium.checkoutFunction, "polar-checkout");
   assert.equal(shared.CONFIG.premium.checkoutUrl, undefined, "no Lemon checkout link for Ranki");
-  assert.match(shared.CONFIG.premium.pitch, /Premium unlocks ranki\.gg \+ whereisshe\.gg/);
+  assert.match(shared.CONFIG.premium.pitch, /Premium unlocks ranki\.gg: no ads, full archive, and ad-free Practice\./);
   assert.doesNotMatch(appSrc, /lemon\.js|LemonSqueezy|premiumCheckoutUrl\(|checkout\[custom\]/);
   assert.match(appSrc, /sb\.functions\.invoke\(CONFIG\.premium\.checkoutFunction \|\| "polar-checkout"/);
   assert.match(appSrc, /window\.location\.assign\(link\)/);
   assert.match(appSrc, /watchCheckoutReturn\(\)/);
   assert.match(appSrc, /params\.get\("checkout"\) !== "success"/);
+});
+
+test("Premium copy is ranki-only and never promises whereisshe.gg", () => {
+  const terms = fs.readFileSync(path.join(root, "terms.html"), "utf8");
+  const copy = { "app.js": appSrc, "index.html": html, "terms.html": terms, "privacy.html": privacy };
+  for (const [name, src] of Object.entries(copy)) {
+    assert.doesNotMatch(src, /Premium unlocks ranki\.gg \+ whereisshe\.gg/, name);
+    assert.doesNotMatch(src, /unlocks whereisshe\.gg too/, name);
+    assert.doesNotMatch(src, /unlocks both games|both sites/i, name);
+    assert.doesNotMatch(src, /Premium on ranki\.gg and whereisshe\.gg/, name);
+    assert.doesNotMatch(src, /subscription for ranki\.gg and whereisshe\.gg/i, name);
+  }
+  assert.doesNotMatch(premium.accountCopy("signup").subtitle, /whereisshe/i);
+  assert.match(premium.premiumPitch(), /^Premium unlocks ranki\.gg:/);
 });
 
 test("checkout only starts for a signed-in user who is not already Premium", () => {
@@ -133,7 +147,7 @@ test("a Google name is the challenge name, and an email account is not", () => {
   assert.equal(premium.googleProfile(null).name, null);
 });
 
-test("the sign-in screen and the Premium screen advertise both games", () => {
+test("the sign-in screen and the Premium screen advertise ranki-only Premium", () => {
   assert.match(appSrc, /Sign up with Google/);
   assert.match(appSrc, /Sign in with Google/);
   assert.match(appSrc, /Sign up with email/);
@@ -147,10 +161,10 @@ test("the sign-in screen and the Premium screen advertise both games", () => {
   assert.match(appSrc, /redirectTo:\s*authRedirectUrl\(\)/);
   assert.match(html, /id="accountBtn"/);
   assert.match(html, /id="premiumView"/);
-  assert.match(html, /Premium unlocks ranki\.gg \+ whereisshe\.gg: no ads, full archive, and ad-free Practice\. \$5\.67\/month/);
+  assert.match(html, /Premium unlocks ranki\.gg: no ads, full archive, and ad-free Practice\. \$5\.67\/month/);
   assert.match(html, /supabase-js@2/);
-  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks ranki.gg + whereisshe.gg: no ads, full archive, and ad-free Practice. $5.67/month");
-  assert.match(premium.accountCopy("signup").subtitle, /ranki\.gg and whereisshe\.gg/);
+  assert.equal(premium.premiumUpsellLabel(), "Premium unlocks ranki.gg: no ads, full archive, and ad-free Practice. $5.67/month");
+  assert.equal(premium.accountCopy("signup").subtitle, "Use the same email as your Premium subscription.");
   assert.match(privacy, /Sign up with Google/);
   assert.match(privacy, /Sign in with Google/);
   assert.match(privacy, /Sign up with email/);

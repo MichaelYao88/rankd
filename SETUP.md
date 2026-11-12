@@ -4,7 +4,7 @@ These steps are manual. This pull request does not apply the migration and does 
 
 Ranki project: `fkxbqftqxvgqrtvkpglx` (`https://fkxbqftqxvgqrtvkpglx.supabase.co`).
 
-One Premium covers Ranki and WhereIsShe. Both games use Lemon store **mikelyaps**, store id **504191**, and the same customer email. They use separate Supabase projects. Each Lemon webhook receives every event for the store, so a WhereIsShe purchase also reaches Ranki's webhook.
+Ranki Premium covers ranki.gg only. It is sold through Polar and written to this project's entitlement table. WhereIsShe has its own separate Premium and checkout in its own Supabase project. A WhereIsShe purchase can still reach Ranki's Lemon webhook and be claimed by email here, but a Ranki purchase does not grant WhereIsShe Premium.
 
 ## 1. Apply the migration
 
@@ -51,9 +51,7 @@ The site already points at the existing WhereIsShe test checkout:
 
 That link is `CONFIG.premium.checkoutUrl` in `app.js`. Checkout is opened with `checkout[custom][user_id]`, `checkout[custom][app]=ranki`, and `checkout[email]`.
 
-Copy on the site is **From $2.67/month · suggested $6.70**. The pitch is that Premium unlocks Ranki and WhereIsShe (no ads, full archive, ad-free Practice).
-
-If you later create a dedicated shared product, make it a **subscription**, **monthly**, **pay what you want**, minimum **$2.67**, suggested **$6.70**. Replace `checkoutUrl` with that product's link. Keep passing the same three checkout fields.
+The old Lemon checkout copy was **From $2.67/month · suggested $6.70**. Ranki now sells Premium through Polar at **$5.67/month**, and the pitch is ranki.gg only (no ads, full archive, ad-free Practice). The paragraphs below are the historical Lemon setup.
 
 ## 6. Lemon webhook
 
@@ -111,13 +109,15 @@ What the function does:
 - If `meta.custom_data.user_id` is a Ranki auth user, Premium is written to that user's `entitlements` row (`grant_via = user_id`). Otherwise the row is stored in `premium_by_email` under the lowercased customer email. An email refund also updates `entitlements` rows already claimed with `grant_via = email` for that address.
 - Variant `2280847` is marked `source_product = whereisshe`. Any other accepted variant is `ranki`. `custom_data.app` is stored as `source_app`.
 
-## 9. How a WhereIsShe subscriber gets Ranki Premium
+## 9. How a WhereIsShe purchase can still be claimed on Ranki (one-way)
 
 On sign-in, and every time the profile reloads, the site calls `claim_premium_email`. That copies an active `premium_by_email` row onto the signed-in user when `auth.users.email` matches and `email_confirmed_at` is set. An active direct `user_id` grant is not turned off by an inactive email row. If both are active, the later end date is kept (a null end is open-ended).
 
+This is one-way. A Ranki purchase does not grant WhereIsShe Premium.
+
 ## 10. WhereIsShe (do not change that repo from here)
 
-When a separate Ranki variant id exists, add it to WhereIsShe's `LEMONSQUEEZY_VARIANT_IDS`. Leave `2280847` in place. WhereIsShe's webhook should do the same match Ranki does: if `custom_data.user_id` is a WhereIsShe auth user, grant that user; otherwise store the entitlement under the lowercased Lemon customer email. On WhereIsShe sign-in, claim that email row only when it matches the confirmed auth email. Same Lemon store `504191`.
+Ranki is now sold through Polar, so Ranki purchases are not sent to WhereIsShe. This section is the historical Lemon setup for WhereIsShe's own checkout; leave `2280847` in place. WhereIsShe's webhook should do the same match Ranki does: if `custom_data.user_id` is a WhereIsShe auth user, grant that user; otherwise store the entitlement under the lowercased Lemon customer email. On WhereIsShe sign-in, claim that email row only when it matches the confirmed auth email. Same Lemon store `504191`.
 
 ## 11. Going live
 
