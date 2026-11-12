@@ -122,6 +122,7 @@ WhereIsShe keeps its own Lemon checkout and its own Premium in its own Supabase 
 3. Do a real $5.67 purchase, confirm the entitlement row, then refund/cancel and confirm Premium turns off.
 4. Only then set `CONFIG.archiveGate = true` in `app.js`. It stays **off** until that full purchase → webhook → refund cycle has been verified live.
 5. Publish Google's consent screen if it is still in testing, and add the live domain to the OAuth client if Google asks for one.
+6. When a new daily page appears, run `tools/make_daily_og.ps1` (Windows, after `node tools/build_review_site.js`) and commit `og/daily/<date>.png`. Daily pages use it for `og:image` / `twitter:image` and fall back to `og.png` when a day has no image yet.
 
 ## Appendix: historical Lemon setup
 

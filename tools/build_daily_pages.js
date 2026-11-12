@@ -186,8 +186,9 @@ function renderPart(p, index, pageTitle) {
 }
 
 function pageShell(opts) {
-  const { date, dayNo, title, description, body, prev, next } = opts;
+  const { date, dayNo, title, description, body, prev, next, image } = opts;
   const canonical = `https://ranki.gg/daily/${date}.html`;
+  const ogImage = image || "https://ranki.gg/og.png";
   const nav = [
     prev ? `<a class="tab" href="${prev}.html">→ Previous day</a>` : "<span></span>",
     `<a class="tab" href="index.html">All days</a>`,
@@ -210,12 +211,14 @@ function pageShell(opts) {
 <meta property="og:url" content="${canonical}">
 <meta property="og:title" content="${esc(title)} · ranki.gg">
 <meta property="og:description" content="${esc(description)}">
-<meta property="og:image" content="https://ranki.gg/og.png">
+<meta property="og:image" content="${ogImage}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${esc(title)} · ranki.gg daily puzzle">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)} · ranki.gg">
 <meta name="twitter:description" content="${esc(description)}">
+<meta name="twitter:image" content="${ogImage}">
 <meta name="theme-color" content="#3B5BFF">
 <meta name="google-adsense-account" content="ca-pub-5196178239625142">
 <link rel="canonical" href="${canonical}">
@@ -369,6 +372,8 @@ function main() {
   for (let i = 0; i < order.length; i++) {
     const date = order[i];
     const day = files.get(date);
+    const ogFile = path.join(siteDir, "og", "daily", date + ".png");
+    const image = fs.existsSync(ogFile) ? `https://ranki.gg/og/daily/${date}.png` : "";
     const html = pageShell({
       date,
       dayNo: day.n + 1,
@@ -377,6 +382,7 @@ function main() {
       body: day.body,
       prev: i > 0 ? order[i - 1] : null,
       next: i < order.length - 1 ? order[i + 1] : null,
+      image,
     });
     const hit = html.match(banned);
     if (hit) throw new Error(`restricted term "${hit[0]}" in daily/${date}.html`);

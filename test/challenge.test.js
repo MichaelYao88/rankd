@@ -143,7 +143,7 @@ test("the page wires the button, the events, and the archive bypass", () => {
   assert.match(copyFn, /AbortError/);
   const built = app.slice(app.indexOf("function buildChallengeShare"), app.indexOf("function challengeQrSvg"));
   assert.match(built, /challengeNameForShare/);
-  assert.match(built, /shareUrl\(\) \+ "&c=" \+ token/);
+  assert.match(built, /challengeShareUrl\(token\)/);
   assert.match(built, /name: name/);
   const shareFn = app.slice(app.indexOf("async function shareChallengeFriend"), app.indexOf("function gameShareBase"));
   assert.doesNotMatch(shareFn, /if\s*\(\s*!name\s*\)\s*return/);
@@ -192,7 +192,7 @@ test("the result ends with a client-side qr of the challenge link", () => {
   assert.match(app, /createSvgTag/);
   assert.match(app, /renderChallengeQr\(res\)/);
   assert.match(css, /\.challenge-qr-code\{[^}]*168px/);
-  assert.match(sw, /ranki-shell-v78/);
+  assert.match(sw, /ranki-shell-v80/);
   assert.match(sw, /"\/vendor\/qrcode\.js"/);
   assert.equal(fs.existsSync(path.join(root, "vendor/qrcode.js")), true);
 

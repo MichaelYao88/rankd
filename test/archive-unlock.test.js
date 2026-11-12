@@ -153,7 +153,7 @@ test("the archive UI offers Unlock! and a Go Premium wall with a clock", () => {
   assert.match(app, /function showPremiumGate\(endsAt\)/);
   assert.match(app, /function requestArchiveUnlock\(key, then\)/);
   assert.match(app, /requestArchiveUnlock\(key, \(\) => \{/);
-  assert.match(app, /Another \$\{archiveMaxCredits\(\)\} are ready in/);
+  assert.match(app, /You get \$\{archiveMaxCredits\(\)\} free Unlock! every \$\{CONFIG\.archiveUnlockWindowHours\} hours/);
   assert.match(app, /share unlocked puzzles with friends/);
   assert.match(app, /just-unlocked/);
   assert.match(css, /@keyframes rkUnlock/);
