@@ -3153,10 +3153,19 @@ function bundlePartLabel() {
 function motionReduce() {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) { return false; }
 }
+function titleIndexOf(parts) {
+  let found = -1;
+  for (let k = 0; k < (parts || []).length; k++) if (parts[k] && parts[k].role === "title") found = k;
+  return found;
+}
 function streakIndexOf(parts) {
   let found = -1;
   for (let k = 0; k < (parts || []).length; k++) if (parts[k] && parts[k].scheduled) found = k;
-  return found < 0 ? Math.max(0, (parts || []).length - 1) : found;
+  if (found >= 0) return found;
+  // Never fall back to the last card: a missing scheduled flag used to make the
+  // closer look like the main puzzle and the day open on its final card.
+  const title = titleIndexOf(parts);
+  return title >= 0 ? title : 0;
 }
 function partStorageKey(i) {
   const parts = currentParts();
@@ -6774,7 +6783,8 @@ function playBonus() {
 function playMain() {
   const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : dayParts(dayNumber(state.dateKey));
   state.bundleParts = parts;
-  return openPart(streakIndexOf(parts), { animate: true });
+  const title = titleIndexOf(parts);
+  return openPart(title >= 0 ? title : streakIndexOf(parts), { animate: true });
 }
 function advancePart() {
   const parts = state.bundleParts && state.bundleParts.length ? state.bundleParts : currentParts();
@@ -6798,7 +6808,11 @@ function openDay(opts) {
   const parts = dayOffersBonus() ? dayParts(n) : [puzzleForDay(n)].filter(Boolean);
   state.bundleParts = parts;
   if (!parts.length) return;
-  if (opts && opts.main) return openPart(streakIndexOf(parts), { animate: true });
+  if (opts && opts.main) {
+    // The archive row and the daily "main" entry open the card the row shows.
+    const title = titleIndexOf(parts);
+    return openPart(title >= 0 ? title : streakIndexOf(parts), { animate: true });
+  }
   if (opts && Number.isFinite(opts.part)) return openPart(opts.part, { animate: true });
   // A reload after Part 1 (the scheduled puzzle) must open the next unplayed
   // part. Finishing that puzzle used to look like the whole day was done.
@@ -6813,17 +6827,21 @@ function goToday(opts) {
 function goDate(key, opts) {
   const today = todayKey();
   const token = opts && opts.challengeToken;
+  const fromArchive = !!(opts && opts.fromArchive);
   if (!validKey(key) || dayNumber(key) < 0) { toast("That puzzle doesn't exist"); return goToday(); }
   if (utc(key) > utc(today)) { toast("That puzzle isn't out yet 👀"); return goToday(); }   // never expose future dailies
-  if (key === today) return goToday(opts);
+  // Today's archive row still opens its title. Only the Play button (no
+  // fromArchive flag) resumes the current day at the next unfinished part.
+  if (key === today && !fromArchive) return goToday(opts);
   const RC = window.RankdChallenge;
   const decoded = token && RC ? RC.decode(token) : null;
   // A challenge for this day is playable even outside the free window. It does not widen the saved unlock.
   const viaChallenge = !!(decoded && RC.bypassArchiveAd(decoded, key));
-  // An archive row opens the card the row shows (the scheduled title), not the next unfinished
+  // An archive row opens the card the row shows (the title role), not the next unfinished
   // part. A finished title reopens as a fresh board that does not count again, as before.
+  const mode = key === today ? "daily" : "archive";
   if (archiveFreeUnlocked(key) || viaChallenge) {
-    state.mode = "archive"; state.dateKey = key;
+    state.mode = mode; state.dateKey = key;
     bindChallenge(token, { k: "d", id: key });
     openDay({ main: true });
     return;
@@ -6831,7 +6849,7 @@ function goDate(key, opts) {
   // Locked day: spend one Unlock! credit, or show the Go Premium wall. Malformed challenges fall through here.
   requestArchiveUnlock(key, () => {
     if (!archiveFreeUnlocked(key)) return;
-    state.mode = "archive"; state.dateKey = key;
+    state.mode = mode; state.dateKey = key;
     bindChallenge("", { k: "d", id: key });
     openDay({ main: true });
   });
@@ -6990,7 +7008,7 @@ function goArchive() {
       <span class="aq"><span class="ah">${esc(p.emoji)} ${esc(head)}</span>${sub ? `<span class="asub">${esc(sub)}</span>` : ""}<small>${modeLabel}</small>${bonusBit}</span>${badge}</button></li>`);
   }
   $("#archiveList").innerHTML = rows.join("");
-  $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key));
+  $$(".arch").forEach(b => b.onclick = () => goDate(b.dataset.key, { fromArchive: true }));
   wireArchiveSearch();
   if (runArchiveSearch) runArchiveSearch();
   window.scrollTo({ top: 0 });

@@ -172,6 +172,11 @@ test("the published file set has no restricted terms", () => {  const allow = ne
   assert.deepEqual(hits, []);
   assert.match(fs.readFileSync(path.join(root, "_site", "app.js"), "utf8"), /adsenseReview: true/);
   assert.equal(fs.existsSync(path.join(root, "_site", "sensitive")), false);
+  const version = (fs.readFileSync(path.join(root, "sw.js"), "utf8").match(/ranki-shell-v(\d+)/) || [])[1];
+  const index = fs.readFileSync(path.join(root, "_site", "index.html"), "utf8");
+  assert.match(index, new RegExp('src="app\\.js\\?v=' + version + '"'), "app.js is versioned for the service worker");
+  assert.match(index, new RegExp('href="styles\\.css\\?v=' + version + '"'), "styles.css is versioned for the service worker");
+  assert.match(index, new RegExp('src="review-play\\.js\\?v=' + version + '"'));
 });
 
 test("the static daily archive covers every past day and never the future", () => {

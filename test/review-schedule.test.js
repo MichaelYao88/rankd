@@ -164,11 +164,16 @@ test("an archive row opens its title card, not the next unfinished part", () => 
   const goDate = app.slice(app.indexOf("function goDate("), app.indexOf("function goAll("));
   assert.equal((goDate.match(/openDay\(\{ main: true \}\)/g) || []).length, 2, "both archive open paths use the title");
   assert.doesNotMatch(goDate, /openDay\(\);/, "no archive path resumes mid-day");
-  assert.match(app, /function openDay\(opts\)[\s\S]{0,400}if \(opts && opts\.main\) return openPart\(streakIndexOf\(parts\)/);
-  assert.match(app, /if \(opts && opts\.main\) return openPart\(streakIndexOf\(parts\)/);
+  assert.match(app, /function titleIndexOf\(parts\)[\s\S]{0,200}parts\[k\]\.role === "title"/);
+  assert.match(app, /if \(opts && opts\.main\) \{[\s\S]{0,220}const title = titleIndexOf\(parts\);[\s\S]{0,120}openPart\(title >= 0 \? title : streakIndexOf\(parts\)/);
+  assert.match(app, /function streakIndexOf\(parts\)[\s\S]{0,420}return title >= 0 \? title : 0;/, "never fall back to the last card");
+  assert.match(app, /goDate\(b\.dataset\.key, \{ fromArchive: true \}\)/);
+  assert.match(goDate, /const fromArchive = !!\(opts && opts\.fromArchive\)/);
+  assert.match(goDate, /if \(key === today && !fromArchive\) return goToday\(opts\)/);
+  assert.match(goDate, /const mode = key === today \? "daily" : "archive"/);
 });
 
 test("the service worker caches the review schedule with the shell", () => {
   assert.match(read("sw.js"), /"\/review-play\.js"/);
-  assert.match(read("sw.js"), /ranki-shell-v74/);
+  assert.match(read("sw.js"), /ranki-shell-v75/);
 });
