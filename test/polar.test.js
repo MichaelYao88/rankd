@@ -156,3 +156,21 @@ test("the Polar product id is only read from the function secret, never hardcode
   assert.doesNotMatch(src, /LEMONSQUEEZY/);
   assert.doesNotMatch(src, /lemonsqueezy/);
 });
+
+test("the checkout function answers the browser CORS preflight", () => {
+  const src = require("fs").readFileSync(path.join(__dirname, "..", "supabase", "functions", "polar-checkout", "index.ts"), "utf8");
+  assert.match(src, /Access-Control-Allow-Origin/);
+  assert.match(src, /Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"/);
+  assert.match(src, /if \(req\.method === "OPTIONS"\)/);
+});
+
+test("the email claim copies Polar ids and keeps the test_mode flag", () => {
+  const dir = path.join(__dirname, "..", "supabase", "migrations");
+  const files = require("fs").readdirSync(dir).filter(f => /\.sql$/i.test(f)).sort();
+  const defs = files.filter(f => /create or replace function private\.claim_premium_email/i.test(require("fs").readFileSync(path.join(dir, f), "utf8")));
+  assert.ok(defs.length > 0, "claim_premium_email is defined");
+  const latest = require("fs").readFileSync(path.join(dir, defs[defs.length - 1]), "utf8");
+  assert.match(latest, /polar_customer_id/);
+  assert.match(latest, /polar_subscription_id/);
+  assert.match(latest, /test_mode/);
+});
