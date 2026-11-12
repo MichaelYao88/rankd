@@ -243,7 +243,7 @@ for (const abs of walk(root)) {
     text = text.replace(/"ihme-drug-deaths": "Drug-Death",/, "");
     text = text.replace(/"unodc-cocaine": "Cocaine-Use",/, "");
     text = text.replace(/"Overdose Rates": "per 100k", /, "");
-    text = text.replace(/\[\/unodc\|united nations office on drugs\/i, "UNODC"\],/, '["unodc", "UNODC"],');
+    text = text.replace(/\[\/unodc\|united nations office on drugs\/i, "UNODC"\],/, '[/unodc/i, "UNODC"],');
     text = text.replace("|bisexual|", "|");
   }
   if (rel === "sw.js") {

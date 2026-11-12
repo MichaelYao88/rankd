@@ -3410,7 +3410,7 @@ const SOURCE_BRAND = [
 function sourceBrand(p) {
   const raw = String((p && p.source) || "").replace(/\s+/g, " ").trim();
   if (!raw) return "";
-  for (const [re, label] of SOURCE_BRAND) if (re.test(raw)) return label;
+  for (const [re, label] of SOURCE_BRAND) if (re && typeof re.test === "function" && re.test(raw)) return label;
   // strip trailing parentheticals / years / survey dates; take leading clause
   let s = raw.replace(/\([^)]*\)/g, " ").replace(/\b(19|20)\d{2}\b/g, " ");
   s = s.split(/[,;·|]/)[0].replace(/\s+/g, " ").trim();
