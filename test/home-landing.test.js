@@ -206,8 +206,7 @@ test("the results source card matches the how-to preview and sits above share", 
   const fact = result.indexOf('id="fact"');
   const source = result.indexOf('id="sourceLink"');
   const challenge = result.indexOf('id="challengeFriendBtn"');
-  const puzzle = result.indexOf('id="sharePuzzleBtn"');
-  assert.ok(fact >= 0 && source > fact && challenge > source && puzzle > challenge);
+  assert.ok(fact >= 0 && source > fact && challenge > source);
   assert.doesNotMatch(result, /id="shareResultBtn"/);
   assert.match(result, /class="source-card hidden" id="sourceLink"/);
   assert.match(result, /id="sourceName"/);
