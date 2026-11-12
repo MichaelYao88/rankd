@@ -382,7 +382,7 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .aq .abonus{display:block;margin-top:3px;font-weight:650;font-size:12.5px;letter-spacing:0;text-transform:none}
 .share-row .pill-btn{width:100%;padding:16px 14px;font-size:12.5px;letter-spacing:.12em;line-height:1.15}
 .share-row .pill-btn.secondary{background:var(--surface2);color:var(--ink)}
-.challenge-qr{display:flex;flex-direction:column;align-items:center;width:100%;margin:22px 0 4px;padding:18px 16px 16px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
+.challenge-qr{display:flex;flex-direction:column;align-items:center;width:100%;margin:2px 0 4px;padding:18px 16px 16px;border-radius:20px;background:var(--surface2);border:1px solid var(--line);box-shadow:var(--shadow-soft)}
 .challenge-qr-code{width:168px;height:168px;padding:0;border-radius:12px;background:#fff;line-height:0;overflow:hidden}
 .challenge-qr-code svg{display:block;width:168px;height:168px}
 .challenge-qr-caption{margin:12px 0 0;font-size:13px;font-weight:700;letter-spacing:-.01em;line-height:1.3;text-align:center;color:var(--muted)}
@@ -394,6 +394,8 @@ a.source-card:focus-visible{outline:2px solid var(--brand);outline-offset:3px}
 .top1-hints:empty,.top1-hints.hidden{display:none}
 .hero.is-top1 .top1-hints .lasthint{margin:0;color:inherit}
 .challenge-banner{margin:0 0 12px;padding:12px 14px;border-radius:16px;background:var(--surface2);box-shadow:var(--shadow-soft);font-size:14.5px;font-weight:700;line-height:1.35;letter-spacing:-.01em}
+.challenge-banner-line{margin:0}
+.challenge-banner-grid{margin-top:8px;font-size:16px;line-height:1.3;letter-spacing:0;font-weight:700;white-space:pre-wrap;overflow-wrap:anywhere}
 .h2h{margin-top:14px;padding:14px 16px 16px;border-radius:20px;background:var(--surface2);box-shadow:var(--shadow-soft)}
 .h2h-winner{margin:0;font-size:20px;font-weight:800;letter-spacing:-.03em}
 .h2h-vs{margin:2px 0 10px;font-size:13px;font-weight:700;color:var(--muted)}

@@ -295,7 +295,8 @@
 
   <!-- ======== PLAY VIEW ======== -->
   <section id="playView" class="hidden">
-    <!-- Challenge links: name, tries, and accuracy only. Squares stay hidden until the friend finishes. -->
+    <!-- Challenge links: the sender's name, tries, accuracy, and spoiler-free squares.
+         The head-to-head appears after the friend finishes. -->
     <div class="challenge-banner hidden" id="challengeBanner" role="status"></div>
     <!-- The whole game lives inside one bold card -->
     <div class="bundle-pile hidden" id="bundlePile" aria-hidden="true"></div>
@@ -475,8 +476,11 @@
         <p class="bonus-line hidden" id="bonusLine"></p>
         <button class="pill-btn secondary hidden" id="bonusBtn" type="button">Bonus round</button>
         <button class="pill-btn primary" id="challengeFriendBtn" type="button">Challenge a friend</button>
+        <div class="challenge-qr hidden" id="challengeQr">
+          <div class="challenge-qr-code" id="challengeQrCode" role="img" aria-label="QR code to take this challenge"></div>
+          <p class="challenge-qr-caption">Scan to take my challenge</p>
+        </div>
         <div class="share-actions">
-          <button class="pill-btn secondary" id="sharePuzzleBtn" type="button">Share this puzzle</button>
           <button class="pill-btn part-next" id="nextBtn" type="button">More puzzles →</button>
         </div>
       </div>
@@ -489,10 +493,6 @@
           <button type="button" class="crosspromo-dismiss" id="crossPromoDismiss">Not now</button>
         </div>
       </aside>
-      <div class="challenge-qr hidden" id="challengeQr">
-        <div class="challenge-qr-code" id="challengeQrCode" role="img" aria-label="QR code to take this challenge"></div>
-        <p class="challenge-qr-caption">Scan to take my challenge</p>
-      </div>
       <aside class="newsletter hidden" id="newsletter" aria-label="Get tomorrow's puzzle in your inbox">
         <form id="newsletterForm" class="newsletter-form" novalidate>
           <p class="newsletter-title">Get tomorrow's puzzle in your inbox</p>

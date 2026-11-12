@@ -175,10 +175,9 @@ test("result sections sit below the card, and the next button is not floating", 
   }
   assert.ok(hero.includes('id="cardNext"'), "the card keeps a Next button");
   const result = play.slice(resultAt);
-  const share = result.indexOf('id="sharePuzzleBtn"');
   const next = result.indexOf('id="nextBtn"');
   const qr = result.indexOf('id="challengeQr"');
-  assert.ok(share >= 0 && next > share && qr > next, "the flow Next button is grouped with Share and sits before the QR");
+  assert.ok(qr >= 0 && next > qr, "the QR sits between the challenge button and the final Next button");
   assert.match(css, /#nextBtn,#cardNext\{[^}]*position:static/);
   assert.match(css, /\.part-next,#nextBtn\{[^}]*width:100%/);
   assert.doesNotMatch(css, /#nextBtn[^{]*\{[^}]*position:\s*(fixed|sticky)/);

@@ -6095,10 +6095,18 @@ function renderChallengeBanner() {
   const onPlay = !$("#playView").classList.contains("hidden");
   if (!RC || !ch || !onPlay || !RC.matches(ch, puzzleChallengeRef())) {
     el.classList.add("hidden");
-    el.textContent = "";
+    el.replaceChildren();
     return;
   }
-  el.textContent = RC.bannerLine(ch);
+  const line = document.createElement("p");
+  line.className = "challenge-banner-line";
+  line.textContent = RC.bannerLine(ch);
+  const grid = document.createElement("div");
+  grid.className = "challenge-banner-grid";
+  grid.textContent = RC.gridText(ch.grid);
+  grid.setAttribute("role", "img");
+  grid.setAttribute("aria-label", RC.displayName(ch) + "'s result");
+  el.replaceChildren(line, grid);
   el.classList.remove("hidden");
 }
 function h2hSquares(grid) {
@@ -6248,9 +6256,9 @@ async function shareChallengeFriend() {
 // Share links always name this puzzle. Daily and archive use #d=YYYY-MM-DD, practice uses
 // #r=<seed>, the all-puzzles list uses #p=<id>. Loading Zone preview uses ?preview=YYYY-MM-DD:
 // a future #d= link is refused and would open today. The schedule page (loadingzone.html)
-// is not a puzzle URL, so shares point at the game. "Share this puzzle" is that direct
-// link plus a short title. "Challenge a friend" uses the same locator with &c= and the
-// score / emoji grid.
+// is not a puzzle URL, so shares point at the game. The single share/challenge action
+// uses that locator; when there is a finished result it adds &c= with the score and
+// emoji grid, and the QR encodes the same link.
 function gameShareBase() {
   const http = location.protocol.startsWith("http");
   const origin = http ? location.origin : "https://ranki.gg";
@@ -6271,18 +6279,17 @@ function shareUrl() {
 window.RankdShare = { url: shareUrl, base: gameShareBase };
 const fullTitle = p => p && p.type === "top1" ? heroHeadline(p) : (p.headline && p.question && p.headline !== p.question ? `${p.headline}: ${p.question}` : (p.headline || p.question));   // v11 share/list text
 function shareTitle() { return state.mode === "preview" ? `${CONFIG.brand} preview` : state.mode === "practice" ? `${CONFIG.brand} Practice` : state.mode === "all" ? `${CONFIG.brand} preview` : `${CONFIG.brand} #${pad3(dayNumber(state.dateKey) + 1)}`; }
-async function shareThisPuzzle() {
-  const p = state.puzzle;
-  if (!p) return;
-  const url = shareUrl();
-  const title = shareTitle();
-  if (!url || !title) return;
-  const text = title + "\n" + url;
-  track("share_clicked", { mode: state.mode, puzzle_type: p.type });
-  window.__lastShare = text;
-  await shareOrCopyChallenge(title, url, "Puzzle link copied!");
-}
 function challengeText() {
+  // One share action: a finished result rides along as &c=, so the friend sees the
+  // sender's score and squares. Before finishing, fall back to a plain puzzle link.
+  const live = finishedPlay();
+  if (live) {
+    const built = buildChallengeShare(live);
+    if (built) {
+      const rich = resultText(built.url, live);
+      if (rich) return rich;
+    }
+  }
   const p = state.slot === "bonus" ? puzzleOnDay(dayNumber(state.dateKey)) : state.puzzle;
   const blurb = p.type === "top1" ? "Top 1: which country is #1? Five tries." : p.type === "name" ? "Name it: can you name any country that passes both rules?" : p.type === "quiz" ? "Quiz: four countries each, one shot, then the fact." : p.type === "top5" ? "Top 5: six countries, five slots. Can you leave the odd one out?" : p.type === "match" ? "Match it: can you match each clue to the right person?" : p.type === "tier" ? "Tier it: can you drop each one into the right tier?" : "Can you rank them right?";
   return `${shareTitle()} ${p.emoji || ""}\n${fullTitle(p)}\n${blurb}\n${shareUrl()}`.replace(/ \n/, "\n");
@@ -6364,7 +6371,7 @@ function syncFabPad() {
 function parkFab() {
   const f = $("#fab"); if (!f) return;
   if (f.classList.contains("hidden") || !fitMQ.matches) { f.classList.remove("fab-clear"); return; }
-  const targets = [$("#shareChallengeTop"), $("#challengeFriendBtn"), $("#sharePuzzleBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs"), $("#challengeQr")];
+  const targets = [$("#shareChallengeTop"), $("#challengeFriendBtn"), $("#nextBtn"), document.querySelector("#result .share-row"), $("#youVs"), $("#challengeQr")];
   document.querySelectorAll("#youVs .platform-pct").forEach(el => targets.push(el));
   const hit = targets.some(el => boxesOverlap(f, el));
   f.classList.toggle("fab-clear", hit);
@@ -7112,7 +7119,7 @@ function menuModal() {   // v11: the single gear opens this sheet (stats + theme
     <button id="mStats">📊 Your stats<small>Accuracy, streaks and history</small></button>
     <button id="mTheme">${themeLabel()}</button>
     <button id="mSound">${soundLabel()}</button>
-    ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${isToday() ? "Share today's puzzle" : "Share this puzzle"}<small>Spoiler-free link</small></button>` : ""}
+    ${state.puzzle && !$("#playView").classList.contains("hidden") ? `<button id="mShare">↗ ${finishedPlay() ? "Challenge a friend" : (isToday() ? "Share today's puzzle" : "Share this puzzle")}<small>${finishedPlay() ? "Your score + squares" : "Spoiler-free link"}</small></button>` : ""}
     <button id="mArchive">🗓 Archive<small>Every past daily puzzle</small></button>
     ${Practice.ok() ? `<button id="mPractice">🎲 Practice<small>A new random puzzle from the full datasets</small></button>` : ""}
     ${CONFIG.SHOW_ALL_PUZZLES ? `<button id="mList">🗂 All puzzles (pre-launch)<small>Every puzzle, past and future, by mode</small></button>` : ""}
@@ -7275,7 +7282,6 @@ $("#shareChallengeTop").onclick = () => doShare(challengeText());
 if ($("#bonusBtn")) $("#bonusBtn").onclick = () => advancePart();
 if ($("#skipPart")) $("#skipPart").onclick = () => advancePart();
 if ($("#challengeFriendBtn")) $("#challengeFriendBtn").onclick = () => shareChallengeFriend();
-if ($("#sharePuzzleBtn")) $("#sharePuzzleBtn").onclick = () => shareThisPuzzle();
 $("#menuBtn").onclick = menuModal;
 $("#modalClose").onclick = closeModal;
 if ($("#spotlightDismiss")) $("#spotlightDismiss").onclick = dismissSpotlight;

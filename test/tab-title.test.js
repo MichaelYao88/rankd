@@ -95,5 +95,5 @@ test("document.title assignments and title/app-title tags do not say Rankd", () 
   assert.match(fns[0], /CONFIG\.brand/);
   assert.match(fns[1], /screenTitle/);
   assert.match(fns[1], /document\.title\s*=/);
-  assert.match(read("sw.js"), /ranki-shell-v77/);
+  assert.match(read("sw.js"), /ranki-shell-v78/);
 });

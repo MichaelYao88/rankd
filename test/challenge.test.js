@@ -118,8 +118,8 @@ test("the page wires the button, the events, and the archive bypass", () => {
   const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
   assert.match(html, /id="challengeFriendBtn"/);
   assert.match(html, />Challenge a friend</);
-  assert.match(html, /id="sharePuzzleBtn"/);
-  assert.match(html, />Share this puzzle</);
+  assert.doesNotMatch(html, /id="sharePuzzleBtn"/);
+  assert.doesNotMatch(html, />Share this puzzle</);
   assert.doesNotMatch(html, /id="shareResultBtn"/);
   assert.doesNotMatch(html, /Share my result/);
   assert.doesNotMatch(html, /id="challengeLinkNote"/);
@@ -151,12 +151,14 @@ test("the page wires the button, the events, and the archive bypass", () => {
   assert.match(shareFn, /resultText\(/);
   assert.match(shareFn, /buildChallengeShare\(/);
   assert.match(shareFn, /shareOrCopyChallenge\(/);
-  const puzzleFn = app.slice(app.indexOf("async function shareThisPuzzle"), app.indexOf("function challengeText"));
-  assert.match(puzzleFn, /shareTitle\(/);
-  assert.match(puzzleFn, /shareUrl\(/);
-  assert.match(puzzleFn, /shareOrCopyChallenge\(/);
-  assert.doesNotMatch(puzzleFn, /&c=/);
-  assert.doesNotMatch(puzzleFn, /resultText/);
+  const shareTextFn = app.slice(app.indexOf("function challengeText"), app.indexOf("function accuracyShareBit"));
+  assert.match(shareTextFn, /finishedPlay\(/);
+  assert.match(shareTextFn, /buildChallengeShare\(/);
+  assert.match(shareTextFn, /resultText\(/);
+  assert.doesNotMatch(app, /shareThisPuzzle|sharePuzzleBtn/);
+  const bannerFn = app.slice(app.indexOf("function renderChallengeBanner"), app.indexOf("function h2hSquares"));
+  assert.match(bannerFn, /gridText\(ch\.grid\)/);
+  assert.match(bannerFn, /challenge-banner-grid/);
   assert.match(html, /id="challengeBanner"/);
   assert.match(html, /id="h2h"/);
   assert.match(html, /src="challenge\.js"/);
@@ -179,10 +181,9 @@ test("the result ends with a client-side qr of the challenge link", () => {
   const result = html.slice(html.indexOf('id="result"'), html.indexOf('id="adBottomShell"'));
   const source = result.indexOf('id="sourceLink"');
   const challenge = result.indexOf('id="challengeFriendBtn"');
-  const puzzle = result.indexOf('id="sharePuzzleBtn"');
   const next = result.indexOf('id="nextBtn"');
   const qr = result.indexOf('id="challengeQr"');
-  assert.ok(source >= 0 && challenge > source && puzzle > challenge && next > puzzle && qr > next);
+  assert.ok(source >= 0 && challenge > source && qr > challenge && next > qr);
   assert.match(result, /Scan to take my challenge/);
   assert.match(html, /src="vendor\/qrcode\.js"/);
   assert.doesNotMatch(html, /https?:\/\/[^"']*qrcode/i);
@@ -191,7 +192,7 @@ test("the result ends with a client-side qr of the challenge link", () => {
   assert.match(app, /createSvgTag/);
   assert.match(app, /renderChallengeQr\(res\)/);
   assert.match(css, /\.challenge-qr-code\{[^}]*168px/);
-  assert.match(sw, /ranki-shell-v77/);
+  assert.match(sw, /ranki-shell-v78/);
   assert.match(sw, /"\/vendor\/qrcode\.js"/);
   assert.equal(fs.existsSync(path.join(root, "vendor/qrcode.js")), true);
 
