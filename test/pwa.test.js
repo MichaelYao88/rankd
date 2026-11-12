@@ -116,7 +116,7 @@ test("the service worker is registered from the game and static pages, not Studi
   assert.doesNotMatch(read("sw.js"), /location\.reload/);
   assert.match(read("sw.js"), /skipWaiting/);
   assert.match(read("sw.js"), /clients\.claim/);
-  assert.equal(sw.rankiCACHE, "ranki-shell-v76");
+  assert.equal(sw.rankiCACHE, "ranki-shell-v77");
   assert.match(read("sw.js"), /"\/vendor\/qrcode\.js"/);
 });
 
