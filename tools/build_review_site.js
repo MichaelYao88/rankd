@@ -6,6 +6,10 @@ const vm = require("vm");
 
 const root = path.join(__dirname, "..");
 const out = path.join(root, "_site");
+// Stamp local scripts/styles with the shell version. A stale service worker
+// serves the previous app.js for one load unless the URL changes, which made
+// fixes look like they had not shipped.
+const shellVersion = (fs.readFileSync(path.join(root, "sw.js"), "utf8").match(/ranki-shell-v(\d+)/) || [])[1] || "0";
 const { banned } = require("./review_terms");
 const skipDir = new Set([".git", "node_modules", "test", "tools", "docs", "sensitive", "_site"]);
 const textExt = new Set([".html", ".js", ".css", ".json", ".xml", ".txt", ".svg", ".webmanifest", ".md"]);
@@ -263,6 +267,10 @@ for (const abs of walk(root)) {
   }
   if (rel === "index.html" && !text.includes("review-play.js")) {
     text = text.replace('<script src="app.js"></script>', '<script src="review-play.js"></script>\n<script src="app.js"></script>');
+  }
+  if (/\.html$/i.test(rel)) {
+    text = text.replace(/(\s(?:src|href)=")(?!https?:|\/\/|data:|#|mailto:)([^"?]+\.(?:js|css))(")/g,
+      (match, before, url, after) => before + url + "?v=" + shellVersion + after);
   }
   text = text.replace(/\/\*[\s\S]*?\*\//g, block => banned.test(block) ? "" : block);
   text = text.replace(/\/\/[^\n]*/g, line => banned.test(line) ? "" : line);
