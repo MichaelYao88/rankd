@@ -257,7 +257,7 @@ function bootGame() {
 }
 
 function tokenOf(text) {
-  const m = String(text || "").match(/[?&#]c=([A-Za-z0-9_-]+)/);
+  const m = String(text || "").match(/(?:[?&#]c=|\/c\/)([A-Za-z0-9_-]+)/);
   return m ? m[1] : "";
 }
 // One calendar day before the app's today key. Age 1 stays inside the free archive window
@@ -445,15 +445,15 @@ test("challenge share, the result qr, and the first play", async () => {
   const dailyPuzzle = api.state.puzzle;
   const dailyDate = api.state.dateKey;
   const dailyText = await shareFinished(dailyPuzzle, "daily", dailyDate);
-  assert.match(dailyText, new RegExp("#d=" + dailyDate));
   assert.ok(tokenOf(dailyText));
+  assert.equal(RC.decode(tokenOf(dailyText)).k, "d");
+  assert.equal(RC.decode(tokenOf(dailyText)).id, dailyDate);
 
   const archiveDay = dayBefore(dailyDate);
   api.goDate(archiveDay);
   toMain();
   assert.equal(api.state.mode, "archive", archiveDay + " from " + dailyDate);
   const archText = await shareFinished(api.state.puzzle, "archive", archiveDay);
-  assert.match(archText, new RegExp("#d=" + archiveDay));
   assert.equal(RC.decode(tokenOf(archText)).k, "d");
   assert.equal(RC.decode(tokenOf(archText)).id, archiveDay);
 
@@ -461,7 +461,6 @@ test("challenge share, the result qr, and the first play", async () => {
   assert.equal(api.state.mode, "practice");
   const practicePuzzle = api.state.puzzle;
   const practiceText = await shareFinished(practicePuzzle, "practice", api.state.dateKey);
-  assert.match(practiceText, /#r=42/);
   assert.equal(RC.decode(tokenOf(practiceText)).k, "r");
   assert.equal(RC.decode(tokenOf(practiceText)).id, "42");
 

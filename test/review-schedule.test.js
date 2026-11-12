@@ -175,5 +175,5 @@ test("an archive row opens its title card, not the next unfinished part", () => 
 
 test("the service worker caches the review schedule with the shell", () => {
   assert.match(read("sw.js"), /"\/review-play\.js"/);
-  assert.match(read("sw.js"), /ranki-shell-v78/);
+  assert.match(read("sw.js"), /ranki-shell-v80/);
 });

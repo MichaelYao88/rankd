@@ -3,6 +3,26 @@
 <head>
 <meta charset="utf-8">
 <script>
+  // A shared challenge link is /c/<token>. If a host serves this shell at that path
+  // (no Functions runtime, or a static fallback), rewrite it to the hash form before
+  // any relative asset loads. The Pages Function normally handles this server-side.
+  (function () {
+    var m = String(location.pathname || "").match(/^\/c\/([A-Za-z0-9_-]{8,800})\/?$/);
+    if (!m) return;
+    var token = m[1], raw = "";
+    try {
+      var s = token.replace(/-/g, "+").replace(/_/g, "/");
+      while (s.length % 4) s += "=";
+      var bin = atob(s), bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 255;
+      raw = new TextDecoder().decode(bytes);
+    } catch (e) { raw = ""; }
+    var parts = raw.split("|");
+    var ok = parts.length === 8 && parts[0] === "1" && /^(d|r|p)$/.test(parts[1]) && parts[2];
+    location.replace(ok ? "/#" + parts[1] + "=" + encodeURIComponent(parts[2]) + "&c=" + token : "/");
+  })();
+</script>
+<script>
   // PostHog (public client token). Skipped for Loading Zone / Studio preview (?preview=), which is a sandbox.
   !function(){try{var q=new URLSearchParams(location.search).get("preview");if(q&&q.trim())return;}catch(e){return;}
   !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.crossOrigin="anonymous",p.async=!0,p.src=s.api_host.replace(".i.posthog.com","-assets.i.posthog.com")+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="init capture register register_once register_for_session unregister unregister_for_session getFeatureFlag getFeatureFlagPayload isFeatureEnabled reloadFeatureFlags updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures on onFeatureFlags onSessionId getSurveys getActiveMatchingSurveys renderSurvey canRenderSurvey getNextSurveyStep identify setPersonProperties group resetGroups setPersonPropertiesForFlags resetPersonPropertiesForFlags setGroupPropertiesForFlags resetGroupPropertiesForFlags reset get_distinct_id set_config startSessionRecording stopSessionRecording sessionRecordingStarted captureException loadToolbar get_property getSessionProperty createPersonProfile opt_in_capturing opt_out_capturing has_opted_in_capturing has_opted_out_capturing clear_opt_in_out_capturing debug".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);

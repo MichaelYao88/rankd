@@ -6186,6 +6186,14 @@ async function shareOrCopyChallenge(text, url, copiedToast) {
     return "copied";
   }
 }
+function challengeShareUrl(token) {
+  // Canonical host so a GitHub Pages or file:// copy still points at the real site.
+  // Localhost keeps its own origin so the fallback path can be exercised in QA.
+  const host = String(location.hostname || "");
+  const local = host === "localhost" || host === "127.0.0.1" || host === "::1" || host === "[::1]";
+  const origin = local && location.protocol.startsWith("http") ? location.origin : "https://ranki.gg";
+  return origin + "/c/" + token;
+}
 function buildChallengeShare(res) {
   const RC = window.RankdChallenge;
   const bonusView = state.slot === "bonus";
@@ -6200,7 +6208,7 @@ function buildChallengeShare(res) {
   if (!ref) return null;
   const token = RC.encode({ k: ref.k, id: String(ref.id), tries: score.tries, dnf: score.dnf, acc: score.acc, grid: score.grid, name: name });
   if (!token) return null;
-  return { url: shareUrl() + "&c=" + token, name: name, score: score };
+  return { url: challengeShareUrl(token), name: name, score: score };
 }
 function qrMaker() {
   if (typeof qrcode === "function") return qrcode;
@@ -6918,7 +6926,8 @@ function showPremiumGate(endsAt) {
   if (typeof openModal !== "function" || !$("#modalBody")) return;
   stopPremiumGateTimer();
   openModal(`<h2>🔒 Go Premium!</h2>
-    <p>You've used all <b>${archiveMaxCredits()} Unlock!</b> for now. Another ${archiveMaxCredits()} are ready in:</p>
+    <p>You've used all <b>${archiveMaxCredits()} Unlock!</b> for now. You get ${archiveMaxCredits()} free Unlock! every ${CONFIG.archiveUnlockWindowHours} hours.</p>
+    <p>The next ${archiveMaxCredits()} are ready in:</p>
     <p class="gate-clock" id="gateTimer" role="timer" aria-live="polite">--:--:--</p>
     <p>Premium opens <b>every archived day</b> instantly — and you can <b>share unlocked puzzles with friends</b>: your challenge links open those days for them.</p>
     <div class="confirm-row"><button type="button" class="pill-btn outline" id="gateClose">Not now</button><button type="button" class="pill-btn primary" id="gatePremium">Go Premium</button></div>`);

@@ -11,7 +11,7 @@ const out = path.join(root, "_site");
 // fixes look like they had not shipped.
 const shellVersion = (fs.readFileSync(path.join(root, "sw.js"), "utf8").match(/ranki-shell-v(\d+)/) || [])[1] || "0";
 const { banned } = require("./review_terms");
-const skipDir = new Set([".git", "node_modules", "test", "tools", "docs", "sensitive", "_site"]);
+const skipDir = new Set([".git", "node_modules", "test", "tools", "docs", "sensitive", "_site", "functions"]);
 const textExt = new Set([".html", ".js", ".css", ".json", ".xml", ".txt", ".svg", ".webmanifest", ".md"]);
 
 function boot(review) {
@@ -295,6 +295,9 @@ if (hits.length) {
   console.error(hits.slice(0, 40).join("\n"));
   throw new Error(hits.length + " restricted hits in _site");
 }
+// Cloudflare Pages: only the challenge preview route needs the Functions runtime.
+// Every other request stays a static asset, so normal page loads keep their cache path.
+fs.writeFileSync(path.join(out, "_routes.json"), JSON.stringify({ version: 1, include: ["/c/*"], exclude: [] }, null, 2) + "\n");
 // Crawlable archive: one plain page per day that has already gone live. Reads
 // the built site, so it uses the same review substitutions as the game.
 require("./build_daily_pages").main();
