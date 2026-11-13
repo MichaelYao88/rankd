@@ -174,3 +174,29 @@ test("the email claim copies Polar ids and keeps the test_mode flag", () => {
   assert.match(latest, /polar_subscription_id/);
   assert.match(latest, /test_mode/);
 });
+
+test("the live claim ignores WhereIsShe rows so Ranki Premium stays Ranki-only", () => {
+  const dir = path.join(__dirname, "..", "supabase", "migrations");
+  const files = require("fs").readdirSync(dir).filter(f => /\.sql$/i.test(f)).sort();
+  const defs = files.filter(f => /create or replace function private\.claim_premium_email/i.test(require("fs").readFileSync(path.join(dir, f), "utf8")));
+  const latestFile = defs[defs.length - 1];
+  assert.equal(latestFile, "20261113140000_ranki_only_claims.sql", "the newest definition carries the separation guard");
+  const latest = require("fs").readFileSync(path.join(dir, latestFile), "utf8");
+  assert.match(latest, /if rec\.source_product is distinct from 'ranki' then/);
+  assert.match(latest, /'claimed', false, 'reason', 'other_product'/);
+  // The guard has to run before anything is written to entitlements or premium_by_email.
+  const guard = latest.indexOf("other_product");
+  assert.ok(guard > 0 && guard < latest.indexOf("insert into public.entitlements"), "the guard precedes the entitlement write");
+  assert.ok(guard < latest.indexOf("update public.premium_by_email"), "the guard precedes the email-row update");
+  assert.match(latest, /Grants made before|grandfathered|Existing grants/i);
+});
+
+test("the Ranki project no longer hosts or configures a Lemon webhook", () => {
+  const root = path.join(__dirname, "..");
+  assert.equal(require("fs").existsSync(path.join(root, "supabase", "functions", "lemonsqueezy-webhook")), false);
+  const setup = require("fs").readFileSync(path.join(root, "SETUP.md"), "utf8");
+  assert.doesNotMatch(setup, /one-way/i);
+  assert.match(setup, /Ranki-side `lemonsqueezy-webhook` function has been removed/);
+  const functions = require("fs").readdirSync(path.join(root, "supabase", "functions"));
+  assert.deepEqual(functions.sort(), ["community-stats", "polar-checkout", "polar-webhook", "submit-play"]);
+});

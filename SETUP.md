@@ -4,7 +4,7 @@ These steps are manual. The migrations are applied and the functions are deploye
 
 Ranki project: `fkxbqftqxvgqrtvkpglx` (`https://fkxbqftqxvgqrtvkpglx.supabase.co`).
 
-Ranki Premium covers ranki.gg only. It is sold through **Polar** at a flat **$5.67/month** and written to this project's entitlement table. WhereIsShe has its own separate Premium and checkout in its own Supabase project. A WhereIsShe purchase can still be claimed on Ranki by email (one-way), but a Ranki purchase does not grant WhereIsShe Premium.
+Ranki Premium covers ranki.gg only. It is sold through **Polar** at a flat **$5.67/month** and written to this project's entitlement table. WhereIsShe has its own separate Premium, checkout, and Supabase project; it never grants Ranki Premium, and Ranki never grants WhereIsShe Premium.
 
 ## 1. Apply the migrations
 
@@ -14,10 +14,11 @@ In the Ranki SQL editor, run these in order. All are idempotent.
 2. `supabase/migrations/20261027190000_premium_test_mode.sql`
 3. `supabase/migrations/20261113120000_polar_premium.sql`
 4. `supabase/migrations/20261113130000_claim_polar_ids.sql`
+5. `supabase/migrations/20261113140000_ranki_only_claims.sql`
 
 `accounts_premium` adds display name and avatar on `profiles`, source and email columns on `entitlements`, the service-role table `premium_by_email`, and `public.claim_premium_email()`. The privileged body is `private.claim_premium_email()`. It reads the confirmed email from `auth.users`; it does not trust `user_metadata`.
 
-`polar_premium` adds the Polar id columns next to the Lemon ones. Lemon rows keep their values; Polar rows leave them null. `claim_polar_ids` makes the email claim copy Polar customer/subscription ids and the `test_mode` flag.
+`polar_premium` adds the Polar id columns next to the Lemon ones. Lemon rows keep their values; Polar rows leave them null. `claim_polar_ids` makes the email claim copy Polar customer/subscription ids and the `test_mode` flag. `ranki_only_claims` makes the claim ignore any row whose `source_product` is not `ranki`, so a WhereIsShe row can never become a Ranki entitlement.
 
 Do not add the `private` schema to Exposed schemas (Project Settings → Data API). Leave the exposed list as it is (`public` only, unless you already added something else).
 
@@ -107,13 +108,13 @@ supabase secrets set --project-ref fkxbqftqxvgqrtvkpglx \
 
 ## 9. How Premium is claimed
 
-On sign-in, and every time the profile reloads, the site calls `claim_premium_email`. That copies an active `premium_by_email` row onto the signed-in user when `auth.users.email` matches and `email_confirmed_at` is set, including the Polar customer/subscription ids. An active direct `user_id` grant is not turned off by an inactive email row. If both are active, the later end date is kept (a null end is open-ended).
+On sign-in, and every time the profile reloads, the site calls `claim_premium_email`. That copies an active Ranki `premium_by_email` row onto the signed-in user when `auth.users.email` matches and `email_confirmed_at` is set, including the Polar customer/subscription ids. An active direct `user_id` grant is not turned off by an inactive email row. If both are active, the later end date is kept (a null end is open-ended).
 
-This is one-way. A Ranki purchase does not grant WhereIsShe Premium.
+Only rows with `source_product = 'ranki'` are claimable. A WhereIsShe row returns `{claimed:false, reason:"other_product"}` and is left untouched. Grants made before this rule are grandfathered; the rule stops new cross-claims.
 
-## 10. WhereIsShe (do not change that repo from here)
+## 10. WhereIsShe is separate
 
-WhereIsShe keeps its own Lemon checkout and its own Premium in its own Supabase project. The Ranki `lemonsqueezy-webhook` function remains deployed only so a WhereIsShe purchase can still be claimed on Ranki by email. If you ever drop that one-way path, delete the function and section 9 with it.
+WhereIsShe keeps its own Lemon checkout, Premium, and Supabase project. The Ranki-side `lemonsqueezy-webhook` function has been removed, along with its `LEMONSQUEEZY_*` secrets, so nothing on Ranki listens for WhereIsShe purchases. Do not add Ranki grant logic to the WhereIsShe repo, and do not re-add a WhereIsShe webhook here.
 
 ## 11. Going live
 
@@ -123,7 +124,14 @@ WhereIsShe keeps its own Lemon checkout and its own Premium in its own Supabase 
 4. Only then set `CONFIG.archiveGate = true` in `app.js`. It stays **off** until that full purchase → webhook → refund cycle has been verified live.
 5. Publish Google's consent screen if it is still in testing, and add the live domain to the OAuth client if Google asks for one.
 6. When a new daily page appears, run `tools/make_daily_og.ps1` (Windows, after `node tools/build_review_site.js`) and commit `og/daily/<date>.png`. Daily pages use it for `og:image` / `twitter:image` and fall back to `og.png` when a day has no image yet.
+7. If the old Lemon function is still deployed, remove it and its secrets:
 
-## Appendix: historical Lemon setup
+   ```bash
+   supabase functions delete lemonsqueezy-webhook --project-ref fkxbqftqxvgqrtvkpglx
+   supabase secrets unset --project-ref fkxbqftqxvgqrtvkpglx \
+     LEMONSQUEEZY_WEBHOOK_SECRET LEMONSQUEEZY_STORE_ID LEMONSQUEEZY_VARIANT_IDS RANKI_ALLOW_TEST_MODE
+   ```
 
-Ranki used to sell through Lemon Squeezy. The old product was store **mikelyaps** (`504191`), checkout `ca1efbfa-7ab8-4fe6-b96a-694c1f5691fa`, variant `2280847` (WhereIsShe). Copy was **From $2.67/month · suggested $6.70**. That checkout is no longer used for Ranki. The `lemonsqueezy-webhook` function and its `LEMONSQUEEZY_*` secrets exist only for the one-way WhereIsShe → Ranki email claim described in section 9.
+## Appendix: retired Lemon path
+
+Ranki used to accept WhereIsShe Lemon purchases through a Ranki-side webhook. That path is gone: the function and its secrets are removed, and the claim ignores non-Ranki rows. `lemon_events` is still the shared event log, now written by `polar-webhook` with `lemon_event_id = "polar:<webhook-id>"`. The old Lemon checkout (`mikelyaps`, store `504191`, variant `2280847`) belongs to WhereIsShe and must not be wired into this project.
